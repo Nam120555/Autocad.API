@@ -45,8 +45,8 @@ namespace NetReload
 					return;
 				}
 
-				string csprojFile = Directory.GetFiles(projectDir, "*.csproj").FirstOrDefault();
-				if (string.IsNullOrEmpty(csprojFile))
+				string? csprojFile = Directory.GetFiles(projectDir, "*.csproj").FirstOrDefault();
+				if (csprojFile == null)
 				{
 					ed.WriteMessage("\nCould not find .csproj file. *Cancel*");
 					return;
@@ -74,8 +74,14 @@ namespace NetReload
 					CreateNoWindow = true
 				};
 
-				using (Process process = Process.Start(psi))
+				using (Process? process = Process.Start(psi))
 				{
+					if (process == null)
+					{
+						ed.WriteMessage("\nFailed to start dotnet process.");
+						return;
+					}
+
 					StringBuilder outputBuilder = new StringBuilder();
 					StringBuilder errorBuilder = new StringBuilder();
 
@@ -147,6 +153,9 @@ namespace NetReload
 				// 5. Load the new DLL
 				Assembly.LoadFrom(destDllPath);
 				ed.WriteMessage($"\nNETRELOAD complete. Loaded: {uniqueAssemblyName}.dll");
+
+				// 6. Auto-execute CIVIL_RIBBON command to show the Ribbon
+				doc.SendStringToExecute("CIVIL_RIBBON ", true, false, false);
 
 			}
 			catch (System.Exception ex)

@@ -132,8 +132,10 @@ namespace Civil3DCsharp
                     UserInput UI = new UserInput();
                     UtilitiesCAD CAD = new UtilitiesCAD();
                     UtilitiesC3D C3D = new UtilitiesC3D();
-                    SectionViewGroupCreationPlacementOptions sectionViewGroupCreationPlacementOptions = new SectionViewGroupCreationPlacementOptions();
-                    sectionViewGroupCreationPlacementOptions.UseProductionPlacement("C:/Windows/LAYOUT CIVIL 3D.dwt", "A3-TN-1-200");
+                    SectionViewGroupCreationPlacementOptions sectionViewGroupCreationPlacementOptions = new();
+                    string templatePath = UtilitiesC3D.GetSafeTemplatePath("C:/Windows/LAYOUT CIVIL 3D.dwt");
+                    if (string.IsNullOrEmpty(templatePath)) return;
+                    sectionViewGroupCreationPlacementOptions.UseProductionPlacement(templatePath, "A3-TN-1-200");
 
                     //start here
                     //get corridor

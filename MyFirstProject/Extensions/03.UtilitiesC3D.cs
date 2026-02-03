@@ -548,7 +548,9 @@ namespace MyFirstProject.Extensions
 
                 // ve trắc ngang
                 SectionViewGroupCreationPlacementOptions sectionViewGroupCreationPlacementOptions = new();
-                sectionViewGroupCreationPlacementOptions.UseProductionPlacement("C:/Windows/LAYOUT CIVIL 3D.dwt", "A3-TN-1-200");
+                string templatePath = GetSafeTemplatePath("C:/Windows/LAYOUT CIVIL 3D.dwt");
+                if (string.IsNullOrEmpty(templatePath)) return;
+                sectionViewGroupCreationPlacementOptions.UseProductionPlacement(templatePath, "A3-TN-1-200");
             
             SectionViewGroupCollection sectionViewGroupCollection = sampleLineGroup.SectionViewGroups;
                 sectionViewGroupCollection.Add(point3D, startStation, endstation, sectionViewGroupCreationRangeOptions, sectionViewGroupCreationPlacementOptions);
@@ -840,6 +842,23 @@ namespace MyFirstProject.Extensions
 
 
 
+
+        public static string GetSafeTemplatePath(string preferredPath)
+        {
+            if (System.IO.File.Exists(preferredPath)) return preferredPath;
+
+            Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage($"\n[Cảnh báo] Không tìm thấy template tại: {preferredPath}");
+            
+            PromptOpenFileOptions pfo = new("Chọn template trắc ngang (.dwt)")
+            {
+                Filter = "Template files (*.dwt)|*.dwt|Drawing files (*.dwg)|*.dwg"
+            };
+            PromptFileNameResult pfr = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor.GetFileNameForOpen(pfo);
+            
+            if (pfr.Status == PromptStatus.OK) return pfr.StringResult;
+            
+            return ""; // Trả về trống sẽ gây lỗi API Civil 3D, nên có thể cân nhắc throw hoặc dùng temp mặc định
+        }
 
     }
 }

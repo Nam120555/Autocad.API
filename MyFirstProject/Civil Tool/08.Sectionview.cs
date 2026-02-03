@@ -45,7 +45,9 @@ namespace Civil3DCsharp
                 UtilitiesC3D C3D = new();
 
                 SectionViewGroupCreationPlacementOptions sectionViewGroupCreationPlacementOptions = new();
-                sectionViewGroupCreationPlacementOptions.UseProductionPlacement("Z:/Z.FORM MAU LAM VIEC/1. BIM/2.MAU C3D/2.THU VIEN C3D/2.LAYOUT C3D/LAYOUT CIVIL 3D.dwt", "A3-TN-1-200");
+                string templatePath = UtilitiesC3D.GetSafeTemplatePath("Z:/Z.FORM MAU LAM VIEC/1. BIM/2.MAU C3D/2.THU VIEN C3D/2.LAYOUT C3D/LAYOUT CIVIL 3D.dwt");
+                if (string.IsNullOrEmpty(templatePath)) return;
+                sectionViewGroupCreationPlacementOptions.UseProductionPlacement(templatePath, "A3-TN-1-200");
 
 
                 //start here
@@ -314,7 +316,9 @@ namespace Civil3DCsharp
                 UtilitiesCAD CAD = new();
                 UtilitiesC3D C3D = new();
                 SectionViewGroupCreationPlacementOptions sectionViewGroupCreationPlacementOptions = new();
-                sectionViewGroupCreationPlacementOptions.UseProductionPlacement("Z:/Z.FORM MAU LAM VIEC/1. BIM/2.MAU C3D/2.THU VIEN C3D/2.LAYOUT C3D/LAYOUT CIVIL 3D.dwt", "A3-TN-1-200");
+                string templatePathSide = UtilitiesC3D.GetSafeTemplatePath("Z:/Z.FORM MAU LAM VIEC/1. BIM/2.MAU C3D/2.THU VIEN C3D/2.LAYOUT C3D/LAYOUT CIVIL 3D.dwt");
+                if (string.IsNullOrEmpty(templatePathSide)) return;
+                sectionViewGroupCreationPlacementOptions.UseProductionPlacement(templatePathSide, "A3-TN-1-200");
 
                 //start here
                 ObjectIdCollection alignmentIds = A.Cdoc.GetAlignmentIds();
@@ -1120,7 +1124,9 @@ namespace Civil3DCsharp
             UtilitiesC3D C3D = new();
 
             SectionViewGroupCreationPlacementOptions sectionViewGroupCreationPlacementOptions = new();
-            sectionViewGroupCreationPlacementOptions.UseProductionPlacement("Z:/Z.FORM MAU LAM VIEC/1. BIM/2.MAU C3D/2.THU VIEN C3D/2.LAYOUT C3D/LAYOUT CIVIL 3D.dwt", "A3-TN-1-200");
+            string templatePath = UtilitiesC3D.GetSafeTemplatePath("Z:/Z.FORM MAU LAM VIEC/1. BIM/2.MAU C3D/2.THU VIEN C3D/2.LAYOUT C3D/LAYOUT CIVIL 3D.dwt");
+            if (string.IsNullOrEmpty(templatePath)) return;
+            sectionViewGroupCreationPlacementOptions.UseProductionPlacement(templatePath, "A3-TN-1-200");
 
             //start here
             ObjectId sectionViewId = UserInput.GSectionView("\n Chọn 1 bảng cắt ngang để thêm text khối lượng: ");

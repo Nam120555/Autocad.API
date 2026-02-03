@@ -116,7 +116,8 @@ namespace MyFirstProject
                             Orientation = System.Windows.Controls.Orientation.Vertical,
                             Size = RibbonItemSize.Standard,
                             CommandHandler = new SimpleRibbonCommandHandler(),
-                            Tag = command
+                            Tag = command,
+                            CommandParameter = command
                         };
                         splitButton.Items.Add(btn);
                     }
@@ -165,7 +166,8 @@ namespace MyFirstProject
                             Orientation = System.Windows.Controls.Orientation.Vertical,
                             Size = RibbonItemSize.Standard,
                             CommandHandler = new SimpleRibbonCommandHandler(),
-                            Tag = command
+                            Tag = command,
+                            CommandParameter = command
                         };
                         splitButton.Items.Add(btn);
                     }
@@ -173,119 +175,146 @@ namespace MyFirstProject
                     targetTab.Panels.Add(panel);
                 }
 
-                // Lệnh từ Civil Tool files - 01.Corridor.cs
-                (string Command, string Label)[] corridorCommands =
+                // 1. Module Surfaces (09.Surfaces.cs)
+                (string Command, string Label)[] surfacesCommands =
                 [
-                    ("CTC_AddAllSection", "Add All Section"),
-                    ("CTC_TaoCooridor_DuongDoThi_RePhai", "Tạo Corridor Rẽ Phải")
+                    ("CTS_TaoSpotElevation_OnSurface_TaiTim", "📏 Spot Elevation Tại Tim")
                 ];
-
-                // Lệnh từ 02.Parcel.cs  
-                (string Command, string Label)[] parcelCommands =
-                [
-                    ("CTPA_TaoParcel_CacLoaiNha", "Tạo Parcel Các Loại Nhà")
-                ];
-
-                // Lệnh từ 03.MenuFunction.cs
-                (string Command, string Label)[] menuCommands =
-                [
-                    ("testmyRibbon", "Test My Ribbon")
-                ];
-
-                // Lệnh từ 04.PipeAndStructures.cs
-                (string Command, string Label)[] pipeCommands =
-                [
-                    ("CTPI_ThayDoi_DuongKinhCong", "Thay Đổi Đường Kính Cống"),
-                    ("CTPI_ThayDoi_MatPhangRef_Cong", "Thay Đổi Mặt Phẳng Ref Cống"),
-                    ("CTPI_ThayDoi_DoanDocCong", "Thay Đổi Độ Dốc Cống"),
-                    ("CTPI_BangCaoDo_TuNhienHoThu", "Bảng Cao Độ Hố Thu"),
-                    ("CTPI_XoayHoThu_Theo2diem", "Xoay Hố Thu Theo 2 Điểm")
-                ];
-
-                // Lệnh từ 05.Point.cs
-                (string Command, string Label)[] pointCommands =
-                [
-                    ("CTPO_TaoCogoPoint_CaoDo_FromSurface", "Tạo CogoPoint Từ Surface"),
-                    ("CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Tạo CogoPoint Từ Elevation Spot"),
-                    ("CTPO_UpdateAllPointGroup", "Update All Point Group"),
-                    ("CTPO_CreateCogopointFromText", "Tạo CogoPoint Từ Text"),
-                    ("CTPO_An_CogoPoint", "Ẩn CogoPoint")
-                ];
-
-                // Lệnh từ 06.ProfileAndProfileView.cs
-                (string Command, string Label)[] profileCommands =
-                [
-                    ("CTP_VeTracDoc_TuNhien", "Vẽ Trắc Dọc Tự Nhiên"),
-                    ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ Trắc Dọc Tất Cả Tuyến"),
-                    ("CTP_Fix_DuongTuNhien_TheoCoc", "Sửa Đường Tự Nhiên Theo Cọc"),
-                    ("CTP_GanNhanNutGiao_LenTracDoc", "Gắn Nhãn Nút Giao Lên Trắc Dọc"),
-                    ("CTP_TaoCogoPointTuPVI", "Tạo CogoPoint Từ PVI")
-                ];
-
-                // Lệnh từ 07.Sampleline.cs (đầy đủ 26 lệnh)
+ 
+                // 2. Module SampleLine (07.Sampleline.cs) - 27 lệnh
                 (string Command, string Label)[] samplelineCommands =
                 [
-                    ("CTS_DoiTenCoc", "Đổi Tên Cọc"),
-                    ("CTS_DoiTenCoc3", "Đổi Tên Cọc Km"),
-                    ("CTS_DoiTenCoc2", "Đổi Tên Cọc Theo Đoạn"),
-                    ("CTS_TaoBang_ToaDoCoc", "Tạo Bảng Tọa Độ Cọc"),
-                    ("CTS_TaoBang_ToaDoCoc2", "Tạo Bảng Tọa Độ Cọc (Lý Trình)"),
-                    ("CTS_TaoBang_ToaDoCoc3", "Tạo Bảng Tọa Độ Cọc (Cao Độ)"),
-                    ("AT_UPdate2Table", "Cập Nhật 2 Table"),
-                    ("CTS_ChenCoc_TrenTracDoc", "Chèn Cọc Trên Trắc Dọc"),
-                    ("CTS_CHENCOC_TRENTRACNGANG", "Chèn Cọc Trên Trắc Ngang"),
-                    ("CTS_DoiTenCoc_fromCogoPoint", "Đổi Tên Cọc Từ CogoPoint"),
-                    ("CTS_PhatSinhCoc", "Phát Sinh Cọc"),
-                    ("CTS_PhatSinhCoc_ChiTiet", "Phát Sinh Cọc Chi Tiết"),
-                    ("CTS_PhatSinhCoc_theoKhoangDelta", "Phát Sinh Cọc Theo Delta"),
-                    ("CTS_PhatSinhCoc_TuCogoPoint", "Phát Sinh Cọc Từ CogoPoint"),
-                    ("CTS_DoiTenCoc_TheoThuTu", "Đổi Tên Cọc Theo Thứ Tự"),
-                    ("CTS_DichCoc_TinhTien", "Dịch Cọc Tịnh Tiến"),
-                    ("CTS_Copy_NhomCoc", "Copy Nhóm Cọc"),
-                    ("CTS_DongBo_2_NhomCoc", "Đồng Bộ 2 Nhóm Cọc"),
-                    ("CTS_DongBo_2_NhomCoc_TheoDoan", "Đồng Bộ 2 Nhóm Cọc Theo Đoạn"),
-                    ("CTS_DichCoc_TinhTien40", "Dịch Cọc 40m"),
-                    ("CTS_DichCoc_TinhTien_20", "Dịch Cọc 20m"),
-                    ("CTS_DoiTenCoc_H", "Đổi Tên Cọc H"),
-                    ("CTS_PhatSinhCoc_TheoBang", "Phát Sinh Cọc Theo Bảng"),
-                    ("CTS_Copy_BeRong_sampleLine", "Copy Bề Rộng Sample Line"),
-                    ("CTS_Thaydoi_BeRong_sampleLine", "Thay Đổi Bề Rộng Sample Line"),
-                    ("CTS_Offset_BeRong_sampleLine", "Offset Bề Rộng Sample Line")
+                    ("CTS_DoiTenCoc", "✏ Đổi tên cọc"),
+                    ("CTS_DoiTenCoc2", "✏ Đổi tên cọc đoạn"),
+                    ("CTS_DoiTenCoc3", "✏ Đổi tên cọc Km"),
+                    ("CTS_DoiTenCoc_fromCogoPoint", "✏ Đổi tên từ CogoPoint"),
+                    ("CTS_DoiTenCoc_TheoThuTu", "✏ Đổi tên thứ tự"),
+                    ("CTS_DoiTenCoc_H", "✏ Đổi tên hậu tố A"),
+                    ("CTS_TaoBang_ToaDoCoc", "📐 Tọa độ cọc (X,Y)"),
+                    ("CTS_TaoBang_ToaDoCoc2", "📐 Tọa độ cọc (Lý trình)"),
+                    ("CTS_TaoBang_ToaDoCoc3", "📐 Tọa độ cọc (Cao độ)"),
+                    ("AT_UPdate2Table", "🔄 Cập nhật từ bảng"),
+                    ("CTS_ChenCoc_TrenTracDoc", "➕ Chèn trên trắc dọc"),
+                    ("CTS_CHENCOC_TRENTRACNGANG", "➕ Chèn trên trắc ngang"),
+                    ("CTS_PhatSinhCoc", "➕ Phát sinh cọc auto"),
+                    ("CTS_PhatSinhCoc_ChiTiet", "➕ Phát sinh chi tiết"),
+                    ("CTS_PhatSinhCoc_theoKhoangDelta", "➕ Phát sinh delta"),
+                    ("CTS_PhatSinhCoc_TuCogoPoint", "➕ Phát sinh từ CogoPoint"),
+                    ("CTS_PhatSinhCoc_TheoBang", "➕ Phát sinh từ bảng"),
+                    ("CTS_DichCoc_TinhTien", "↔ Dịch cọc tịnh tiến"),
+                    ("CTS_DichCoc_TinhTien40", "↔ Dịch cọc 40m"),
+                    ("CTS_DichCoc_TinhTien_20", "↔ Dịch cọc 20m"),
+                    ("CTS_Copy_NhomCoc", "📋 Sao chép nhóm cọc"),
+                    ("CTS_DongBo_2_NhomCoc", "🔄 Đồng bộ nhóm cọc"),
+                    ("CTS_DongBo_2_NhomCoc_TheoDoan", "🔄 Đồng bộ theo đoạn"),
+                    ("CTS_Copy_BeRong_sampleLine", "📏 Copy bề rộng SL"),
+                    ("CTS_Thaydoi_BeRong_sampleLine", "📏 Thay đổi bề rộng SL"),
+                    ("CTS_Offset_BeRong_sampleLine", "📏 Offset bề rộng SL"),
+                    ("CTSV_ThongKeCoc", "📊 Thống kê cọc (Excel)"),
+                    ("CTSV_ThongKeCoc_TatCa", "📊 Thống kê tất cả cọc")
                 ];
 
-                // Lệnh từ 08.Sectionview.cs (đầy đủ 20 lệnh)
+                // 3. Module Alignment & Profile
+                (string Command, string Label)[] profileCommands =
+                [
+                    ("CTPV_TaoProfileView", "➕ Tạo trắc dọc"),
+                    ("CTPV_SuaProfileView", "✏ Edit profile"),
+                    ("CTPV_ThemBang_LyTrinh", "📋 Thêm bảng lý trình"),
+                    ("CTPV_ThemLabel_CaoDo", "🏷 Thêm Label cao độ"),
+                    ("CTPV_ThayDoiScale", "📏 Thay đổi Scale"),
+                    ("CTPV_FitKhung", "📐 Fit khung")
+                ];
+ 
+                // 4. Module Corridor & Parcel
+                (string Command, string Label)[] corridorCommands =
+                [
+                    ("CTC_AddAllSection", "➕ Thêm tất cả Section"),
+                    ("CTC_TaoCooridor_DuongDoThi_RePhai", "🛤 Corridor rẽ phải"),
+                    ("CTP_TaoBangThongKeParcel", "📦 Thống kê Parcel"),
+                    ("CTP_TaoBangThongKeParcel_SapXep", "📦 Thống kê Parcel (Sắp xếp)")
+                ];
+
+                // 5. Module SectionView (08.Sectionview.cs) - 21 lệnh
                 (string Command, string Label)[] sectionviewCommands =
                 [
-                    ("CTSV_VeTracNgangThietKe", "Vẽ Trắc Ngang Thiết Kế"),
-                    ("CVSV_VeTatCa_TracNgangThietKe", "Vẽ Tất Cả Trắc Ngang"),
-                    ("CTSV_ChuyenDoi_TNTK_TNTN", "Chuyển Đổi TN-TK sang TN-TN"),
-                    ("CTSV_DanhCap", "Tính Đánh Cấp"),
-                    ("CTSV_DanhCap_XoaBo", "Xóa Bỏ Đánh Cấp"),
-                    ("CTSV_DanhCap_VeThem", "Vẽ Thêm Đánh Cấp"),
-                    ("CTSV_DanhCap_VeThem2", "Vẽ Thêm Đánh Cấp 2m"),
-                    ("CTSV_DanhCap_VeThem1", "Vẽ Thêm Đánh Cấp 1m"),
-                    ("CTSV_DanhCap_CapNhat", "Cập Nhật Đánh Cấp"),
-                    ("CTSV_ThemVatLieu_TrenCatNgang", "Thêm Vật Liệu Trên Cắt Ngang"),
-                    ("CTSV_ThayDoi_MSS_Min_Max", "Thay Đổi MSS Min Max"),
-                    ("CTSV_ThayDoi_GioiHan_traiPhai", "Thay Đổi Giới Hạn Trái Phải"),
-                    ("CTSV_ThayDoi_KhungIn", "Thay Đổi Khung In"),
-                    ("CTSV_KhoaCatNgang_AddPoint", "Khóa Cắt Ngang Add Point"),
-                    ("CTSV_fit_KhungIn", "Fit Khung In"),
-                    ("CTSV_fit_KhungIn_5_5_top", "Fit Khung In 5x5"),
-                    ("CTSV_fit_KhungIn_5_10_top", "Fit Khung In 5x10"),
-                    ("CTSV_An_DuongDiaChat", "Ẩn Đường Địa Chất"),
-                    ("CTSV_HieuChinh_Section", "Hiệu Chỉnh Section Static"),
-                    ("CTSV_HieuChinh_Section_Dynamic", "Hiệu Chỉnh Section Dynamic")
+                    ("CTSV_VeTracNgangThietKe", "🎨 Tạo trắc ngang"),
+                    ("CVSV_VeTatCa_TracNgangThietKe", "🎨 Vẽ tất cả TN"),
+                    ("CTSV_ChuyenDoi_TNTK_TNTN", "🔄 Chuyển TK sang TN"),
+                    ("CTSV_DanhCap", "📐 Đánh cấp - VHC"),
+                    ("CTSV_DanhCap_XoaBo", "❌ Xóa đánh cấp"),
+                    ("CTSV_DanhCap_VeThem", "➕ Vẽ thêm đánh cấp"),
+                    ("CTSV_DanhCap_VeThem1", "➕ Vẽ thêm 1m"),
+                    ("CTSV_DanhCap_VeThem2", "➕ Vẽ thêm 2m"),
+                    ("CTSV_DanhCap_CapNhat", "🔄 Cập nhật KL đánh cấp"),
+                    ("CTSV_ThemVatLieu_TrenCatNgang", "📋 Điền KL trắc ngang"),
+                    ("CTSV_ThayDoi_MSS_Min_Max", "⚙ Hiệu chỉnh MSS"),
+                    ("CTSV_ThayDoi_GioiHan_traiPhai", "↔ Thay giới hạn T/P"),
+                    ("CTSV_ThayDoi_KhungIn", "📋 Dàn khung in"),
+                    ("CTSV_KhoaCatNgang_AddPoint", "🔒 Khóa TN + Add Point"),
+                    ("CTSV_fit_KhungIn", "📐 Fit khung in"),
+                    ("CTSV_fit_KhungIn_5_5_top", "📐 Fit khung 5x5"),
+                    ("CTSV_fit_KhungIn_5_10_top", "📐 Fit khung 5x10"),
+                    ("CTSV_An_DuongDiaChat", "👁 Ẩn đường địa chất"),
+                    ("CTSV_HieuChinh_Section", "✏ Hiệu chỉnh (Static)"),
+                    ("CTSV_HieuChinh_Section_Dynamic", "✏ Hiệu chỉnh (Dynamic)"),
+                    ("CTSV_ThongKeCoc", "📊 Thống kê cọc (Excel)"),
+                    ("CTSV_ThongKeCoc_TatCa", "📊 Thống kê toàn bộ cọc"),
+                    ("CTSV_ThongKeCoc_ToaDo", "📍 Thống kê tọa độ cọc"),
+                    ("CTSV_Taskbar", "📊 Taskbar Khối Lượng"),
+                    ("CTSV_XuatKhoiLuong", "📥 Xuất KL Excel"),
+                    ("CTSV_XuatCad", "📥 Xuất KL CAD"),
+                    ("CTSV_CaiDatBang", "⚙ Cài đặt bảng KL")
                 ];
 
-                // Các panel còn lại không có lệnh
-                string[] emptyPanels =
+                // 6. Module San Nền (14.SanNen.cs)
+                (string Command, string Label)[] gradingCommands =
                 [
-                    "Alignment",
-                    "Intersections", 
-                    "Feature Line",
-                    "Assembly",
-                    "Grading"
+                    ("CTSN_Taskbar", "📊 Mở Taskbar SN"),
+                    ("CTSN_TaoLuoi", "▦ Quản lý lưới"),
+                    ("CTSN_NhapCaoDo", "📝 Điền cao độ lưới"),
+                    ("CTSN_Surface", "🏔 Lấy CĐ Surface"),
+                    ("CTSN_TinhKL", "📋 Tính khối lượng SN"),
+                    ("CTSN_XuatBang", "📤 Xuất bảng KL CAD")
+                ];
+
+                // 7. Module Point (05.Point.cs)
+                (string Command, string Label)[] pointCommands =
+                [
+                    ("CTPo_TaoPointTheoBang", "➕ Tạo Point từ bảng"),
+                    ("CTPo_ChuyenPointThanhBlock", "🔄 Point → Block"),
+                    ("CTPo_TaoBangThongKePoint", "📋 Bảng thống kê Point"),
+                    ("CTPo_ThayDoiCaoDo", "✏ Thay đổi cao độ"),
+                    ("CTPo_DatTen_theoThuTu", "🏷 Đặt tên thứ tự"),
+                    ("CTPo_ThayDoiStyle", "🎨 Thay đổi Style"),
+                    ("CTPo_LayThongTin", "ℹ Lấy thông tin")
+                ];
+
+                // 8. Module Pipe & Structures (04.PipeAndStructures.cs)
+                (string Command, string Label)[] pipeCommands =
+                [
+                    ("CTPS_TaoBangThongKePipe", "🔧 Thống kê Pipe"),
+                    ("CTPS_TaoBangThongKeStructure", "🔧 Thống kê Structure"),
+                    ("CTPS_ThayDoi_CaoDo_Pipe", "📏 Đổi cao độ Pipe"),
+                    ("CTPS_ThayDoi_CaoDo_Structure", "📏 Đổi cao độ Struct"),
+                    ("CTPS_XoayPipe_90do", "🔄 Xoay Pipe 90°"),
+                    ("CTPS_XoaConTrung", "❌ Xóa con trùng")
+                ];
+
+                // 9. Module Utilities & Property Sets
+                (string Command, string Label)[] utilitiesCommands =
+                [
+                    ("AT_Solid_Set_PropertySet", "📦 Gán Property Set"),
+                    ("AT_Solid_Show_Info", "ℹ Thông tin Solid"),
+                    ("CT_VTOADOHG", "📍 Tọa độ hố ga"),
+                    ("show_menu", "🔄 Reload Menu")
+                ];
+
+                // 10. Module Account
+                (string Command, string Label)[] accountCommands =
+                [
+                    ("", "🔑 Đăng nhập"),
+                    ("", "ℹ Thông tin"),
+                    ("", "📖 Hướng dẫn"),
                 ];
 
                 // Các lệnh từ 01.CAD.cs cho Acad tool
@@ -316,21 +345,17 @@ namespace MyFirstProject
                     ("AT_annotive_scale_currentOnly", "Annotative Scale Current Only")
                 ];
 
-                // Thêm các panel có lệnh cho Civil tool
-                AddCivilDropdownPanel(tab, "Corridor", corridorCommands);
-                AddCivilDropdownPanel(tab, "Parcel", parcelCommands);
-                AddCivilDropdownPanel(tab, "Pipe Network", pipeCommands);
+                // Add panels to Civil tool tab in correct order
+                AddCivilDropdownPanel(tab, "Bề mặt & Điểm", surfacesCommands);
+                AddCivilDropdownPanel(tab, "Lưới cọc", samplelineCommands);
+                AddCivilDropdownPanel(tab, "Trắc dọc & Tuyến", profileCommands);
+                AddCivilDropdownPanel(tab, "Corridor & Thửa", corridorCommands);
+                AddCivilDropdownPanel(tab, "Trắc ngang & KL", sectionviewCommands);
+                AddCivilDropdownPanel(tab, "San nền", gradingCommands);
+                AddCivilDropdownPanel(tab, "Thoát nước", pipeCommands);
                 AddCivilDropdownPanel(tab, "Point", pointCommands);
-                AddCivilDropdownPanel(tab, "Profile", profileCommands);
-                AddCivilDropdownPanel(tab, "Sampleline", samplelineCommands);
-                AddCivilDropdownPanel(tab, "Section View", sectionviewCommands);
-
-
-                // Thêm các panel còn lại (không có lệnh)
-                foreach (var panel in emptyPanels)
-                {
-                    AddPanel(tab, panel);
-                }
+                AddCivilDropdownPanel(tab, "Tiện ích", utilitiesCommands);
+                AddCivilDropdownPanel(tab, "Tài khoản", accountCommands);
 
                 // Thêm menu sổ xuống cho các lệnh Acad tool
                 AddAcadDropdownPanel(acadTab, "CAD Commands", acadCommands);
@@ -358,22 +383,21 @@ namespace MyFirstProject
                 {
                     string? commandToRun = null;
                     
-                    if (parameter is RibbonButton btn && btn.Tag is string tag)
+                    if (parameter is string cmd)
                     {
-                        commandToRun = tag;
+                        commandToRun = cmd;
                     }
+                    else if (parameter is RibbonButton rb)
+                    {
+                        commandToRun = rb.CommandParameter as string;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(commandToRun)) return;
 
                     var doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
-                    var ed = doc?.Editor;
-
-                    if (!string.IsNullOrWhiteSpace(commandToRun) && doc != null)
+                    if (doc != null)
                     {
-                        // Execute the command
                         doc.SendStringToExecute(commandToRun + " ", true, false, true);
-                    }
-                    else
-                    {
-                        ed?.WriteMessage($"\nLệnh không thể thực thi.");
                     }
                 }
                 catch (System.Exception ex)
