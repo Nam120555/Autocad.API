@@ -784,6 +784,19 @@ namespace Civil3DCsharp
 
     #endregion
 
+    /// <summary>
+    /// Phương pháp tính diện tích Material Section
+    /// </summary>
+    public enum AreaCalculationMethod
+    {
+        /// <summary>Sử dụng section.Area từ Civil 3D API (mặc định)</summary>
+        CivilAPI,
+        /// <summary>Tính từ SectionPoints bằng công thức Dây giày (Shoelace)</summary>
+        SectionPoints,
+        /// <summary>Ưu tiên SectionPoints, dự phòng API nếu không có điểm</summary>
+        SectionPointsFirst
+    }
+
     public class TinhKhoiLuongExcel
     {
         #region Hằng số làm tròn (theo V3Tools: roundnb = 2)
@@ -800,12 +813,18 @@ namespace Civil3DCsharp
         /// </summary>
         public static int VolumeDecimalPlaces { get; set; } = 2;
         
+        /// <summary>
+        /// Phương pháp tính diện tích Material Section hiện tại
+        /// Mặc định: SectionPointsFirst - Ưu tiên tính từ đường bao SectionPoints
+        /// </summary>
+        public static AreaCalculationMethod CurrentAreaMethod { get; set; } = AreaCalculationMethod.SectionPointsFirst;
+        
         #endregion
 
         #region Công thức tính toán
 
         /// <summary>
-        /// Tính diện tích đa giác sử dụng Shoelace Formula
+        /// Tính diện tích đa giác sử dụng Công thức Dây giày (Shoelace Formula)
         /// </summary>
         public static double CalculatePolygonArea(List<Point2d> points)
         {
@@ -2689,7 +2708,7 @@ namespace Civil3DCsharp
                 }
 
                 // 7. Chọn loại xuất
-                PromptKeywordOptions pkoExport = new("\nChọn loại xuất [Excel/CAD/TracNgang/TatCa]", "Excel CAD TracNgang TatCa");
+                PromptKeywordOptions pkoExport = new("\nChọn loại xuất [Excel/CAD/TracNgang/VeDuongBao/TatCa]", "Excel CAD TracNgang VeDuongBao TatCa");
                 pkoExport.Keywords.Default = "Excel";
                 pkoExport.AllowNone = true;
                 PromptResult prExport = A.Ed.GetKeywords(pkoExport);
@@ -2704,6 +2723,7 @@ namespace Civil3DCsharp
                 bool doExcel = exportType == "Excel" || exportType == "TatCa";
                 bool doCad = exportType == "CAD" || exportType == "TatCa";
                 bool doTracNgang = exportType == "TracNgang" || exportType == "TatCa";
+                bool doVeDuongBao = exportType == "VeDuongBao" || exportType == "TatCa";
 
                 // 8. Xuất ra Excel nếu được chọn
                 string excelPath = "";
@@ -2817,7 +2837,20 @@ namespace Civil3DCsharp
                     }
                 }
 
-                // 11. Hỏi mở file Excel nếu có
+                // 11. Vẽ đường bao Material trong SectionView nếu được chọn
+                if (doVeDuongBao)
+                {
+                    A.Ed.WriteMessage("\n\n=== VẼ ĐƯỜNG BAO MATERIAL SECTIONS ===");
+                    
+                    foreach (var alignInfo in formChon.SelectedAlignments)
+                    {
+                        var stakeInfos = alignmentData[alignInfo.AlignmentId];
+                        int totalBoundaries = DrawMaterialBoundaries(tr, alignInfo.SampleLineGroupId, stakeInfos, orderedMaterials);
+                        A.Ed.WriteMessage($"\n✅ Đã vẽ {totalBoundaries} đường bao cho '{alignInfo.Name}'");
+                    }
+                }
+
+                // 12. Hỏi mở file Excel nếu có
                 if (!string.IsNullOrEmpty(excelPath))
                 {
                     if (MessageBox.Show("Bạn có muốn mở file Excel?", "Hoàn thành", 
@@ -2958,9 +2991,14 @@ namespace Civil3DCsharp
                                     // ═══════════════════════════════════════════════════════════
                                     // DỮ LIỆU TỪ COMPUTE MATERIAL:
                                     // - Tên Material: QTOMaterial.Name
-                                    // - Diện tích: CivSection.Area (tương đương Properties Panel)
+                                    // - Diện tích: Tính theo phương pháp CurrentAreaMethod
+                                    //   + CivilAPI: Từ section.Area (tương đương Properties Panel)
+                                    //   + SectionPoints: Tính từ đường bao SectionPoints (Shoelace)
+                                    //   + SectionPointsFirst: Ưu tiên SectionPoints, fallback API
                                     // ═══════════════════════════════════════════════════════════
-                                    double area = section.Area;
+                                    
+                                    // Lấy diện tích theo phương pháp đã chọn
+                                    double area = GetMaterialSectionArea(section, CurrentAreaMethod);
                                     
                                     // Đếm số điểm trong section
                                     int pointCount = 0;
@@ -2969,11 +3007,17 @@ namespace Civil3DCsharp
                                     // Log chi tiết cho debugging
                                     if (isFirst)
                                     {
+                                        double apiArea = section.Area;
+                                        double shoelaceArea = pointCount >= 3 ? CalculateSectionArea(section) : 0;
+                                        
                                         A.Ed.WriteMessage($"\n  ┌───────────────────────────────────────────────────────────┐");
                                         A.Ed.WriteMessage($"\n  │ 📍 SampleLine: {sampleLine.Name,-40} │");
                                         A.Ed.WriteMessage($"\n  ├───────────────────────────────────────────────────────────┤");
                                         A.Ed.WriteMessage($"\n  │ 📋 Material: {materialName,-44} │");
-                                        A.Ed.WriteMessage($"\n  │   → AREA (CivSection.Area): {area,12:F4} m²              │");
+                                        A.Ed.WriteMessage($"\n  │   → Phương pháp: {CurrentAreaMethod,-38} │");
+                                        A.Ed.WriteMessage($"\n  │   → AREA (API):        {apiArea,12:F4} m²              │");
+                                        A.Ed.WriteMessage($"\n  │   → AREA (Shoelace):   {shoelaceArea,12:F4} m²              │");
+                                        A.Ed.WriteMessage($"\n  │   → AREA (đã chọn):    {area,12:F4} m²              │");
                                         A.Ed.WriteMessage($"\n  │   → Số điểm SectionPoints: {pointCount,8}                   │");
                                         
                                         if (area == 0 && pointCount == 0)
@@ -2981,26 +3025,16 @@ namespace Civil3DCsharp
                                             A.Ed.WriteMessage($"\n  │ ⚠️ SECTION CHƯA ĐƯỢC COMPUTE!                            │");
                                             A.Ed.WriteMessage($"\n  │   → Hãy: Analyze > Compute Materials                     │");
                                         }
-                                        else if (area == 0 && pointCount > 0)
+                                        else if (Math.Abs(apiArea - shoelaceArea) > 0.01 && apiArea > 0 && shoelaceArea > 0)
                                         {
-                                            A.Ed.WriteMessage($"\n  │ ⚠️ Có điểm nhưng AREA = 0 (polygon hở?)                  │");
+                                            double diff = Math.Abs(apiArea - shoelaceArea) / apiArea * 100;
+                                            A.Ed.WriteMessage($"\n  │ ⚠️ Sai lệch API vs Shoelace: {diff,5:F2}%                     │");
                                         }
                                         else
                                         {
                                             A.Ed.WriteMessage($"\n  │   ✅ Khớp với Properties Panel / Data Section            │");
                                         }
                                         A.Ed.WriteMessage($"\n  └───────────────────────────────────────────────────────────┘");
-                                    }
-                                    
-                                    // Nếu Area = 0 nhưng có SectionPoints, thử tính bằng Shoelace
-                                    if (area == 0 && pointCount >= 3)
-                                    {
-                                        try
-                                        {
-                                            double calcArea = CalculateSectionArea(section);
-                                            if (calcArea > 0) area = calcArea;
-                                        }
-                                        catch { }
                                     }
                                     
                                     // Lưu diện tích (kể cả khi = 0 để tracking)
@@ -3235,6 +3269,9 @@ namespace Civil3DCsharp
                     pointList.Add(new Point2d(pt.Location.X, pt.Location.Y));
                 }
 
+                // Sắp xếp điểm theo thứ tự vòng quanh để Shoelace hoạt động đúng
+                pointList = SortPointsByAngle(pointList);
+
                 // Đóng đa giác nếu chưa đóng
                 if (pointList.Count >= 2)
                 {
@@ -3257,6 +3294,247 @@ namespace Civil3DCsharp
             catch
             {
                 return 0;
+            }
+        }
+
+        /// <summary>
+        /// Sắp xếp các điểm theo thứ tự góc từ tâm (angular sort)
+        /// Đảm bảo điểm nằm theo chiều kim đồng hồ hoặc ngược kim đồng hồ
+        /// </summary>
+        private static List<Point2d> SortPointsByAngle(List<Point2d> points)
+        {
+            if (points.Count < 3) return points;
+
+            // Tính tâm (centroid) của đa giác
+            double cx = points.Average(p => p.X);
+            double cy = points.Average(p => p.Y);
+
+            // Sắp xếp theo góc từ tâm (ngược chiều kim đồng hồ)
+            return points.OrderBy(p => Math.Atan2(p.Y - cy, p.X - cx)).ToList();
+        }
+
+        /// <summary>
+        /// Lấy diện tích Material Section theo phương pháp đã chọn
+        /// Hỗ trợ 3 phương pháp: CivilAPI, SectionPoints, SectionPointsFirst
+        /// </summary>
+        /// <param name="section">Material Section từ Civil 3D</param>
+        /// <param name="method">Phương pháp tính diện tích</param>
+        /// <returns>Diện tích (m²)</returns>
+        private static double GetMaterialSectionArea(CivSection section, AreaCalculationMethod method)
+        {
+            // Lấy diện tích từ API
+            double apiArea = section.Area;
+            double shoelaceArea = 0;
+            
+            // Luôn tính từ SectionPoints nếu có đủ điểm
+            try
+            {
+                if (section.SectionPoints.Count >= 3)
+                {
+                    shoelaceArea = CalculateSectionArea(section);
+                }
+            }
+            catch { }
+            
+            // Chọn diện tích theo phương pháp
+            return method switch
+            {
+                // Ưu tiên Civil API, dự phòng dùng Công thức Dây giày nếu API = 0
+                AreaCalculationMethod.CivilAPI => apiArea > 0 ? apiArea : shoelaceArea,
+                
+                // Ưu tiên Công thức Dây giày (từ SectionPoints), dự phòng API nếu = 0
+                AreaCalculationMethod.SectionPoints => shoelaceArea > 0 ? shoelaceArea : apiArea,
+                
+                // Ưu tiên Công thức Dây giày nếu có điểm, dự phòng sang API
+                AreaCalculationMethod.SectionPointsFirst => shoelaceArea > 0 ? shoelaceArea : apiArea,
+                
+                // Mặc định: ưu tiên API
+                _ => apiArea > 0 ? apiArea : shoelaceArea
+            };
+        }
+
+        /// <summary>
+        /// Vẽ đường bao Material Section trong SectionView từ SectionPoints
+        /// </summary>
+        /// <param name="tr">Transaction hiện tại</param>
+        /// <param name="sampleLineGroupId">ID của SampleLineGroup</param>
+        /// <param name="stakeInfos">Danh sách thông tin cọc với điểm SectionPoints</param>
+        /// <param name="materials">Danh sách tên vật liệu</param>
+        /// <returns>Số lượng đường bao đã vẽ</returns>
+        private static int DrawMaterialBoundaries(Transaction tr, ObjectId sampleLineGroupId, 
+            List<StakeInfo> stakeInfos, List<string> materials)
+        {
+            int totalDrawn = 0;
+            
+            try
+            {
+                // Lấy SampleLineGroup
+                SampleLineGroup? slg = tr.GetObject(sampleLineGroupId, AcadDb.OpenMode.ForRead) as SampleLineGroup;
+                if (slg == null) return 0;
+                
+                // Lấy ModelSpace để thêm polyline
+                AcadDb.BlockTableRecord modelSpace = tr.GetObject(
+                    A.Db.CurrentSpaceId, AcadDb.OpenMode.ForWrite) as AcadDb.BlockTableRecord ?? 
+                    throw new System.Exception("Không thể mở ModelSpace");
+                
+                // Lấy SectionViewGroup nếu có
+                SectionViewGroupCollection svgCollection = slg.SectionViewGroups;
+                SectionViewGroup? svGroup = null;
+                if (svgCollection.Count > 0)
+                {
+                    svGroup = svgCollection[0];
+                }
+                
+                // Tạo layer cho đường bao nếu chưa có
+                string boundaryLayerName = "C3D-BOUNDARY-MATERIAL";
+                CreateLayerIfNotExists(tr, boundaryLayerName, 3); // Màu xanh lá (green)
+                
+                // Lấy Material Lists để truy xuất MaterialSection
+                QTOMaterialListCollection materialLists = slg.MaterialLists;
+                List<(string Name, Guid ListGuid, Guid MaterialGuid)> materialInfo = new();
+                
+                foreach (QTOMaterialList materialList in materialLists)
+                {
+                    try
+                    {
+                        Guid listGuid = materialList.Guid;
+                        foreach (QTOMaterial material in materialList)
+                        {
+                            if (materials.Contains(material.Name))
+                            {
+                                materialInfo.Add((material.Name, listGuid, material.Guid));
+                            }
+                        }
+                    }
+                    catch { }
+                }
+                
+                // Duyệt qua từng SampleLine
+                foreach (ObjectId slId in slg.GetSampleLineIds())
+                {
+                    SampleLine? sampleLine = tr.GetObject(slId, AcadDb.OpenMode.ForRead) as SampleLine;
+                    if (sampleLine == null) continue;
+                    
+                    // Tìm SectionView tương ứng để lấy tọa độ Location và ElevationMin
+                    double sectionViewX = 0;
+                    double sectionViewY = 0;
+                    double sectionViewElevMin = 0;
+                    bool foundSectionView = false;
+                    
+                    if (svGroup != null)
+                    {
+                        try
+                        {
+                            ObjectIdCollection sectionViewIds = svGroup.GetSectionViewIds();
+                            foreach (ObjectId svId in sectionViewIds)
+                            {
+                                SectionView? sv = tr.GetObject(svId, AcadDb.OpenMode.ForRead) as SectionView;
+                                if (sv != null && sv.SampleLineId == slId)
+                                {
+                                    // Lấy vị trí SectionView và ElevationMin
+                                    sectionViewX = sv.Location.X;
+                                    sectionViewY = sv.Location.Y;
+                                    
+                                    // Lấy ElevationMin để tính offset Y
+                                    sv.IsElevationRangeAutomatic = false;
+                                    sectionViewElevMin = sv.ElevationMin;
+                                    sv.IsElevationRangeAutomatic = true;
+                                    
+                                    foundSectionView = true;
+                                    break;
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                    
+                    // Nếu không tìm thấy SectionView, bỏ qua sample line này
+                    if (!foundSectionView) continue;
+                    
+                    // Vẽ boundary cho mỗi material
+                    foreach (var (matName, listGuid, matGuid) in materialInfo)
+                    {
+                        try
+                        {
+                            ObjectId materialSectionId = sampleLine.GetMaterialSectionId(listGuid, matGuid);
+                            if (materialSectionId.IsNull || !materialSectionId.IsValid) continue;
+                            
+                            CivSection? section = tr.GetObject(materialSectionId, AcadDb.OpenMode.ForRead) as CivSection;
+                            if (section == null) continue;
+                            
+                            SectionPointCollection sectionPoints = section.SectionPoints;
+                            if (sectionPoints.Count < 3) continue;
+                            
+                            // Tạo Polyline từ SectionPoints
+                            AcadDb.Polyline pline = new();
+                            pline.SetDatabaseDefaults();
+                            pline.Layer = boundaryLayerName;
+                            
+                            int vertexIndex = 0;
+                            foreach (SectionPoint pt in sectionPoints)
+                            {
+                                // Chuyển đổi tọa độ Section sang World
+                                // SectionPoint.Location.X = offset từ centerline (trong hệ tọa độ section)
+                                // SectionPoint.Location.Y = elevation
+                                // SectionView.Location = vị trí gốc của SectionView trong World
+                                // Công thức: 
+                                //   WorldX = SectionView.Location.X + SectionPoint.Offset
+                                //   WorldY = SectionView.Location.Y + (SectionPoint.Elevation - ElevationMin)
+                                double worldX = sectionViewX + pt.Location.X;
+                                double worldY = sectionViewY + (pt.Location.Y - sectionViewElevMin);
+                                
+                                pline.AddVertexAt(vertexIndex, new Point2d(worldX, worldY), 0, 0, 0);
+                                vertexIndex++;
+                            }
+                            
+                            // Đóng polyline nếu cần
+                            if (sectionPoints.Count >= 3)
+                            {
+                                Point3d first = sectionPoints[0].Location;
+                                Point3d last = sectionPoints[sectionPoints.Count - 1].Location;
+                                
+                                // Nếu điểm đầu và cuối không trùng nhau, đóng polyline
+                                if (Math.Abs(first.X - last.X) > 0.001 || Math.Abs(first.Y - last.Y) > 0.001)
+                                {
+                                    pline.Closed = true;
+                                }
+                            }
+                            
+                            // Thêm polyline vào ModelSpace
+                            modelSpace.AppendEntity(pline);
+                            tr.AddNewlyCreatedDBObject(pline, true);
+                            totalDrawn++;
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                A.Ed.WriteMessage($"\n⚠️ Lỗi khi vẽ đường bao: {ex.Message}");
+            }
+            
+            return totalDrawn;
+        }
+        
+        /// <summary>
+        /// Tạo layer nếu chưa tồn tại
+        /// </summary>
+        private static void CreateLayerIfNotExists(Transaction tr, string layerName, short colorIndex)
+        {
+            AcadDb.LayerTable? lt = tr.GetObject(A.Db.LayerTableId, AcadDb.OpenMode.ForRead) as AcadDb.LayerTable;
+            if (lt == null) return;
+            
+            if (!lt.Has(layerName))
+            {
+                lt.UpgradeOpen();
+                AcadDb.LayerTableRecord ltr = new()
+                {
+                    Name = layerName,
+                    Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, colorIndex)
+                };
+                lt.Add(ltr);
+                tr.AddNewlyCreatedDBObject(ltr, true);
             }
         }
 
