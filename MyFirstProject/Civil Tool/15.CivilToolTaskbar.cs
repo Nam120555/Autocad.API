@@ -11,6 +11,9 @@ using System.Collections.Generic;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
+// Đăng ký class chứa các lệnh với AutoCAD
+[assembly: CommandClass(typeof(Civil3DCsharp.CivilToolTaskbarCommands))]
+
 namespace Civil3DCsharp
 {
     /// <summary>
@@ -90,9 +93,15 @@ namespace Civil3DCsharp
                 Color.FromArgb(128, 128, 0), GetPlanCommands()));
             x += btnWidth + margin;
 
-            // 10. Tài khoản (Account)
-            this.Controls.Add(CreateDropdownButton("👤", "Tài khoản", x, y, btnWidth, btnHeight,
-                Color.FromArgb(60, 60, 60), GetAccountCommands()));
+            // 10. Danh sách lệnh - Mở form xem tất cả lệnh
+            var btnCommandList = CreateButton("📋", "Lệnh", x, y, 55, btnHeight, Color.FromArgb(100, 80, 150));
+            btnCommandList.Click += (s, e) => ShowCommandListForm();
+            this.Controls.Add(btnCommandList);
+            x += 55 + margin;
+
+            // 11. Công cụ ngoài (External Tools)
+            this.Controls.Add(CreateDropdownButton("🔧", "Công cụ", x, y, btnWidth, btnHeight,
+                Color.FromArgb(80, 80, 85), GetExternalToolsCommands()));
             x += btnWidth + margin;
 
             // Close Button
@@ -340,16 +349,13 @@ namespace Civil3DCsharp
             };
         }
 
-        private List<(string Name, string Command)> GetAccountCommands()
+        private List<(string Name, string Command)> GetExternalToolsCommands()
         {
             return new List<(string, string)>
             {
                 ("📍 Tọa độ hố ga", "CT_VTOADOHG"),
                 ("─────────────", ""),
-                ("🔑 Đăng nhập", ""),
-                ("ℹ Thông tin", ""),
-                ("📖 Hướng dẫn", ""),
-                ("📞 Liên hệ", ""),
+                ("📋 Danh sách lệnh", "CT_DanhSachLenh"),
             };
         }
 
@@ -373,7 +379,251 @@ namespace Civil3DCsharp
             instance = null;
         }
 
+        private void ShowCommandListForm()
+        {
+            CommandListForm.ShowForm();
+        }
+
         #endregion
+    }
+
+    /// <summary>
+    /// Form hiển thị danh sách tất cả các lệnh Civil Tool
+    /// </summary>
+    public class CommandListForm : Form
+    {
+        private static CommandListForm? formInstance;
+        private ListView listView = null!;
+        private TextBox searchBox = null!;
+        private List<(string Group, string Command, string Description)> allCommands = null!;
+
+        public CommandListForm()
+        {
+            InitializeComponent();
+            LoadCommands();
+        }
+
+        private void InitializeComponent()
+        {
+            this.Text = "📋 Danh Sách Lệnh Civil Tool";
+            this.Size = new Size(750, 600);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.BackColor = Color.FromArgb(45, 45, 48);
+            this.ForeColor = Color.White;
+
+            // Search box
+            var lblSearch = new Label
+            {
+                Text = "🔍 Tìm kiếm:",
+                Location = new Point(10, 12),
+                Size = new Size(80, 25),
+                ForeColor = Color.White
+            };
+            this.Controls.Add(lblSearch);
+
+            searchBox = new TextBox
+            {
+                Location = new Point(95, 10),
+                Size = new Size(300, 25),
+                BackColor = Color.FromArgb(60, 60, 65),
+                ForeColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            searchBox.TextChanged += SearchBox_TextChanged;
+            this.Controls.Add(searchBox);
+
+            // Button chạy lệnh
+            var btnRun = new Button
+            {
+                Text = "▶ Chạy lệnh",
+                Location = new Point(550, 8),
+                Size = new Size(90, 28),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(0, 120, 215),
+                ForeColor = Color.White
+            };
+            btnRun.Click += BtnRun_Click;
+            this.Controls.Add(btnRun);
+
+            // Button đóng
+            var btnClose = new Button
+            {
+                Text = "✕ Đóng",
+                Location = new Point(645, 8),
+                Size = new Size(80, 28),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(150, 50, 50),
+                ForeColor = Color.White
+            };
+            btnClose.Click += (s, e) => this.Close();
+            this.Controls.Add(btnClose);
+
+            // ListView
+            listView = new ListView
+            {
+                Location = new Point(10, 45),
+                Size = new Size(715, 500),
+                View = View.Details,
+                FullRowSelect = true,
+                GridLines = true,
+                BackColor = Color.FromArgb(35, 35, 38),
+                ForeColor = Color.White
+            };
+            listView.Columns.Add("STT", 45);
+            listView.Columns.Add("Nhóm", 100);
+            listView.Columns.Add("Lệnh", 220);
+            listView.Columns.Add("Mô tả", 330);
+            listView.DoubleClick += ListView_DoubleClick;
+            this.Controls.Add(listView);
+
+            this.Resize += (s, e) =>
+            {
+                listView.Size = new Size(this.ClientSize.Width - 20, this.ClientSize.Height - 55);
+            };
+        }
+
+        private void LoadCommands()
+        {
+            allCommands = new List<(string, string, string)>
+            {
+                // Corridor
+                ("Corridor", "CTC_AddAllSection", "Thêm tất cả section vào corridor"),
+                ("Corridor", "CTC_TaoCooridor_DuongDoThi_RePhai", "Tạo corridor đường đô thị rẽ phải"),
+                
+                // Parcel
+                ("Parcel", "CTPA_TaoParcel_CacLoaiNha", "Tạo parcel từ polyline các loại nhà"),
+                
+                // Pipe & Structures
+                ("Pipe", "CTPI_ThayDoi_DuongKinhCong", "Thay đổi đường kính ống cống"),
+                ("Pipe", "CTPI_ThayDoi_MatPhangRef_Cong", "Đặt mặt phẳng reference cho cống"),
+                ("Pipe", "CTPI_ThayDoi_DoanDocCong", "Thay đổi độ dốc ống cống"),
+                ("Pipe", "CTPI_ThayDoi_CaoDoDayCong", "Thay đổi cao độ đáy cống"),
+                ("Pipe", "CTPI_TaoBang_CaoDoDayHoGa", "Tạo bảng cao độ đáy hố ga"),
+                
+                // Point
+                ("Point", "CTPO_TaoCogoPoint_CaoDo_FromSurface", "Tạo CogoPoint lấy cao độ từ Surface"),
+                ("Point", "CTPO_TaoCogoPoint_CaoDoSpotElevation", "Tạo CogoPoint từ Spot Elevation"),
+                ("Point", "CTPO_TaoCogoPoint_CaoDo_FromText", "Tạo CogoPoint từ Text cao độ"),
+                ("Point", "CTPO_AnCacPoint", "Ẩn các điểm CogoPoint"),
+                ("Point", "CTPO_TaoSurfaceFromPoints", "Tạo Surface từ Points"),
+                
+                // Profile
+                ("Profile", "CTP_VeTracDoc_TuNhien", "Vẽ trắc dọc địa hình tự nhiên"),
+                ("Profile", "CTP_SuaProfile_TheoSampleline", "Sửa profile theo sampleline"),
+                ("Profile", "CTP_TaoBangThongKeParcel", "Tạo bảng thống kê parcel"),
+                ("Profile", "CTP_ThemLabel_NutGiao", "Thêm label nút giao"),
+                ("Profile", "CTP_VeTracDoc_ThietKe", "Vẽ trắc dọc thiết kế"),
+                
+                // Sample Line / Cọc  
+                ("Cọc", "CTS_DoiTenCoc", "Đổi tên cọc"),
+                ("Cọc", "CTS_DoiTenCoc2", "Đổi tên cọc theo đoạn"),
+                ("Cọc", "CTS_DoiTenCoc3", "Đổi tên cọc theo Km"),
+                ("Cọc", "CTS_TaoBang_ToaDoCoc", "Tạo bảng tọa độ cọc (X,Y)"),
+                ("Cọc", "CTS_PhatSinhCoc", "Phát sinh cọc tự động"),
+                ("Cọc", "CTS_PhatSinhCoc_ChiTiet", "Phát sinh cọc chi tiết"),
+                ("Cọc", "CTS_DichCoc_TinhTien", "Dịch cọc tịnh tiến"),
+                ("Cọc", "CTS_Copy_NhomCoc", "Sao chép nhóm cọc"),
+                ("Cọc", "CTS_DongBo_2_NhomCoc", "Đồng bộ 2 nhóm cọc"),
+                
+                // Section View
+                ("Trắc ngang", "CTSV_VeTracNgangThietKe", "Vẽ trắc ngang thiết kế"),
+                ("Trắc ngang", "CTSV_DanhCap", "Đánh cấp VHC"),
+                ("Trắc ngang", "CTSV_DanhCap_XoaBo", "Xóa bỏ đánh cấp"),
+                ("Trắc ngang", "CTSV_DanhCap_VeThem", "Vẽ thêm đánh cấp"),
+                ("Trắc ngang", "CTSV_ThemVatLieu_TrenCatNgang", "Điền vật liệu trên cắt ngang"),
+                ("Trắc ngang", "CTSV_fit_KhungIn", "Fit khung in trắc ngang"),
+                ("Trắc ngang", "CTSV_An_DuongDiaChat", "Ẩn đường địa chất"),
+                
+                // Khối lượng
+                ("Khối lượng", "CTSV_Taskbar", "Mở taskbar khối lượng"),
+                ("Khối lượng", "CTSV_XuatKhoiLuong", "Xuất khối lượng ra Excel"),
+                ("Khối lượng", "CTSV_XuatCad", "Xuất khối lượng ra CAD"),
+                ("Khối lượng", "CTSV_CaiDatBang", "Cài đặt bảng khối lượng"),
+                ("Khối lượng", "CTSV_ThongKeCoc", "Thống kê cọc ra Excel"),
+                ("Khối lượng", "CTSV_ThongKeCoc_TatCa", "Thống kê tất cả cọc"),
+                
+                // San nền
+                ("San nền", "CTSN_Taskbar", "Mở taskbar san nền"),
+                ("San nền", "CTSN_TaoLuoi", "Tạo lưới san nền"),
+                ("San nền", "CTSN_NhapCaoDo", "Nhập cao độ lưới"),
+                ("San nền", "CTSN_Surface", "Lấy cao độ từ Surface"),
+                ("San nền", "CTSN_TinhKL", "Tính khối lượng san nền"),
+                ("San nền", "CTSN_XuatBang", "Xuất bảng khối lượng CAD"),
+                
+                // Taskbar
+                ("Tool", "CT_Taskbar", "Mở thanh công cụ Civil Tool"),
+                ("Tool", "CT", "Mở thanh công cụ (alias)"),
+                ("Tool", "CT_VTOADOHG", "Tọa độ hố ga (DLL ngoài)"),
+            };
+
+            RefreshListView();
+        }
+
+        private void RefreshListView(string filter = "")
+        {
+            listView.Items.Clear();
+            int stt = 0;
+            foreach (var cmd in allCommands)
+            {
+                if (string.IsNullOrEmpty(filter) ||
+                    cmd.Command.ToLower().Contains(filter.ToLower()) ||
+                    cmd.Description.ToLower().Contains(filter.ToLower()) ||
+                    cmd.Group.ToLower().Contains(filter.ToLower()))
+                {
+                    stt++;
+                    var item = new ListViewItem(stt.ToString());
+                    item.SubItems.Add(cmd.Group);
+                    item.SubItems.Add(cmd.Command);
+                    item.SubItems.Add(cmd.Description);
+                    item.Tag = cmd.Command;
+                    listView.Items.Add(item);
+                }
+            }
+        }
+
+        private void SearchBox_TextChanged(object? sender, EventArgs e)
+        {
+            RefreshListView(searchBox.Text);
+        }
+
+        private void BtnRun_Click(object? sender, EventArgs e)
+        {
+            RunSelectedCommand();
+        }
+
+        private void ListView_DoubleClick(object? sender, EventArgs e)
+        {
+            RunSelectedCommand();
+        }
+
+        private void RunSelectedCommand()
+        {
+            if (listView.SelectedItems.Count > 0)
+            {
+                var cmdName = listView.SelectedItems[0].Tag?.ToString();
+                if (!string.IsNullOrEmpty(cmdName))
+                {
+                    this.Hide();
+                    try
+                    {
+                        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+                        doc.SendStringToExecute($"{cmdName}\n", true, false, false);
+                    }
+                    catch { }
+                    this.Show();
+                }
+            }
+        }
+
+        public static void ShowForm()
+        {
+            if (formInstance == null || formInstance.IsDisposed)
+            {
+                formInstance = new CommandListForm();
+            }
+            formInstance.Show();
+            formInstance.BringToFront();
+        }
     }
 
     /// <summary>
@@ -397,6 +647,12 @@ namespace Civil3DCsharp
         public static void CTCmd()
         {
             CivilToolTaskbar.ShowTaskbar();
+        }
+
+        [CommandMethod("CT_DanhSachLenh")]
+        public static void CTDanhSachLenh()
+        {
+            CommandListForm.ShowForm();
         }
     }
 }

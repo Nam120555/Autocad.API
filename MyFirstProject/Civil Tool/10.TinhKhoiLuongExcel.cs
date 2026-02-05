@@ -2707,8 +2707,17 @@ namespace Civil3DCsharp
                     CalculateVolumes(kvp.Value, orderedMaterials);
                 }
 
-                // 7. Chọn loại xuất
-                PromptKeywordOptions pkoExport = new("\nChọn loại xuất [Excel/CAD/TracNgang/VeDuongBao/TatCa]", "Excel CAD TracNgang VeDuongBao TatCa");
+                // 6a. Tự động vẽ đường bao Material trong SectionView
+                A.Ed.WriteMessage("\n\n=== VẼ ĐƯỜNG BAO MATERIAL SECTIONS ===");
+                foreach (var alignInfo in formChon.SelectedAlignments)
+                {
+                    var stakeInfos = alignmentData[alignInfo.AlignmentId];
+                    int totalBoundaries = DrawMaterialBoundaries(tr, alignInfo.SampleLineGroupId, stakeInfos, orderedMaterials);
+                    A.Ed.WriteMessage($"\n✅ Đã vẽ {totalBoundaries} đường bao cho '{alignInfo.Name}'");
+                }
+
+                // 7. Chọn loại xuất (đường bao đã được vẽ tự động ở trên)
+                PromptKeywordOptions pkoExport = new("\nChọn loại xuất [Excel/CAD/TracNgang/TatCa]", "Excel CAD TracNgang TatCa");
                 pkoExport.Keywords.Default = "Excel";
                 pkoExport.AllowNone = true;
                 PromptResult prExport = A.Ed.GetKeywords(pkoExport);
@@ -2723,7 +2732,6 @@ namespace Civil3DCsharp
                 bool doExcel = exportType == "Excel" || exportType == "TatCa";
                 bool doCad = exportType == "CAD" || exportType == "TatCa";
                 bool doTracNgang = exportType == "TracNgang" || exportType == "TatCa";
-                bool doVeDuongBao = exportType == "VeDuongBao" || exportType == "TatCa";
 
                 // 8. Xuất ra Excel nếu được chọn
                 string excelPath = "";
@@ -2837,18 +2845,7 @@ namespace Civil3DCsharp
                     }
                 }
 
-                // 11. Vẽ đường bao Material trong SectionView nếu được chọn
-                if (doVeDuongBao)
-                {
-                    A.Ed.WriteMessage("\n\n=== VẼ ĐƯỜNG BAO MATERIAL SECTIONS ===");
-                    
-                    foreach (var alignInfo in formChon.SelectedAlignments)
-                    {
-                        var stakeInfos = alignmentData[alignInfo.AlignmentId];
-                        int totalBoundaries = DrawMaterialBoundaries(tr, alignInfo.SampleLineGroupId, stakeInfos, orderedMaterials);
-                        A.Ed.WriteMessage($"\n✅ Đã vẽ {totalBoundaries} đường bao cho '{alignInfo.Name}'");
-                    }
-                }
+                // 11. (Đường bao đã được vẽ tự động ở bước 6a)
 
                 // 12. Hỏi mở file Excel nếu có
                 if (!string.IsNullOrEmpty(excelPath))
@@ -3385,13 +3382,14 @@ namespace Civil3DCsharp
                     svGroup = svgCollection[0];
                 }
                 
-                // Tạo layer cho đường bao nếu chưa có
-                string boundaryLayerName = "C3D-BOUNDARY-MATERIAL";
-                CreateLayerIfNotExists(tr, boundaryLayerName, 3); // Màu xanh lá (green)
                 
-                // Lấy Material Lists để truy xuất MaterialSection
                 QTOMaterialListCollection materialLists = slg.MaterialLists;
                 List<(string Name, Guid ListGuid, Guid MaterialGuid)> materialInfo = new();
+                
+                // Màu sắc cho từng vật liệu (xoay vòng)
+                short[] materialColors = { 1, 2, 3, 4, 5, 6, 30, 40, 50, 80, 140, 180, 210, 250 };
+                int colorIndex = 0;
+                Dictionary<string, string> materialLayerNames = new();
                 
                 foreach (QTOMaterialList materialList in materialLists)
                 {
@@ -3403,6 +3401,23 @@ namespace Civil3DCsharp
                             if (materials.Contains(material.Name))
                             {
                                 materialInfo.Add((material.Name, listGuid, material.Guid));
+                                
+                                // Tạo layer riêng cho mỗi loại vật liệu nếu chưa có
+                                if (!materialLayerNames.ContainsKey(material.Name))
+                                {
+                                    // Làm sạch tên layer (loại bỏ ký tự không hợp lệ)
+                                    string cleanName = material.Name.Replace("<", "").Replace(">", "")
+                                        .Replace("/", "-").Replace("\\", "-").Replace(":", "-")
+                                        .Replace("?", "").Replace("*", "").Replace("|", "-").Replace("\"", "");
+                                    string layerName = $"C3D-BOUNDARY-{cleanName}";
+                                    
+                                    // Tạo layer với màu riêng
+                                    short color = materialColors[colorIndex % materialColors.Length];
+                                    CreateLayerIfNotExists(tr, layerName, color);
+                                    
+                                    materialLayerNames[material.Name] = layerName;
+                                    colorIndex++;
+                                }
                             }
                         }
                     }
@@ -3428,21 +3443,40 @@ namespace Civil3DCsharp
                             ObjectIdCollection sectionViewIds = svGroup.GetSectionViewIds();
                             foreach (ObjectId svId in sectionViewIds)
                             {
-                                SectionView? sv = tr.GetObject(svId, AcadDb.OpenMode.ForRead) as SectionView;
-                                if (sv != null && sv.SampleLineId == slId)
+                                try
                                 {
-                                    // Lấy vị trí SectionView và ElevationMin
-                                    sectionViewX = sv.Location.X;
-                                    sectionViewY = sv.Location.Y;
-                                    
-                                    // Lấy ElevationMin để tính offset Y
-                                    sv.IsElevationRangeAutomatic = false;
-                                    sectionViewElevMin = sv.ElevationMin;
-                                    sv.IsElevationRangeAutomatic = true;
-                                    
-                                    foundSectionView = true;
-                                    break;
+                                    SectionView? sv = tr.GetObject(svId, AcadDb.OpenMode.ForWrite, false, true) as SectionView;
+                                    if (sv != null && sv.SampleLineId == slId)
+                                    {
+                                        // Lấy vị trí SectionView và ElevationMin
+                                        sectionViewX = sv.Location.X;
+                                        sectionViewY = sv.Location.Y;
+                                        
+                                        // Lấy ElevationMin một cách an toàn
+                                        try
+                                        {
+                                            bool wasAutomatic = sv.IsElevationRangeAutomatic;
+                                            if (wasAutomatic)
+                                            {
+                                                sv.IsElevationRangeAutomatic = false;
+                                            }
+                                            sectionViewElevMin = sv.ElevationMin;
+                                            if (wasAutomatic)
+                                            {
+                                                sv.IsElevationRangeAutomatic = true;
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            // Nếu không thể lấy ElevationMin, dùng giá trị mặc định 0
+                                            sectionViewElevMin = 0;
+                                        }
+                                        
+                                        foundSectionView = true;
+                                        break;
+                                    }
                                 }
+                                catch { continue; }
                             }
                         }
                         catch { }
@@ -3465,40 +3499,51 @@ namespace Civil3DCsharp
                             SectionPointCollection sectionPoints = section.SectionPoints;
                             if (sectionPoints.Count < 3) continue;
                             
-                            // Tạo Polyline từ SectionPoints
-                            AcadDb.Polyline pline = new();
-                            pline.SetDatabaseDefaults();
-                            pline.Layer = boundaryLayerName;
-                            
-                            int vertexIndex = 0;
+                            // Thu thập các điểm và chuyển sang tọa độ World
+                            List<Point2d> worldPoints = new();
                             foreach (SectionPoint pt in sectionPoints)
                             {
-                                // Chuyển đổi tọa độ Section sang World
-                                // SectionPoint.Location.X = offset từ centerline (trong hệ tọa độ section)
-                                // SectionPoint.Location.Y = elevation
-                                // SectionView.Location = vị trí gốc của SectionView trong World
-                                // Công thức: 
-                                //   WorldX = SectionView.Location.X + SectionPoint.Offset
-                                //   WorldY = SectionView.Location.Y + (SectionPoint.Elevation - ElevationMin)
                                 double worldX = sectionViewX + pt.Location.X;
                                 double worldY = sectionViewY + (pt.Location.Y - sectionViewElevMin);
-                                
-                                pline.AddVertexAt(vertexIndex, new Point2d(worldX, worldY), 0, 0, 0);
-                                vertexIndex++;
+                                worldPoints.Add(new Point2d(worldX, worldY));
                             }
                             
-                            // Đóng polyline nếu cần
-                            if (sectionPoints.Count >= 3)
+                            // Loại bỏ các điểm trùng lặp
+                            List<Point2d> uniquePoints = new();
+                            foreach (var pt in worldPoints)
                             {
-                                Point3d first = sectionPoints[0].Location;
-                                Point3d last = sectionPoints[sectionPoints.Count - 1].Location;
-                                
-                                // Nếu điểm đầu và cuối không trùng nhau, đóng polyline
-                                if (Math.Abs(first.X - last.X) > 0.001 || Math.Abs(first.Y - last.Y) > 0.001)
+                                bool isDuplicate = false;
+                                foreach (var existing in uniquePoints)
                                 {
-                                    pline.Closed = true;
+                                    if (Math.Abs(pt.X - existing.X) < 0.001 && Math.Abs(pt.Y - existing.Y) < 0.001)
+                                    {
+                                        isDuplicate = true;
+                                        break;
+                                    }
                                 }
+                                if (!isDuplicate) uniquePoints.Add(pt);
                             }
+                            
+                            if (uniquePoints.Count < 3) continue;
+                            
+                            // Sắp xếp các điểm theo góc từ tâm để tạo polygon khép kín không giao cắt
+                            List<Point2d> sortedPoints = SortPointsByAngle(uniquePoints);
+                            
+                            // Lấy tên layer cho vật liệu này
+                            string materialLayerName = materialLayerNames.GetValueOrDefault(matName, "C3D-BOUNDARY-MATERIAL");
+                            
+                            // Tạo Polyline từ các điểm đã sắp xếp
+                            AcadDb.Polyline pline = new();
+                            pline.SetDatabaseDefaults();
+                            pline.Layer = materialLayerName;
+                            
+                            for (int i = 0; i < sortedPoints.Count; i++)
+                            {
+                                pline.AddVertexAt(i, sortedPoints[i], 0, 0, 0);
+                            }
+                            
+                            // Đóng polyline để tạo vòng khép kín
+                            pline.Closed = true;
                             
                             // Thêm polyline vào ModelSpace
                             modelSpace.AppendEntity(pline);

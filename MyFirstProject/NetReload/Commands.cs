@@ -154,8 +154,8 @@ namespace NetReload
 				Assembly.LoadFrom(destDllPath);
 				ed.WriteMessage($"\nNETRELOAD complete. Loaded: {uniqueAssemblyName}.dll");
 
-				// 6. Auto-execute CIVIL_RIBBON command to show the Ribbon
-				doc.SendStringToExecute("CIVIL_RIBBON ", true, false, false);
+				// 6. Auto-execute show_menu command to refresh the Ribbon
+				doc.SendStringToExecute("show_menu ", true, false, false);
 
 			}
 			catch (System.Exception ex)
