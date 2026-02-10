@@ -2,9 +2,10 @@
 // Chuyển đổi từ LISP: 3. ON OFF CIVIL 3D OBJECT.lsp
 
 using Autodesk.AutoCAD.Runtime;
-using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.DatabaseServices;
+
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 [assembly: CommandClass(typeof(Civil3DCsharp.LayerControlCommands))]
 
@@ -17,12 +18,12 @@ namespace Civil3DCsharp
     {
         private static Editor GetEditor()
         {
-            return Application.DocumentManager.MdiActiveDocument?.Editor!;
+            return AcadApp.DocumentManager.MdiActiveDocument?.Editor!;
         }
 
         private static void SetLayerState(string layerName, bool turnOn)
         {
-            var doc = Application.DocumentManager.MdiActiveDocument;
+            var doc = AcadApp.DocumentManager.MdiActiveDocument;
             if (doc == null) return;
 
             var db = doc.Database;
@@ -137,5 +138,98 @@ namespace Civil3DCsharp
         {
             SetLayerState("Defpoints", false);
         }
+
+        // ══════════════════════════════════════════════════════════════
+        // HELPER: CHUYỂN ĐỐI TƯỢNG SANG LAYER KHÁC
+        // ══════════════════════════════════════════════════════════════
+        private static void MoveToLayer(string layerName)
+        {
+            var doc = AcadApp.DocumentManager.MdiActiveDocument;
+            if (doc == null) return;
+
+            var ed = doc.Editor;
+            var db = doc.Database;
+
+            // Chọn đối tượng
+            var psr = ed.GetSelection(new PromptSelectionOptions
+            {
+                MessageForAdding = $"\n⊙ Chọn đối tượng để chuyển sang layer '{layerName}': "
+            });
+
+            if (psr.Status != PromptStatus.OK) return;
+
+            using (var tr = db.TransactionManager.StartTransaction())
+            {
+                var lt = (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead);
+
+                // Tạo layer nếu chưa có
+                if (!lt.Has(layerName))
+                {
+                    lt.UpgradeOpen();
+                    var newLayer = new LayerTableRecord { Name = layerName };
+                    lt.Add(newLayer);
+                    tr.AddNewlyCreatedDBObject(newLayer, true);
+                    ed.WriteMessage($"\n  ✓ Đã tạo layer mới: {layerName}");
+                }
+
+                int count = 0;
+                foreach (SelectedObject so in psr.Value)
+                {
+                    var ent = tr.GetObject(so.ObjectId, OpenMode.ForWrite) as Entity;
+                    if (ent != null)
+                    {
+                        ent.Layer = layerName;
+                        count++;
+                    }
+                }
+
+                tr.Commit();
+                ed.WriteMessage($"\n◎ Đã chuyển {count} đối tượng sang layer '{layerName}'.");
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // NHANH: CHUYỂN LAYER CHO BẢN VẼ KỸ THUẬT (từ LISP 0, 00, 11...)
+        // ══════════════════════════════════════════════════════════════
+
+        /// <summary>Chuyển sang layer 0.TEXT (Text thông thường)</summary>
+        [CommandMethod("CTL_ToText")]
+        public static void CTL_ToText() => MoveToLayer("0.TEXT");
+
+        /// <summary>Chuyển sang layer Defpoints (không in)</summary>
+        [CommandMethod("CTL_ToDefpoints")]
+        public static void CTL_ToDefpoints() => MoveToLayer("Defpoints");
+
+        /// <summary>Chuyển sang layer 1.DIM (Dim kích thước)</summary>
+        [CommandMethod("CTL_ToDim")]
+        public static void CTL_ToDim() => MoveToLayer("1.DIM");
+
+        /// <summary>Chuyển sang layer 2.BAO BT (Bao bê tông)</summary>
+        [CommandMethod("CTL_ToBaoBT")]
+        public static void CTL_ToBaoBT() => MoveToLayer("2.BAO BT");
+
+        /// <summary>Chuyển sang layer 3.BAO COT THEP (Bao cốt thép)</summary>
+        [CommandMethod("CTL_ToBaoCotThep")]
+        public static void CTL_ToBaoCotThep() => MoveToLayer("3.BAO COT THEP");
+
+        /// <summary>Chuyển sang layer 4.THEP (Cốt thép)</summary>
+        [CommandMethod("CTL_ToThep")]
+        public static void CTL_ToThep() => MoveToLayer("4.THEP");
+
+        /// <summary>Chuyển sang layer 5.TRUC (Trục)</summary>
+        [CommandMethod("CTL_ToTruc")]
+        public static void CTL_ToTruc() => MoveToLayer("5.TRUC");
+
+        /// <summary>Chuyển sang layer 6.KHUAT (Nét khuất)</summary>
+        [CommandMethod("CTL_ToKhuat")]
+        public static void CTL_ToKhuat() => MoveToLayer("6.KHUAT");
+
+        /// <summary>Chuyển sang layer 7.HATCH (Hatch)</summary>
+        [CommandMethod("CTL_ToHatch")]
+        public static void CTL_ToHatch() => MoveToLayer("7.HATCH");
+
+        /// <summary>Chuyển sang layer 8.RANH GIOI (Ranh giới)</summary>
+        [CommandMethod("CTL_ToRanhGioi")]
+        public static void CTL_ToRanhGioi() => MoveToLayer("8.RANH GIOI");
     }
 }

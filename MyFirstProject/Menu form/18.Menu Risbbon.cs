@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.IO;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -16,6 +21,180 @@ using Autodesk.Windows;
 
 namespace MyFirstProject
 {
+    /// <summary>
+    /// Helper class for creating ribbon button icons
+    /// </summary>
+    public static class RibbonIconHelper
+    {
+        // Dictionary để cache icons đã tạo
+        private static readonly Dictionary<string, BitmapImage> _iconCache = [];
+
+        /// <summary>
+        /// Tạo icon từ text/emoji (32x32 pixels)
+        /// </summary>
+        public static BitmapImage? CreateTextIcon(string text, int size = 32)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            
+            // Lấy emoji/ký tự đầu tiên từ text
+            string iconText = ExtractIconChar(text);
+            
+            // Check cache
+            string cacheKey = $"{iconText}_{size}";
+            if (_iconCache.TryGetValue(cacheKey, out var cached))
+                return cached;
+
+            try
+            {
+                using var bitmap = new Bitmap(size, size);
+                using var graphics = Graphics.FromImage(bitmap);
+                
+                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                
+                // Background gradient
+                using (var brush = new System.Drawing.Drawing2D.LinearGradientBrush(
+                    new Rectangle(0, 0, size, size),
+                    System.Drawing.Color.FromArgb(50, 120, 180),
+                    System.Drawing.Color.FromArgb(30, 80, 140),
+                    45f))
+                {
+                    graphics.FillRectangle(brush, 0, 0, size, size);
+                }
+                
+                // Border
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.FromArgb(70, 150, 200), 1))
+                {
+                    graphics.DrawRectangle(pen, 0, 0, size - 1, size - 1);
+                }
+                
+                // Text/Icon
+                using var font = new System.Drawing.Font("Segoe UI Symbol", size * 0.5f, System.Drawing.FontStyle.Bold);
+                using var textBrush = new SolidBrush(System.Drawing.Color.White);
+                
+                var textSize = graphics.MeasureString(iconText, font);
+                float x = (size - textSize.Width) / 2;
+                float y = (size - textSize.Height) / 2;
+                graphics.DrawString(iconText, font, textBrush, x, y);
+
+                // Convert to BitmapImage
+                var bitmapImage = ConvertToBitmapImage(bitmap);
+                if (bitmapImage != null)
+                {
+                    _iconCache[cacheKey] = bitmapImage;
+                }
+                return bitmapImage;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Lấy ký tự icon từ text (emoji hoặc chữ cái đầu)
+        /// </summary>
+        private static string ExtractIconChar(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "?";
+            
+            // Unicode emoji characters thường dùng
+            var iconChars = new[] { "◎", "▸", "◈", "◊", "═", "▤", "□", "◻", "▢", "▣", 
+                                    "⊙", "⊚", "⊕", "⊗", "★", "☆", "●", "○", "◐", "◑",
+                                    "▶", "◀", "▲", "▼", "◄", "►", "◆", "◇", "⬇", "⬆",
+                                    "━", "─", "│", "║", "╱", "╲", "⚙", "⚡", "▭" };
+            
+            foreach (var c in iconChars)
+            {
+                if (text.Contains(c))
+                    return c;
+            }
+            
+            // Fallback: lấy chữ cái đầu tiên (bỏ qua khoảng trắng)
+            foreach (char c in text)
+            {
+                if (char.IsLetterOrDigit(c))
+                    return c.ToString().ToUpper();
+            }
+            
+            return "?";
+        }
+
+        /// <summary>
+        /// Convert System.Drawing.Bitmap to WPF BitmapImage
+        /// </summary>
+        private static BitmapImage? ConvertToBitmapImage(Bitmap bitmap)
+        {
+            try
+            {
+                using var memory = new MemoryStream();
+                bitmap.Save(memory, ImageFormat.Png);
+                memory.Position = 0;
+                
+                var bitmapImage = new BitmapImage();
+                bitmapImage.BeginInit();
+                bitmapImage.StreamSource = memory;
+                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                bitmapImage.EndInit();
+                bitmapImage.Freeze();
+                
+                return bitmapImage;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Tạo icon màu từ text với custom color
+        /// </summary>
+        public static BitmapImage? CreateColorIcon(string text, System.Drawing.Color bgColor, int size = 32)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            
+            string iconText = ExtractIconChar(text);
+            string cacheKey = $"{iconText}_{bgColor.ToArgb()}_{size}";
+            
+            if (_iconCache.TryGetValue(cacheKey, out var cached))
+                return cached;
+
+            try
+            {
+                using var bitmap = new Bitmap(size, size);
+                using var graphics = Graphics.FromImage(bitmap);
+                
+                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                
+                // Background với màu tùy chỉnh
+                using (var brush = new SolidBrush(bgColor))
+                {
+                    graphics.FillRectangle(brush, 0, 0, size, size);
+                }
+                
+                // Text
+                using var font = new System.Drawing.Font("Segoe UI Symbol", size * 0.5f, System.Drawing.FontStyle.Bold);
+                using var textBrush = new SolidBrush(System.Drawing.Color.White);
+                
+                var textSize = graphics.MeasureString(iconText, font);
+                float x = (size - textSize.Width) / 2;
+                float y = (size - textSize.Height) / 2;
+                graphics.DrawString(iconText, font, textBrush, x, y);
+
+                var bitmapImage = ConvertToBitmapImage(bitmap);
+                if (bitmapImage != null)
+                {
+                    _iconCache[cacheKey] = bitmapImage;
+                }
+                return bitmapImage;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
     public class Autocad
     {
         [CommandMethod("ShowForm")]
@@ -84,28 +263,42 @@ namespace MyFirstProject
                 };
                 ribbon.Tabs.Add(tab);
 
-                // Helper to add a dropdown menu for Civil tool commands
+                // Helper to add a dropdown menu for Civil tool commands WITH ICONS
                 void AddCivilDropdownPanel(RibbonTab targetTab, string panelTitle, (string Command, string Label)[] commands)
                 {
                     if (commands.Length == 0) return; // Skip if no commands
 
                     RibbonPanelSource src = new() { Title = panelTitle };
                     RibbonPanel panel = new() { Source = src };
+                    
+                    // Panel icon từ lệnh đầu tiên
+                    var panelIcon = RibbonIconHelper.CreateTextIcon(commands[0].Label, 32);
+                    var panelIconSmall = RibbonIconHelper.CreateTextIcon(commands[0].Label, 16);
+                    
                     RibbonSplitButton splitButton = new()
                     {
                         Text = panelTitle,
                         ShowText = true,
-                        ShowImage = false,
+                        ShowImage = panelIcon != null,
+                        Image = panelIconSmall,
+                        LargeImage = panelIcon,
                         Size = RibbonItemSize.Large
                     };
+                    
                     foreach (var (command, label) in commands)
                     {
+                        // Tạo icon từ label (sử dụng emoji/ký tự đầu)
+                        var icon = RibbonIconHelper.CreateTextIcon(label, 16);
+                        var largeIcon = RibbonIconHelper.CreateTextIcon(label, 32);
+                        
                         RibbonButton btn = new()
                         {
                             Text = label,
                             ShowText = true,
-                            ShowImage = false,
-                            Orientation = System.Windows.Controls.Orientation.Vertical,
+                            ShowImage = icon != null,
+                            Image = icon,
+                            LargeImage = largeIcon,
+                            Orientation = System.Windows.Controls.Orientation.Horizontal,
                             Size = RibbonItemSize.Standard,
                             CommandHandler = new SimpleRibbonCommandHandler(),
                             Tag = command,
@@ -317,6 +510,85 @@ namespace MyFirstProject
                     ("AT_annotive_scale_currentOnly", "◈ Annotative Scale")
                 ];
 
+                // 11. LAYER CONTROL - Bật/Tắt Layer (từ LISP)
+                (string Command, string Label)[] layerCommands =
+                [
+                    ("CTL_OnCorridor", "◎ BẬT Corridor"),
+                    ("CTL_OffCorridor", "⊘ TẮT Corridor"),
+                    ("CTL_OnSampleLine", "◎ BẬT SampleLine"),
+                    ("CTL_OffSampleLine", "⊘ TẮT SampleLine"),
+                    ("CTL_OnAlignment", "◎ BẬT Alignment"),
+                    ("CTL_OffAlignment", "⊘ TẮT Alignment"),
+                    ("CTL_OnParcel", "◎ BẬT Parcel"),
+                    ("CTL_OffParcel", "⊘ TẮT Parcel"),
+                    ("CTL_OnHatchDaoDap", "◎ BẬT Hatch Đào Đắp"),
+                    ("CTL_OffHatchDaoDap", "⊘ TẮT Hatch Đào Đắp"),
+                    ("CTL_OnDefpoints", "◎ BẬT Defpoints"),
+                    ("CTL_OffDefpoints", "⊘ TẮT Defpoints")
+                ];
+
+                // 12. LISP UTILITY - Tiện ích từ LISP
+                (string Command, string Label)[] lispUtilityCommands =
+                [
+                    ("CTS_RebuildSurface", "⟳ Rebuild Surface"),
+                    ("CTPo_ReorderPoints", "▸ Đánh số Point"),
+                    ("CTP_AddParcelLabels", "▭ Thêm nhãn Parcel"),
+                    ("CTU_ExportCAD2007", "⬇ Export CAD 2007"),
+                    ("CTU_ExplodeAEC", "⊘ Explode AEC"),
+                    ("CTU_StyleAutoOn", "◎ BẬT Auto Style"),
+                    ("CTU_StyleAutoOff", "⊘ TẮT Auto Style"),
+                    ("CTU_DumpObject", "ⓘ Dump Object Info")
+                ];
+
+                // 13. DRAWING SETUP - Thiết lập bản vẽ (MỚI từ LISP)
+                (string Command, string Label)[] drawingSetupCommands =
+                [
+                    ("CTDS_ThietLap", "⚙ Thiết lập chuẩn"),
+                    ("CTDS_SaveClean", "⊘ Save & Purge"),
+                    ("CTDS_PrintAllLayouts", "▤ In tất cả Layout"),
+                    ("CTDS_PrintCurrentLayout", "▦ In Layout hiện tại"),
+                    ("CTDS_ExportPDF", "⬇ Xuất PDF"),
+                    ("CTDS_ConvertMM2M", "⇄ Chuyển MM→M"),
+                    ("CTDS_ConvertCM2M", "⇄ Chuyển CM→M")
+                ];
+
+                // 14. LAYER QUICK - Đổi layer nhanh (MỚI từ LISP)
+                (string Command, string Label)[] layerQuickCommands =
+                [
+                    ("CTL_ToText", "▸ → 0.TEXT"),
+                    ("CTL_ToDefpoints", "▸ → Defpoints"),
+                    ("CTL_ToDim", "▸ → 1.DIM"),
+                    ("CTL_ToBaoBT", "▸ → 2.BAO BT"),
+                    ("CTL_ToBaoCotThep", "▸ → 3.BAO COT THEP"),
+                    ("CTL_ToThep", "▸ → 4.THEP"),
+                    ("CTL_ToTruc", "▸ → 5.TRUC"),
+                    ("CTL_ToKhuat", "▸ → 6.KHUAT"),
+                    ("CTL_ToHatch", "▸ → 7.HATCH"),
+                    ("CTL_ToRanhGioi", "▸ → 8.RANH GIOI")
+                ];
+
+                // 15. COMMON UTILITIES - Tiện ích thường dùng (MỚI từ LISP)
+                (string Command, string Label)[] commonUtilitiesCommands =
+                [
+                    ("CTU_MakePointFromText", "⊕ Tạo Point từ Text"),
+                    ("CTU_TotalLength", "━ Tổng chiều dài"),
+                    ("CTU_ExportTextCoords", "⬇ Xuất tọa độ Text"),
+                    ("CTU_TextToMText", "▭ Text → MText"),
+                    ("CTU_FindIntersections", "◎ Tìm điểm giao"),
+                    ("CTU_AddPolylineVertices", "⊕ Thêm đỉnh Polyline"),
+                    ("CTU_DrawTaluy", "╱ Vẽ Taluy")
+                ];
+
+                // 16. CURVE DESIGN STANDARDS - Tiêu chuẩn thiết kế đường cong
+                (string Command, string Label)[] curveDesignCommands =
+                [
+                    ("CTC_ThietLapDuongCong", "⊙ Mở Form Đường Cong"),
+                    ("CTC_TraCuuDuongCong", "◎ Tra cứu thông số"),
+                    ("CTC_ThongSoDuongCong_4054", "▤ Bảng TCVN 4054 (ngoài ĐT)"),
+                    ("CTC_ThongSoDuongCong_13592", "▤ Bảng TCVN 13592 (đô thị)"),
+                    ("CTC_KiemTraDuongCong_4054", "⚙ Kiểm tra theo 4054"),
+                    ("CTC_KiemTraDuongCong_13592", "⚙ Kiểm tra theo 13592")
+                ];
                 // ══════════════════════════════════════════════════════════════════════════
                 // CẤU TRÚC MENU THEO QUY TRÌNH THIẾT KẾ GIAO THÔNG
                 // ══════════════════════════════════════════════════════════════════════════
@@ -357,8 +629,35 @@ namespace MyFirstProject
                 // ▶ PANEL 8: THỐNG KÊ (Tiện ích + Export)
                 AddCivilDropdownPanel(tab, "Thống kê", utilitiesCommands);
 
-                // ▶ PANEL 9: HƯỚNG DẪN (CAD Commands)
+                // ▶ PANEL 9: LAYER (Bật/Tắt Layer)
+                AddCivilDropdownPanel(tab, "Layer", layerCommands);
+
+                // ▶ PANEL 10: LISP UTILITY (Tiện ích từ LISP)
+                AddCivilDropdownPanel(tab, "LISP", lispUtilityCommands);
+
+                // ▶ PANEL 11: HƯỚNG DẪN (CAD Commands)
                 AddCivilDropdownPanel(tab, "Hướng dẫn", acadCommands);
+
+                // ▶ PANEL 12: THIẾT LẬP BẢN VẼ (Mới từ LISP)
+                AddCivilDropdownPanel(tab, "Thiết lập", drawingSetupCommands);
+
+                // ▶ PANEL 13: ĐỔI LAYER NHANH (Mới từ LISP)
+                AddCivilDropdownPanel(tab, "Đổi Layer", layerQuickCommands);
+
+                // ▶ PANEL 14: TIỆN ÍCH THƯỜNG DÙNG (Mới từ LISP)
+                AddCivilDropdownPanel(tab, "Tiện ích", commonUtilitiesCommands);
+
+                // ▶ PANEL 15: TIÊU CHUẨN ĐƯỜNG CONG (TCVN 4054 & 13592)
+                AddCivilDropdownPanel(tab, "Đường cong", curveDesignCommands);
+
+                // ▶ PANEL 16: CÀI ĐẶT (Icons & Danh sách lệnh)
+                (string Command, string Label)[] settingsCommands =
+                [
+                    ("CT_DoiIcon", "🎨 Đổi Icon lệnh"),
+                    ("CT_DanhSachLenh", "📋 Danh sách lệnh"),
+                    ("show_menu", "▤ Làm mới Ribbon")
+                ];
+                AddCivilDropdownPanel(tab, "Cài đặt", settingsCommands);
 
                 tab.IsActive = true;
                 var ed = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor;
