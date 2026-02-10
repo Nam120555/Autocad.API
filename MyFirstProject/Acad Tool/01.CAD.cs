@@ -1267,5 +1267,166 @@ namespace Civil3DCsharp
 
 
 
+        [CommandMethod("AT_MT2ML")]
+        public static void AT_MT2ML()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = doc.Editor;
+            Database db = doc.Database;
+
+            PromptSelectionOptions pso = new()
+            {
+                MessageForAdding = "\nChọn các MText/Text để chuyển đổi sang MLeader: "
+            };
+            TypedValue[] filters = [new TypedValue((int)DxfCode.Start, "MTEXT,TEXT")];
+            SelectionFilter filter = new(filters);
+            PromptSelectionResult selRes = ed.GetSelection(pso, filter);
+
+            if (selRes.Status != PromptStatus.OK) return;
+
+            foreach (SelectedObject so in selRes.Value)
+            {
+                using Transaction tr = db.TransactionManager.StartTransaction();
+                try
+                {
+                    Entity ent = (Entity)tr.GetObject(so.ObjectId, OpenMode.ForWrite);
+                    string text = "";
+                    Point3d pos = Point3d.Origin;
+                    string layer = ent.Layer;
+
+                    if (ent is MText mText)
+                    {
+                        text = mText.Contents;
+                        pos = mText.Location;
+                    }
+                    else if (ent is DBText dbText)
+                    {
+                        text = dbText.TextString;
+                        pos = dbText.Position;
+                    }
+
+                    PromptPointOptions ppo = new($"\nChọn điểm mũi tên cho ghi chú '{text}': ");
+                    ppo.UseBasePoint = true;
+                    ppo.BasePoint = pos;
+                    PromptPointResult ppr = ed.GetPoint(ppo);
+
+                    if (ppr.Status == PromptStatus.OK)
+                    {
+                        UtilitiesCAD.CCreateMLeader(pos, ppr.Value, text, layer);
+                        ent.Erase(); // Xóa text cũ
+                    }
+                    tr.Commit();
+                }
+                catch (System.Exception ex)
+                {
+                    ed.WriteMessage("\nLỗi: " + ex.Message);
+                }
+            }
+        }
+        [CommandMethod("AT_TCD")]
+        public static void AT_TCD()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = doc.Editor;
+            Database db = doc.Database;
+
+            PromptSelectionOptions pso = new() { MessageForAdding = "\nChọn các Dim cần cắt chân (TCD): " };
+            TypedValue[] filters = [new TypedValue((int)DxfCode.Start, "DIMENSION")];
+            SelectionFilter filter = new(filters);
+            PromptSelectionResult selRes = ed.GetSelection(pso, filter);
+
+            if (selRes.Status != PromptStatus.OK) return;
+
+            PromptPointOptions ppo = new("\nChọn điểm muốn cắt chân Dim tới: ");
+            PromptPointResult ppr = ed.GetPoint(ppo);
+            if (ppr.Status != PromptStatus.OK) return;
+
+            Point3d targetPt = ppr.Value;
+
+            using Transaction tr = db.TransactionManager.StartTransaction();
+            try
+            {
+                foreach (SelectedObject so in selRes.Value)
+                {
+                    Dimension? dim = tr.GetObject(so.ObjectId, OpenMode.ForWrite) as Dimension;
+                    if (dim is AlignedDimension ad)
+                    {
+                        // Tính toán vector hướng của chân Dim
+                        Vector3d direction = (ad.XLine1Point - ad.DimLinePoint).GetNormal();
+                        // Chiếu target point lên đường thẳng chân Dim
+                        ad.XLine1Point = ad.XLine1Point.Project(new Plane(ad.XLine1Point, direction), direction.CrossProduct(Vector3d.ZAxis)).Add(ad.XLine1Point.GetVectorTo(targetPt).DotProduct(direction) * direction);
+                        ad.XLine2Point = ad.XLine2Point.Project(new Plane(ad.XLine2Point, direction), direction.CrossProduct(Vector3d.ZAxis)).Add(ad.XLine2Point.GetVectorTo(targetPt).DotProduct(direction) * direction);
+                        
+                        // Đơn giản hơn: Chiếu target point lên đường thẳng vuông góc với Dim line
+                        // Nhưng Dim có thể xoay. Tốt nhất là lấy đường thẳng đi qua XLinePoint và song song với hướng chân Dim.
+                        // Trong thực tế, chân Dim thường vuông góc với đường Dim.
+                    }
+                    else if (dim is RotatedDimension rd)
+                    {
+                        double angle = rd.Rotation;
+                        Vector3d dimDir = new(Math.Cos(angle), Math.Sin(angle), 0);
+                        Vector3d normalDir = dimDir.CrossProduct(Vector3d.ZAxis);
+                        
+                        rd.XLine1Point = rd.XLine1Point.Add(normalDir * (rd.XLine1Point.GetVectorTo(targetPt).DotProduct(normalDir)));
+                        rd.XLine2Point = rd.XLine2Point.Add(normalDir * (rd.XLine2Point.GetVectorTo(targetPt).DotProduct(normalDir)));
+                    }
+                }
+                tr.Commit();
+                ed.WriteMessage("\nĐã căn chỉnh các chân Dimension.");
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage("\nLỗi: " + ex.Message);
+            }
+        }
+
+        [CommandMethod("AT_TBD")]
+        public static void AT_TBD()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = doc.Editor;
+            Database db = doc.Database;
+
+            PromptSelectionOptions pso = new() { MessageForAdding = "\nChọn các Dim cần căn chỉnh đường ghi chú (TBD): " };
+            TypedValue[] filters = [new TypedValue((int)DxfCode.Start, "DIMENSION")];
+            SelectionFilter filter = new(filters);
+            PromptSelectionResult selRes = ed.GetSelection(pso, filter);
+
+            if (selRes.Status != PromptStatus.OK) return;
+
+            PromptPointOptions ppo = new("\nChọn điểm muốn đặt đường Dim tới: ");
+            PromptPointResult ppr = ed.GetPoint(ppo);
+            if (ppr.Status != PromptStatus.OK) return;
+
+            Point3d targetPt = ppr.Value;
+
+            using Transaction tr = db.TransactionManager.StartTransaction();
+            try
+            {
+                foreach (SelectedObject so in selRes.Value)
+                {
+                    Dimension? dim = tr.GetObject(so.ObjectId, OpenMode.ForWrite) as Dimension;
+                    if (dim is AlignedDimension ad)
+                    {
+                        Vector3d dimDir = (ad.XLine2Point - ad.XLine1Point).GetNormal();
+                        Vector3d normalDir = dimDir.CrossProduct(Vector3d.ZAxis);
+                        ad.DimLinePoint = ad.XLine1Point.Add(normalDir * (ad.XLine1Point.GetVectorTo(targetPt).DotProduct(normalDir)));
+                    }
+                    else if (dim is RotatedDimension rd)
+                    {
+                        double angle = rd.Rotation;
+                        Vector3d dimDir = new(Math.Cos(angle), Math.Sin(angle), 0);
+                        Vector3d normalDir = dimDir.CrossProduct(Vector3d.ZAxis);
+                        rd.DimLinePoint = rd.XLine1Point.Add(normalDir * (rd.XLine1Point.GetVectorTo(targetPt).DotProduct(normalDir)));
+                    }
+                }
+                tr.Commit();
+                ed.WriteMessage("\nĐã căn chỉnh các đường Dimension.");
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage("\nLỗi: " + ex.Message);
+            }
+        }
     }
 }

@@ -20,6 +20,7 @@ using ClosedXML.Excel;
 using FormLabel = System.Windows.Forms.Label;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using AcadColor = Autodesk.AutoCAD.Colors.Color;
+using Civil3DCsharp.Helpers;
 
 // This line is not mandatory, but improves loading performances
 [assembly: CommandClass(typeof(Civil3DCsharp.SanNen))]
@@ -500,12 +501,13 @@ namespace Civil3DCsharp
             using Transaction tr = db.TransactionManager.StartTransaction();
             try
             {
+            SmartCommand.Execute("Thiết lập lưới ô vuông", (pm) =>
+            {
                 // 1. Hiển thị form cài đặt
                 SanNenSettingsForm settingsForm = new(tr);
                 if (settingsForm.ShowDialog() != DialogResult.OK)
                 {
-                    ed.WriteMessage("\nĐã hủy lệnh.");
-                    return;
+                    throw new OperationCanceledException("Người dùng đã hủy thiết lập.");
                 }
 
                 double cellSize = settingsForm.CellSize;
@@ -552,8 +554,7 @@ namespace Civil3DCsharp
                 }
                 else
                 {
-                    ed.WriteMessage("\nĐã hủy lệnh.");
-                    return;
+                    throw new OperationCanceledException("Người dùng đã hủy chọn ranh giới.");
                 }
 
                 // 3. Tính số hàng và cột
@@ -582,10 +583,12 @@ namespace Civil3DCsharp
                 EnsureLayer(db, tr, layerName, 3); // Màu xanh lá
 
                 // 5. Vẽ các ô lưới
+                pm.SetLimit(rows * cols);
                 for (int row = 0; row < rows; row++)
                 {
                     for (int col = 0; col < cols; col++)
                     {
+                        pm.MeterProgress();
                         double x = minPt.X + col * cellSize;
                         double y = minPt.Y + row * cellSize;
 
@@ -667,10 +670,15 @@ namespace Civil3DCsharp
 
                 ed.WriteMessage($"\n✓ Đã tạo lưới {rows}x{cols} = {rows * cols} ô");
                 ed.WriteMessage("\nSử dụng lệnh CTSN_NhapCaoDo để nhập cao độ TN/TK");
+            });
+            }
+            catch (System.OperationCanceledException)
+            {
+                // Silent catch for user cancellation
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\nLỗi: {ex.Message}");
+                ed.WriteMessage($"\n[ERROR] {ex.Message}");
             }
         }
 
@@ -680,23 +688,27 @@ namespace Civil3DCsharp
         [CommandMethod("CTSN_TinhKL")]
         public static void CTSNTinhKL()
         {
-            Document doc = AcadApp.DocumentManager.MdiActiveDocument;
-            Editor ed = doc.Editor;
-
-            if (currentGrid == null || currentGrid.Cells.Count == 0)
+            SmartCommand.Execute("Tính khối lượng san nền", (pm) =>
             {
-                ed.WriteMessage("\nChưa có lưới! Sử dụng lệnh CTSN_TaoLuoi trước.");
-                return;
-            }
+                if (currentGrid == null || currentGrid.Cells.Count == 0)
+                {
+                    throw new System.Exception("Chưa có lưới! Sử dụng lệnh CTSN_TaoLuoi trước.");
+                }
 
-            ed.WriteMessage("\n=== TÍNH KHỐI LƯỢNG SAN NỀN ===");
-            ed.WriteMessage($"\nTổng số ô: {currentGrid.Cells.Count}");
-            ed.WriteMessage($"\nTổng diện tích: {currentGrid.TotalArea:F2} m²");
-            ed.WriteMessage($"\n\n--- KẾT QUẢ ---");
-            ed.WriteMessage($"\n  Khối lượng ĐÀO: {currentGrid.TotalCutVolume:F2} m³");
-            ed.WriteMessage($"\n  Khối lượng ĐẮP: {currentGrid.TotalFillVolume:F2} m³");
-            ed.WriteMessage($"\n  Chênh lệch: {currentGrid.TotalFillVolume - currentGrid.TotalCutVolume:F2} m³");
-            ed.WriteMessage("\n===============================");
+                // Tính toán có vẻ nhanh nhưng vẫn báo cáo tiến độ nếu cần
+                pm.SetLimit(1);
+                pm.MeterProgress();
+
+                Editor ed = AcadApp.DocumentManager.MdiActiveDocument.Editor;
+                ed.WriteMessage("\n=== TÍNH KHỐI LƯỢNG SAN NỀN ===");
+                ed.WriteMessage($"\nTổng số ô: {currentGrid.Cells.Count}");
+                ed.WriteMessage($"\nTổng diện tích: {currentGrid.TotalArea:F2} m²");
+                ed.WriteMessage($"\n\n--- KẾT QUẢ ---");
+                ed.WriteMessage($"\n  Khối lượng ĐÀO: {currentGrid.TotalCutVolume:F2} m³");
+                ed.WriteMessage($"\n  Khối lượng ĐẮP: {currentGrid.TotalFillVolume:F2} m³");
+                ed.WriteMessage($"\n  Chênh lệch: {currentGrid.TotalFillVolume - currentGrid.TotalCutVolume:F2} m³");
+                ed.WriteMessage("\n===============================");
+            });
         }
 
         /// <summary>
@@ -865,29 +877,26 @@ namespace Civil3DCsharp
         [CommandMethod("CTSN_Surface")]
         public static void CTSNSurface()
         {
-            Document doc = AcadApp.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-
-            if (currentGrid == null || currentGrid.Cells.Count == 0)
+            SmartCommand.Execute("Lấy cao độ từ Surface", (pm) =>
             {
-                ed.WriteMessage("\nChưa có lưới! Sử dụng lệnh CTSN_TaoLuoi trước.");
-                return;
-            }
+                Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+                Database db = doc.Database;
+                Editor ed = doc.Editor;
 
-            using Transaction tr = db.TransactionManager.StartTransaction();
-            try
-            {
+                if (currentGrid == null || currentGrid.Cells.Count == 0)
+                {
+                    throw new System.Exception("Chưa có lưới! Sử dụng lệnh CTSN_TaoLuoi trước.");
+                }
+
+                using Transaction tr = db.TransactionManager.StartTransaction();
                 CivilDocument civilDoc = CivilApplication.ActiveDocument;
                 ObjectIdCollection surfaceIds = civilDoc.GetSurfaceIds();
 
                 if (surfaceIds.Count == 0)
                 {
-                    ed.WriteMessage("\nKhông tìm thấy Surface nào trong bản vẽ!");
-                    return;
+                    throw new System.Exception("Không tìm thấy Surface nào trong bản vẽ!");
                 }
 
-                // Liệt kê các Surface
                 ed.WriteMessage("\n=== CHỌN SURFACE ===");
                 List<(string Name, ObjectId Id)> surfaces = new();
                 int idx = 1;
@@ -901,56 +910,44 @@ namespace Civil3DCsharp
                     }
                 }
 
-                // Chọn Surface TN
-                PromptIntegerOptions pioTN = new("\nChọn số Surface TN (0 = bỏ qua):")
-                {
-                    DefaultValue = 0,
-                    AllowNegative = false
-                };
+                PromptIntegerOptions pioTN = new("\nChọn số Surface TN (0 = bỏ qua):") { DefaultValue = 0, AllowNegative = false };
                 PromptIntegerResult pirTN = ed.GetInteger(pioTN);
                 ObjectId surfTNId = ObjectId.Null;
                 if (pirTN.Status == PromptStatus.OK && pirTN.Value > 0 && pirTN.Value <= surfaces.Count)
                     surfTNId = surfaces[pirTN.Value - 1].Id;
 
-                // Chọn Surface TK
-                PromptIntegerOptions pioTK = new("\nChọn số Surface TK (0 = bỏ qua):")
-                {
-                    DefaultValue = 0,
-                    AllowNegative = false
-                };
+                PromptIntegerOptions pioTK = new("\nChọn số Surface TK (0 = bỏ qua):") { DefaultValue = 0, AllowNegative = false };
                 PromptIntegerResult pirTK = ed.GetInteger(pioTK);
                 ObjectId surfTKId = ObjectId.Null;
                 if (pirTK.Status == PromptStatus.OK && pirTK.Value > 0 && pirTK.Value <= surfaces.Count)
                     surfTKId = surfaces[pirTK.Value - 1].Id;
 
-                // Lấy cao độ từ Surface
-                int updateCount = 0;
+                int cellCount = currentGrid.Cells.Count;
+                pm.SetLimit(cellCount);
+                
+                TinSurface? surfTN = surfTNId.IsNull ? null : (TinSurface)tr.GetObject(surfTNId, OpenMode.ForRead);
+                TinSurface? surfTK = surfTKId.IsNull ? null : (TinSurface)tr.GetObject(surfTKId, OpenMode.ForRead);
+
                 foreach (var cell in currentGrid.Cells)
                 {
+                    pm.MeterProgress();
                     foreach (var corner in cell.Corners)
                     {
-                        if (!surfTNId.IsNull)
+                        if (surfTN != null)
                         {
-                            TinSurface surfTN = (TinSurface)tr.GetObject(surfTNId, OpenMode.ForRead);
-                            try { corner.ElevationTN = surfTN.FindElevationAtXY(corner.Position.X, corner.Position.Y); updateCount++; }
+                            try { corner.ElevationTN = surfTN.FindElevationAtXY(corner.Position.X, corner.Position.Y); }
                             catch { }
                         }
-                        if (!surfTKId.IsNull)
+                        if (surfTK != null)
                         {
-                            TinSurface surfTK = (TinSurface)tr.GetObject(surfTKId, OpenMode.ForRead);
-                            try { corner.ElevationTK = surfTK.FindElevationAtXY(corner.Position.X, corner.Position.Y); updateCount++; }
+                            try { corner.ElevationTK = surfTK.FindElevationAtXY(corner.Position.X, corner.Position.Y); }
                             catch { }
                         }
                     }
                 }
-
                 tr.Commit();
-                ed.WriteMessage($"\n✓ Đã cập nhật {updateCount} điểm cao độ từ Surface");
-            }
-            catch (System.Exception ex)
-            {
-                ed.WriteMessage($"\nLỗi: {ex.Message}");
-            }
+                ed.WriteMessage($"\n✓ Đã cập nhật cao độ từ Surface cho {cellCount} ô lưới.");
+            });
         }
 
         /// <summary>
@@ -959,44 +956,39 @@ namespace Civil3DCsharp
         [CommandMethod("CTSN_XuatBang")]
         public static void CTSNXuatBang()
         {
-            Document doc = AcadApp.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-
-            if (currentGrid == null || currentGrid.Cells.Count == 0)
+            SmartCommand.Execute("Xuất bảng san nền", (pm) =>
             {
-                ed.WriteMessage("\nChưa có lưới! Sử dụng lệnh CTSN_TaoLuoi trước.");
-                return;
-            }
+                Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+                Database db = doc.Database;
+                Editor ed = doc.Editor;
 
-            ed.WriteMessage("\n=== XUẤT BẢNG KHỐI LƯỢNG ===");
+                if (currentGrid == null || currentGrid.Cells.Count == 0)
+                {
+                    throw new System.Exception("Chưa có lưới! Sử dụng lệnh CTSN_TaoLuoi trước.");
+                }
 
-            // Hỏi điểm chèn
-            PromptPointOptions ppo = new("\nChọn điểm chèn bảng:")
-            {
-                AllowNone = false
-            };
-            PromptPointResult ppr = ed.GetPoint(ppo);
-            if (ppr.Status != PromptStatus.OK) return;
+                PromptPointResult ppr = ed.GetPoint("\nChọn điểm đặt bảng:");
+                if (ppr.Status != PromptStatus.OK) throw new OperationCanceledException();
 
-            using Transaction tr = db.TransactionManager.StartTransaction();
-            try
-            {
+                using Transaction tr = db.TransactionManager.StartTransaction();
                 BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
                 BlockTableRecord btr = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
 
-                // Tạo bảng
+                string layerName = "CTSN_BANG";
+                EnsureLayer(db, tr, layerName, 7); // Trắng
+
+                int numCols = 7;
+                int numRows = currentGrid.Cells.Count + 2; // Header + Data + Summary
+                pm.SetLimit(numRows);
+
                 Autodesk.AutoCAD.DatabaseServices.Table table = new();
-                table.SetDatabaseDefaults();
-                table.Position = ppr.Value;
-                table.TableStyle = db.Tablestyle;
-
-                // Thiết lập bảng
-                int numRows = currentGrid.Cells.Count + 3; // Header + data + 2 summary
-                int numCols = 7; // STT, Ô, DT, TN, TK, Đào, Đắp
                 table.SetSize(numRows, numCols);
+                table.Position = ppr.Value;
+                table.Layer = layerName;
 
-                double[] colWidths = { 15, 20, 25, 25, 25, 30, 30 };
+                // Cài đặt bảng
+                table.SetRowHeight(8);
+                double[] colWidths = { 10, 20, 25, 25, 25, 30, 30 };
                 for (int i = 0; i < numCols; i++)
                     table.Columns[i].Width = colWidths[i];
 
@@ -1007,12 +999,16 @@ namespace Civil3DCsharp
                 // Header
                 string[] headers = { "STT", "Ô", "DT (m²)", "CĐ TN", "CĐ TK", "Đào (m³)", "Đắp (m³)" };
                 for (int i = 0; i < numCols; i++)
+                {
                     table.Cells[0, i].TextString = headers[i];
+                    pm.MeterProgress();
+                }
 
                 // Data
                 int row = 1;
-                foreach (var cell in currentGrid.Cells.OrderBy(c => c.Row).ThenBy(c => c.Col))
+                foreach (var cell in currentGrid.Cells.OrderBy(c => c.Name))
                 {
+                    pm.MeterProgress();
                     double avgTN = cell.Corners.Average(c => c.ElevationTN);
                     double avgTK = cell.Corners.Average(c => c.ElevationTK);
 
@@ -1027,6 +1023,7 @@ namespace Civil3DCsharp
                 }
 
                 // Summary
+                pm.MeterProgress();
                 table.Cells[row, 0].TextString = "";
                 table.Cells[row, 1].TextString = "TỔNG";
                 table.Cells[row, 2].TextString = currentGrid.TotalArea.ToString("F2");
@@ -1040,11 +1037,7 @@ namespace Civil3DCsharp
 
                 tr.Commit();
                 ed.WriteMessage($"\n✓ Đã xuất bảng tại ({ppr.Value.X:F2}, {ppr.Value.Y:F2})");
-            }
-            catch (System.Exception ex)
-            {
-                ed.WriteMessage($"\nLỗi: {ex.Message}");
-            }
+            });
         }
 
         #endregion

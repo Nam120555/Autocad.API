@@ -1,4 +1,4 @@
-using Autodesk.Aec.PropertyData.DatabaseServices;
+ï»¿using Autodesk.Aec.PropertyData.DatabaseServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using System;
@@ -11,7 +11,7 @@ namespace MyFirstProject.Extensions
     public class PropertySetUtils
     {
         /// <summary>
-        /// Thi?t l?p Property Set cho 3D Solid v?i các thu?c tính ???c tính toán
+        /// Thi?t l?p Property Set cho 3D Solid v?i cï¿½c thu?c tï¿½nh ???c tï¿½nh toï¿½n
         /// </summary>
         /// <param name="tr">Transaction</param>
         /// <param name="solid">3D Solid object</param>
@@ -21,23 +21,23 @@ namespace MyFirstProject.Extensions
 
             try
             {
-                // L?y thông tin c? b?n c?a solid
+                // L?y thï¿½ng tin c? b?n c?a solid
                 string layerName = solid.Layer;
                 double volume = solid.MassProperties.Volume;
                 Point3d centroid = solid.MassProperties.Centroid;
 
-                // S? d?ng tên Property Set c? ??nh
-                string propertySetName = "IFC ???NG GIAO THÔNG2";
+                // S? d?ng tï¿½n Property Set c? ??nh
+                string propertySetName = "IFC ???NG GIAO THï¿½NG2";
 
-                // Ki?m tra và t?o Property Set Definition n?u ch?a có
+                // Ki?m tra vï¿½ t?o Property Set Definition n?u ch?a cï¿½
                 ObjectId propertySetDefId = GetOrCreatePropertySetDefinition(tr, propertySetName);
 
                 if (propertySetDefId.IsNull) return;
 
-                // Attach Property Set vào solid
+                // Attach Property Set vï¿½o solid
                 AttachPropertySetToObject(tr, solid, propertySetDefId);
 
-                // Set các giá tr? properties
+                // Set cï¿½c giï¿½ tr? properties
                 SetPropertyValues(tr, solid, propertySetDefId, new Dictionary<string, object>
                 {
                     { "Layer", layerName },
@@ -64,7 +64,7 @@ namespace MyFirstProject.Extensions
                 Database db = A.Db;
                 DictionaryPropertySetDefinitions propSetDefs = new(db);
 
-                // Ki?m tra xem Property Set Definition ?ã t?n t?i ch?a
+                // Ki?m tra xem Property Set Definition ?ï¿½ t?n t?i ch?a
                 if (propSetDefs.Has(propertySetName, tr))
                 {
                     return propSetDefs.GetAt(propertySetName);
@@ -73,9 +73,9 @@ namespace MyFirstProject.Extensions
                 // T?o m?i Property Set Definition
                 PropertySetDefinition propSetDef = new();
                 propSetDef.SubSetDatabaseDefaults(db);
-                propSetDef.Description = "Property Set cho ???ng giao thông IFC";
+                propSetDef.Description = "Property Set cho ???ng giao thï¿½ng IFC";
 
-                // Thêm các Property Definitions
+                // Thï¿½m cï¿½c Property Definitions
                 AddPropertyDefinitions(propSetDef);
 
                 // Thi?t l?p Applies To
@@ -96,7 +96,7 @@ namespace MyFirstProject.Extensions
         }
 
         /// <summary>
-        /// Thêm các Property Definitions vào Property Set Definition
+        /// Thï¿½m cï¿½c Property Definitions vï¿½o Property Set Definition
         /// </summary>
         private void AddPropertyDefinitions(PropertySetDefinition propSetDef)
         {
@@ -116,10 +116,10 @@ namespace MyFirstProject.Extensions
             vatLieuProp.DefaultData = "";
             propSetDef.Definitions.Add(vatLieuProp);
 
-            // Property: Th? tích (m3)
+            // Property: Th? tï¿½ch (m3)
             PropertyDefinition theTichProp = new();
-            theTichProp.Name = "Th? tích (m3)";
-            theTichProp.Description = "Th? tích c?a ??i t??ng";
+            theTichProp.Name = "Th? tï¿½ch (m3)";
+            theTichProp.Description = "Th? tï¿½ch c?a ??i t??ng";
             theTichProp.DataType = Autodesk.Aec.PropertyData.DataType.Real;
             theTichProp.DefaultData = 0.0;
             propSetDef.Definitions.Add(theTichProp);
@@ -127,7 +127,7 @@ namespace MyFirstProject.Extensions
             // Property: CentroidX
             PropertyDefinition centroidXProp = new();
             centroidXProp.Name = "CentroidX";
-            centroidXProp.Description = "T?a ?? X tr?ng tâm";
+            centroidXProp.Description = "T?a ?? X tr?ng tï¿½m";
             centroidXProp.DataType = Autodesk.Aec.PropertyData.DataType.Real;
             centroidXProp.DefaultData = 0.0;
             propSetDef.Definitions.Add(centroidXProp);
@@ -135,7 +135,7 @@ namespace MyFirstProject.Extensions
             // Property: CentroidY
             PropertyDefinition centroidYProp = new();
             centroidYProp.Name = "CentroidY";
-            centroidYProp.Description = "T?a ?? Y tr?ng tâm";
+            centroidYProp.Description = "T?a ?? Y tr?ng tï¿½m";
             centroidYProp.DataType = Autodesk.Aec.PropertyData.DataType.Real;
             centroidYProp.DefaultData = 0.0;
             propSetDef.Definitions.Add(centroidYProp);
@@ -143,7 +143,7 @@ namespace MyFirstProject.Extensions
             // Property: CentroidZ
             PropertyDefinition centroidZProp = new();
             centroidZProp.Name = "CentroidZ";
-            centroidZProp.Description = "T?a ?? Z tr?ng tâm";
+            centroidZProp.Description = "T?a ?? Z tr?ng tï¿½m";
             centroidZProp.DataType = Autodesk.Aec.PropertyData.DataType.Real;
             centroidZProp.DefaultData = 0.0;
             propSetDef.Definitions.Add(centroidZProp);
@@ -151,7 +151,7 @@ namespace MyFirstProject.Extensions
             // Property: CreatedDate
             PropertyDefinition dateProp = new();
             dateProp.Name = "CreatedDate";
-            dateProp.Description = "Ngày t?o";
+            dateProp.Description = "Ngï¿½y t?o";
             dateProp.DataType = Autodesk.Aec.PropertyData.DataType.Text;
             dateProp.DefaultData = "";
             propSetDef.Definitions.Add(dateProp);
@@ -167,14 +167,14 @@ namespace MyFirstProject.Extensions
             // Property: Volume
             PropertyDefinition volumeProp = new();
             volumeProp.Name = "Volume";
-            volumeProp.Description = "Th? tích (m³)";
+            volumeProp.Description = "Th? tï¿½ch (mï¿½)";
             volumeProp.DataType = Autodesk.Aec.PropertyData.DataType.Real;
             volumeProp.DefaultData = 0.0;
             propSetDef.Definitions.Add(volumeProp);
         }
 
         /// <summary>
-        /// Attach Property Set vào object
+        /// Attach Property Set vï¿½o object
         /// </summary>
         private void AttachPropertySetToObject(Transaction tr, DBObject dbObject, ObjectId propertySetDefId)
         {
@@ -189,7 +189,7 @@ namespace MyFirstProject.Extensions
         }
 
         /// <summary>
-        /// Set giá tr? cho các properties
+        /// Set giï¿½ tr? cho cï¿½c properties
         /// </summary>
         private void SetPropertyValues(Transaction tr, DBObject dbObject, ObjectId propertySetDefId, Dictionary<string, object> values)
         {
@@ -199,16 +199,17 @@ namespace MyFirstProject.Extensions
                 
                 foreach (ObjectId propSetId in propertySetIds)
                 {
-                    PropertySet propSet = tr.GetObject(propSetId, OpenMode.ForWrite) as PropertySet;
+                    PropertySet? propSet = tr.GetObject(propSetId, OpenMode.ForWrite) as PropertySet;
                     if (propSet?.PropertySetDefinition == propertySetDefId)
                     {
-                        PropertySetDefinition propSetDef = tr.GetObject(propertySetDefId, OpenMode.ForRead) as PropertySetDefinition;
+                        PropertySetDefinition? propSetDef = tr.GetObject(propertySetDefId, OpenMode.ForRead) as PropertySetDefinition;
                         
+                        if (propSetDef == null) break;
                         foreach (var kvp in values)
                         {
                             try
                             {
-                                // Tìm index c?a property theo tên
+                                // Tï¿½m index c?a property theo tï¿½n
                                 int propertyIndex = -1;
                                 for (int i = 0; i < propSetDef.Definitions.Count; i++)
                                 {
@@ -230,7 +231,7 @@ namespace MyFirstProject.Extensions
                             }
                         }
 
-                        // Set giá tr? cho "Th? tích (m3)" t? Volume
+                        // Set giï¿½ tr? cho "Th? tï¿½ch (m3)" t? Volume
                         if (values.ContainsKey("Volume"))
                         {
                             try
@@ -238,7 +239,7 @@ namespace MyFirstProject.Extensions
                                 int theTichIndex = -1;
                                 for (int i = 0; i < propSetDef.Definitions.Count; i++)
                                 {
-                                    if (propSetDef.Definitions[i].Name == "Th? tích (m3)")
+                                    if (propSetDef.Definitions[i].Name == "Th? tï¿½ch (m3)")
                                     {
                                         theTichIndex = i;
                                         break;
@@ -252,7 +253,7 @@ namespace MyFirstProject.Extensions
                             }
                             catch (System.Exception ex)
                             {
-                                A.Ed.WriteMessage($"\nL?i khi set property Th? tích (m3): {ex.Message}");
+                                A.Ed.WriteMessage($"\nL?i khi set property Th? tï¿½ch (m3): {ex.Message}");
                             }
                         }
                         break;
@@ -266,19 +267,19 @@ namespace MyFirstProject.Extensions
         }
 
         /// <summary>
-        /// Hi?n th? thông tin Property Set c?a 3D Solid
+        /// Hi?n th? thï¿½ng tin Property Set c?a 3D Solid
         /// </summary>
         public void ShowSolidPropertySetInfo(Transaction tr, Solid3d solid)
         {
             try
             {
-                A.Ed.WriteMessage($"\n=== THÔNG TIN 3D SOLID ===");
+                A.Ed.WriteMessage($"\n=== THï¿½NG TIN 3D SOLID ===");
                 A.Ed.WriteMessage($"\nLayer: {solid.Layer}");
                 A.Ed.WriteMessage($"\nHandle: {solid.Handle}");
                 
                 var massProps = solid.MassProperties;
-                A.Ed.WriteMessage($"\nTh? tích: {massProps.Volume:F3} m³");
-                A.Ed.WriteMessage($"\nTr?ng tâm: X={massProps.Centroid.X:F3}, Y={massProps.Centroid.Y:F3}, Z={massProps.Centroid.Z:F3}");
+                A.Ed.WriteMessage($"\nTh? tï¿½ch: {massProps.Volume:F3} mï¿½");
+                A.Ed.WriteMessage($"\nTr?ng tï¿½m: X={massProps.Centroid.X:F3}, Y={massProps.Centroid.Y:F3}, Z={massProps.Centroid.Z:F3}");
 
                 // Hi?n th? Property Sets
                 ObjectIdCollection propertySetIds = PropertyDataServices.GetPropertySets(solid);
@@ -288,12 +289,12 @@ namespace MyFirstProject.Extensions
                     
                     foreach (ObjectId propSetId in propertySetIds)
                     {
-                        PropertySet propSet = tr.GetObject(propSetId, OpenMode.ForRead) as PropertySet;
+                        PropertySet? propSet = tr.GetObject(propSetId, OpenMode.ForRead) as PropertySet;
                         if (propSet != null)
                         {
-                            PropertySetDefinition propSetDef = tr.GetObject(propSet.PropertySetDefinition, OpenMode.ForRead) as PropertySetDefinition;
+                            PropertySetDefinition? propSetDef = tr.GetObject(propSet.PropertySetDefinition, OpenMode.ForRead) as PropertySetDefinition;
                             A.Ed.WriteMessage($"\n\nProperty Set: {propSetDef?.Name}");
-                            A.Ed.WriteMessage($"Mô t?: {propSetDef?.Description}");
+                            A.Ed.WriteMessage($"Mï¿½ t?: {propSetDef?.Description}");
                             
                             if (propSetDef != null)
                             {
@@ -307,7 +308,7 @@ namespace MyFirstProject.Extensions
                                     }
                                     catch
                                     {
-                                        A.Ed.WriteMessage($"\n  - {propDef.Name}: <không có giá tr?> ({propDef.Description})");
+                                        A.Ed.WriteMessage($"\n  - {propDef.Name}: <khï¿½ng cï¿½ giï¿½ tr?> ({propDef.Description})");
                                     }
                                 }
                             }
@@ -316,14 +317,14 @@ namespace MyFirstProject.Extensions
                 }
                 else
                 {
-                    A.Ed.WriteMessage($"\n\nKhông có Property Set nào ???c g?n vào ??i t??ng này.");
+                    A.Ed.WriteMessage($"\n\nKhï¿½ng cï¿½ Property Set nï¿½o ???c g?n vï¿½o ??i t??ng nï¿½y.");
                 }
                 
                 A.Ed.WriteMessage($"\n================================\n");
             }
             catch (System.Exception ex)
             {
-                A.Ed.WriteMessage($"\nL?i khi hi?n th? thông tin: {ex.Message}");
+                A.Ed.WriteMessage($"\nL?i khi hi?n th? thï¿½ng tin: {ex.Message}");
             }
         }
     }

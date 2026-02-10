@@ -399,6 +399,30 @@ namespace MyFirstProject.Extensions
             }
 
         }
+        
+        public static double CreatePolylinePhuHuuCo(double x1, double x2, double y1, double y2, double depthHuuCo)
+        {
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            {
+                BlockTable bt = (BlockTable)tr.GetObject(A.Doc.Database.BlockTableId, OpenMode.ForRead);
+                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+
+                Polyline polyline = new();
+                polyline.AddVertexAt(0, new Point2d(x1, y1), 0, 0, 0);
+                polyline.AddVertexAt(1, new Point2d(x2, y2), 0, 0, 0);
+                polyline.AddVertexAt(2, new Point2d(x2, y2 - depthHuuCo), 0, 0, 0);
+                polyline.AddVertexAt(3, new Point2d(x1, y1 - depthHuuCo), 0, 0, 0);
+                polyline.Closed = true;
+
+                btr.AppendEntity(polyline);
+                tr.AddNewlyCreatedDBObject(polyline, true);
+                double polyLineArea = polyline.Area;
+
+                tr.Commit();
+                return polyLineArea;
+            }
+        }
+
         public static double CSumList(List<double> list)
         {
             double sum = 0;
@@ -1127,5 +1151,38 @@ namespace MyFirstProject.Extensions
 
 
 
+        public static void CCreateMLeader(Point3d landingPoint, Point3d firstLeaderPoint, string text, string layerName)
+        {
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            try
+            {
+                BlockTable bt = (BlockTable)tr.GetObject(A.Db.BlockTableId, OpenMode.ForRead);
+                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+
+                MLeader mLeader = new();
+                mLeader.SetDatabaseDefaults();
+                mLeader.Layer = layerName;
+                mLeader.ContentType = ContentType.MTextContent;
+
+                MText mText = new();
+                mText.SetDatabaseDefaults();
+                mText.Contents = text;
+                mLeader.MText = mText;
+
+                int leadIndex = mLeader.AddLeader();
+                mLeader.AddLeaderLine(leadIndex);
+                mLeader.AddFirstVertex(leadIndex, firstLeaderPoint);
+                mLeader.AddLastVertex(leadIndex, landingPoint);
+
+                btr.AppendEntity(mLeader);
+                tr.AddNewlyCreatedDBObject(mLeader, true);
+
+                tr.Commit();
+            }
+            catch (System.Exception ex)
+            {
+                A.Ed.WriteMessage("\nError creating MLeader: " + ex.Message);
+            }
+        }
     }
 }

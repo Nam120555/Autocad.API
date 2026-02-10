@@ -416,9 +416,9 @@ namespace MyFirstProject
         /// </summary>
         private class FormChonAlignmentLocal : Form
         {
-            private CheckedListBox checkedListBox;
-            private Button btnOK;
-            private Button btnCancel;
+            private CheckedListBox checkedListBox = null!;
+            private Button btnOK = null!;
+            private Button btnCancel = null!;
             private List<AlignmentInfoLocal> alignmentInfos;
 
             public List<AlignmentInfoLocal> SelectedAlignments => 

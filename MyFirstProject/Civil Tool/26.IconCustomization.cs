@@ -1,4 +1,4 @@
-// IconCustomizationForm.cs - Form đổi icon cho từng lệnh trong Ribbon
+﻿// IconCustomizationForm.cs - Form đổi icon cho từng lệnh trong Ribbon
 // Cho phép user chọn emoji/ký hiệu để thay đổi icon của từng lệnh
 
 using System;
@@ -72,34 +72,39 @@ namespace Civil3DCsharp
 
         private void InitializeComponent()
         {
-            this.Text = "🎨 Đổi Icon cho Lệnh - Civil Tool";
-            this.Size = new Size(900, 650);
+            this.Text = "🎨 Thiết kế Giao diện - Civil Tool Professional";
+            this.Size = new Size(950, 700);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.Sizable;
-            this.MinimumSize = new Size(700, 500);
+            this.BackColor = Color.White;
+            this.Font = new Font("Segoe UI", 9);
+
+            var mainContainer = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                Padding = new Padding(20),
+            };
+            mainContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            mainContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
             // Panel bên trái - Danh sách lệnh
-            var panelLeft = new Panel
-            {
-                Dock = DockStyle.Left,
-                Width = 450,
-                Padding = new Padding(10)
-            };
-
+            var panelLeft = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 0, 10, 0) };
+            
             var lblTitle = new Label
             {
-                Text = "📋 DANH SÁCH LỆNH",
-                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                Text = "DANH SÁCH CÔNG CỤ",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = Color.FromArgb(33, 150, 243),
                 Dock = DockStyle.Top,
-                Height = 30
+                Height = 35
             };
 
             txtSearch = new TextBox
             {
                 Dock = DockStyle.Top,
-                Height = 25,
+                Height = 30,
                 Font = new Font("Segoe UI", 10),
-                PlaceholderText = "🔍 Tìm kiếm lệnh..."
+                PlaceholderText = "🔍 Tìm nhanh lệnh thiết kế..."
             };
             txtSearch.TextChanged += TxtSearch_TextChanged;
 
@@ -108,129 +113,124 @@ namespace Civil3DCsharp
                 Dock = DockStyle.Fill,
                 View = View.Details,
                 FullRowSelect = true,
-                GridLines = true,
-                Font = new Font("Segoe UI", 10)
+                GridLines = false,
+                Font = new Font("Segoe UI", 10),
+                BorderStyle = BorderStyle.FixedSingle
             };
-            listViewCommands.Columns.Add("Icon", 50);
-            listViewCommands.Columns.Add("Lệnh", 180);
-            listViewCommands.Columns.Add("Mô tả", 200);
+            listViewCommands.Columns.Add("Icon", 60);
+            listViewCommands.Columns.Add("Lệnh", 150);
+            listViewCommands.Columns.Add("Mô tả kỹ thuật", 250);
             listViewCommands.SelectedIndexChanged += ListViewCommands_SelectedIndexChanged;
 
             panelLeft.Controls.Add(listViewCommands);
+            panelLeft.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 10 }); // Spacer
             panelLeft.Controls.Add(txtSearch);
             panelLeft.Controls.Add(lblTitle);
 
-            // Panel bên phải - Chọn icon
-            var panelRight = new Panel
-            {
-                Dock = DockStyle.Fill,
-                Padding = new Padding(10)
-            };
-
+            // Panel bên phải - Chọn icon & Preview
+            var panelRight = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10, 0, 0, 0) };
+            
             var lblIconTitle = new Label
             {
-                Text = "🎨 CHỌN ICON MỚI",
-                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                Text = "CÁ NHÂN HÓA BIỂU TƯỢNG",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = Color.FromArgb(76, 175, 80),
                 Dock = DockStyle.Top,
-                Height = 30
+                Height = 35
             };
 
-            // Preview area
             var panelPreview = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 80,
-                BackColor = Color.FromArgb(240, 240, 240)
+                Height = 120,
+                BackColor = Color.FromArgb(245, 247, 250),
+                Padding = new Padding(15),
+                BorderStyle = BorderStyle.FixedSingle
             };
 
             lblCurrentIcon = new Label
             {
-                Text = "Chọn lệnh để thay đổi icon",
-                Font = new Font("Segoe UI", 10),
-                Location = new Point(10, 10),
-                AutoSize = true
+                Text = "HÃY CHỌN MỘT LỆNH TRÊN DANH SÁCH",
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = Color.DimGray,
+                Dock = DockStyle.Top,
+                Height = 20
             };
 
             lblPreview = new Label
             {
-                Text = "?",
-                Font = new Font("Segoe UI Symbol", 32),
-                Location = new Point(10, 35),
-                AutoSize = true
+                Text = "⚡",
+                Font = new Font("Segoe UI Symbol", 42),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock = DockStyle.Fill,
+                ForeColor = Color.Black
             };
 
-            panelPreview.Controls.Add(lblCurrentIcon);
             panelPreview.Controls.Add(lblPreview);
+            panelPreview.Controls.Add(lblCurrentIcon);
 
-            // Icon picker flowlayout
             panelIconPicker = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 AutoScroll = true,
                 BackColor = Color.White,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = true,
-                Padding = new Padding(5)
+                Padding = new Padding(5, 15, 5, 5)
             };
 
-            // Tạo các nút icon
             foreach (var emoji in IconEmojis)
             {
                 var btn = new Button
                 {
                     Text = emoji,
-                    Width = 45,
-                    Height = 45,
+                    Size = new Size(50, 50),
                     Font = new Font("Segoe UI Symbol", 18),
                     FlatStyle = FlatStyle.Flat,
-                    Margin = new Padding(3),
-                    Tag = emoji
+                    Margin = new Padding(4),
+                    Tag = emoji,
+                    BackColor = Color.FromArgb(250, 250, 250)
                 };
                 btn.FlatAppearance.BorderSize = 1;
                 btn.FlatAppearance.BorderColor = Color.LightGray;
                 btn.Click += IconButton_Click;
-                btn.MouseEnter += (s, e) => btn.BackColor = Color.FromArgb(200, 220, 255);
-                btn.MouseLeave += (s, e) => btn.BackColor = SystemColors.Control;
                 panelIconPicker.Controls.Add(btn);
             }
 
-            // Buttons
-            var panelButtons = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 50
-            };
-
+            var panelFooter = new Panel { Dock = DockStyle.Bottom, Height = 60, Padding = new Padding(0, 10, 0, 0) };
+            
             btnApply = new Button
             {
-                Text = "✓ Áp dụng & Làm mới Ribbon",
-                Width = 200,
-                Height = 35,
-                Location = new Point(10, 8),
+                Text = "ÁP DỤNG THAY ĐỔI",
+                Size = new Size(220, 40),
+                Location = new Point(0, 10),
+                BackColor = Color.FromArgb(33, 150, 243),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 10, FontStyle.Bold)
             };
             btnApply.Click += BtnApply_Click;
 
             btnClose = new Button
             {
-                Text = "Đóng",
-                Width = 80,
-                Height = 35,
-                Location = new Point(220, 8),
+                Text = "ĐÓNG",
+                Size = new Size(100, 40),
+                Location = new Point(230, 10),
+                FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 10)
             };
             btnClose.Click += (s, e) => this.Close();
 
-            panelButtons.Controls.Add(btnApply);
-            panelButtons.Controls.Add(btnClose);
+            panelFooter.Controls.Add(btnApply);
+            panelFooter.Controls.Add(btnClose);
 
             panelRight.Controls.Add(panelIconPicker);
             panelRight.Controls.Add(panelPreview);
+            panelRight.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 10 }); // Spacer
             panelRight.Controls.Add(lblIconTitle);
-            panelRight.Controls.Add(panelButtons);
+            panelRight.Controls.Add(panelFooter);
 
-            this.Controls.Add(panelRight);
-            this.Controls.Add(panelLeft);
+            mainContainer.Controls.Add(panelLeft, 0, 0);
+            mainContainer.Controls.Add(panelRight, 1, 0);
+            this.Controls.Add(mainContainer);
         }
 
         private void LoadCommands()
@@ -382,6 +382,10 @@ namespace Civil3DCsharp
             {
                 string newIcon = btn.Tag as string ?? "?";
                 lblPreview.Text = newIcon;
+                
+                // Cập nhật màu dựa theo lệnh
+                System.Drawing.Color themeColor = GetThemeColorForCommand(_selectedCommand);
+                lblPreview.ForeColor = themeColor;
 
                 // Cập nhật trong list
                 foreach (ListViewItem item in listViewCommands.Items)
@@ -389,6 +393,7 @@ namespace Civil3DCsharp
                     if (item.Tag as string == _selectedCommand)
                     {
                         item.SubItems[0].Text = newIcon;
+                        item.ForeColor = themeColor;
                         break;
                     }
                 }
@@ -396,6 +401,15 @@ namespace Civil3DCsharp
                 // Lưu vào dictionary
                 SetCommandIcon(_selectedCommand, newIcon);
             }
+        }
+
+        private System.Drawing.Color GetThemeColorForCommand(string command)
+        {
+            if (command.StartsWith("CTS_") || command.StartsWith("CTPo_")) return ColorTranslator.FromHtml("#4CAF50");
+            if (command.StartsWith("CTPv_") || command.StartsWith("CTP_")) return ColorTranslator.FromHtml("#2196F3");
+            if (command.StartsWith("CTSv_") || command.StartsWith("CTC_")) return ColorTranslator.FromHtml("#FFC107");
+            if (command.StartsWith("CTL_")) return ColorTranslator.FromHtml("#424242");
+            return ColorTranslator.FromHtml("#00BCD4");
         }
 
         private void BtnApply_Click(object? sender, EventArgs e)
@@ -434,8 +448,8 @@ namespace Civil3DCsharp
             }
         }
 
-        [CommandMethod("CT_DanhSachLenh")]
-        public static void CT_DanhSachLenh()
+        [CommandMethod("CT_DanhSachLenh_Console")]
+        public static void CT_DanhSachLenh_Console()
         {
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
             if (doc == null) return;

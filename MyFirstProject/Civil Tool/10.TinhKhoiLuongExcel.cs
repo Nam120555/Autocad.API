@@ -1,4 +1,4 @@
-// (C) Copyright 2024
+﻿// (C) Copyright 2024
 // Tính khối lượng vật liệu từ Material Section và xuất ra Excel
 //
 using System;
@@ -29,6 +29,9 @@ using MyFirstProject.Extensions;
 
 // This line is not mandatory, but improves loading performances
 [assembly: CommandClass(typeof(Civil3DCsharp.TinhKhoiLuongExcel))]
+
+// Tắt cảnh báo nullable cho file lớn
+#pragma warning disable CS8600, CS8602, CS8618
 
 namespace Civil3DCsharp
 {

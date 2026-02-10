@@ -236,5 +236,54 @@ namespace Civil3DCsharp
 
 
 
-    } 
+        [CommandMethod("CTPO_CPTT")]
+        public static void CTPO_CPTT()
+        {
+            Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
+            Editor ed = doc.Editor;
+            Database db = doc.Database;
+
+            PromptSelectionOptions pso = new()
+            {
+                MessageForAdding = "\nChọn các điểm AutoCAD (Point) để tạo text cao độ: "
+            };
+            TypedValue[] filters = [new TypedValue((int)DxfCode.Start, "POINT")];
+            SelectionFilter filter = new(filters);
+            PromptSelectionResult selRes = ed.GetSelection(pso, filter);
+
+            if (selRes.Status != PromptStatus.OK) return;
+
+            using Transaction tr = db.TransactionManager.StartTransaction();
+            try
+            {
+                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+
+                foreach (SelectedObject so in selRes.Value)
+                {
+                    DBPoint? point = tr.GetObject(so.ObjectId, OpenMode.ForRead) as DBPoint;
+                    if (point == null) continue;
+
+                    Point3d pos = point.Position;
+                    string elevationText = pos.Z.ToString("F2");
+
+                    DBText text = new();
+                    text.SetDatabaseDefaults();
+                    text.Position = pos;
+                    text.Height = 0.5; // Mặc định
+                    text.TextString = elevationText;
+                    text.Layer = point.Layer;
+
+                    btr.AppendEntity(text);
+                    tr.AddNewlyCreatedDBObject(text, true);
+                }
+                tr.Commit();
+                ed.WriteMessage("\nĐã tạo text cao độ cho các điểm được chọn.");
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage("\nLỗi: " + ex.Message);
+            }
+        }
+    }
 }

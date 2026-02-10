@@ -713,8 +713,23 @@ namespace Civil3DCsharp
                 UtilitiesCAD CAD = new();
                 UtilitiesC3D C3D = new();
 
-                //start here
-                ObjectId sectionViewId = UserInput.GSectionView("Chọn 1 bảng cắt ngang " + " trong nhóm cần tính đánh cấp: \n");
+                // start here
+                Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+                PromptKeywordOptions pko = new("\nChọn loại hình tính toán: ");
+                pko.Keywords.Add("DanhCap", "DanhCap", "Đánh cấp (Grading)");
+                pko.Keywords.Add("PhuHuuCo", "PhuHuuCo", "Phủ hữu cơ (Topsoil)");
+                pko.Keywords.Default = "DanhCap";
+                PromptResult pr = ed.GetKeywords(pko);
+                if (pr.Status != PromptStatus.OK) return;
+                string mode = pr.StringResult;
+
+                double depthHuuCo = 0.2;
+                if (mode == "PhuHuuCo")
+                {
+                    depthHuuCo = UserInput.GDouble("\nNhập chiều dày phủ hữu cơ (0.2m): ");
+                }
+
+                ObjectId sectionViewId = UserInput.GSectionView("Chọn 1 bảng cắt ngang " + " trong nhóm cần tính: \n");
                 SectionView? sectionView = tr.GetObject(sectionViewId, OpenMode.ForWrite) as SectionView;
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
                 ObjectId sampleLineId = sectionView.SampleLineId;
@@ -725,20 +740,20 @@ namespace Civil3DCsharp
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
                 SampleLineGroup? sampleLineGroup = tr.GetObject(sampleLineGroupId, OpenMode.ForWrite) as SampleLineGroup;
 
-                // vị trí text đánh cấp
+                // vị trí text
                 Double deltaX = 3;
-                double deltaY = 7; //UI.G_Double("Nhập vị trí đặt text đánh cấp: (7) \n");
-                double deltaX2 = 4; // UI.G_Double("Nhập khoảng giữa tên vật liệu và khối lượng: (4)");
+                double deltaY = 7;
+                double deltaX2 = 4;
 
-                //số cột trong bảng đánh cấp
+                //số cột trong bảng
                 List<String> listLyTrinh = [];
                 List<String> listTenCoc = [];
-                List<String> listDanhCap = [];
+                List<String> listKhoiLuongResult = [];
 
                 ObjectId alignmentId = sampleLine.GetParentAlignmentId();
                 Alignment? alignment = tr.GetObject(alignmentId, OpenMode.ForWrite) as Alignment;
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-                String alignmentName = alignment.Name + "_danhCap";
+                String alignmentName = mode == "PhuHuuCo" ? alignment.Name + "_phuHuuCo" : alignment.Name + "_danhCap";
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
                 LayerTableRecord layer = UtilitiesCAD.CCreateLayer(alignmentName);
 
@@ -847,75 +862,41 @@ namespace Civil3DCsharp
                         double at = (y2 - y1) / (x2 - x1);
                         double b = -x1 * (y2 - y1) / (x2 - x1) + y1;
 
-                        //kiểm tra dk đánh cấp
-                        if (Math.Abs(at) >= docDanhCap)
+                        if (mode == "DanhCap")
                         {
-                            //tìm x1, x2  
-
-                            if (!((x1 < X0 & x2 < X0) | (x1 > Xn & x2 > Xn)))
+                            //kiểm tra dk đánh cấp
+                            if (Math.Abs(at) >= docDanhCap)
                             {
-                                //kiểm điều kiện đánh cấp theo phương X
+                                if (!((x1 < X0 & x2 < X0) | (x1 > Xn & x2 > Xn)))
                                 {
-                                    if (x1 < X0 & x2 > X0 & x2 <= Xn)
-                                    {
-                                        x1 = X0;
-                                    }
-                                    if (x1 < X0 & x2 >= Xn)
-                                    {
-                                        x1 = X0;
-                                        x2 = Xn;
-                                    }
-                                    if (x1 >= X0 & x2 <= Xn)
-                                    {
-                                        //x1 = x1;
-                                        //x2 = x2;
-                                    }
-                                    if (x1 <= Xn & x2 > Xn)
-                                    {
-                                        x2 = Xn;
-                                    }
+                                    //kiểm điều kiện đánh cấp theo phương X
+                                    if (x1 < X0 & x2 > X0 & x2 <= Xn) x1 = X0;
+                                    if (x1 < X0 & x2 >= Xn) { x1 = X0; x2 = Xn; }
+                                    if (x1 <= Xn & x2 > Xn) x2 = Xn;
+
                                     y1 = at * x1 + b;
                                     y2 = at * x2 + b;
-                                }
 
-                                {
                                     //kiểm điều kiện đánh cấp theo phương Y
                                     double yt1 = UtilitiesC3D.FindY(sectionDatumPoints, x1, X, Y, Z);
                                     double yt2 = UtilitiesC3D.FindY(sectionDatumPoints, x2, X, Y, Z);
 
                                     if (!(yt1 <= y1 & yt2 <= y2))
                                     {
-
-                                        if (yt1 > y1 & yt2 > y2)
-                                        {
-                                        }
-
                                         if (yt1 > y1 & yt2 < y2)
                                         {
-
                                             double x = x1;
                                             double yt11 = UtilitiesC3D.FindY(sectionDatumPoints, x, X, Y, Z);
                                             double y11 = at * x + b;
-                                            while (Math.Abs(yt11 - y11) > 0.1)
-                                            {
-                                                yt11 = UtilitiesC3D.FindY(sectionDatumPoints, x, X, Y, Z);
-                                                y11 = at * x + b;
-                                                x += 0.1;
-                                            }
+                                            while (Math.Abs(yt11 - y11) > 0.1) { x += 0.1; yt11 = UtilitiesC3D.FindY(sectionDatumPoints, x, X, Y, Z); y11 = at * x + b; }
                                             x2 = x;
                                         }
                                         if (yt1 < y1 & yt2 > y2)
                                         {
-
                                             double x = x1;
                                             double yt11 = UtilitiesC3D.FindY(sectionDatumPoints, x, X, Y, Z);
                                             double y11 = at * x + b;
-                                            while (Math.Abs(yt11 - y11) > 0.1)
-                                            {
-                                                yt11 = UtilitiesC3D.FindY(sectionDatumPoints, x, X, Y, Z);
-                                                y11 = at * x + b;
-                                                x += 0.1;
-                                            }
+                                            while (Math.Abs(yt11 - y11) > 0.1) { x += 0.1; yt11 = UtilitiesC3D.FindY(sectionDatumPoints, x, X, Y, Z); y11 = at * x + b; }
                                             x1 = x;
                                         }
                                         y1 = at * x1 + b;
@@ -923,19 +904,34 @@ namespace Civil3DCsharp
                                         polyLineArea = UtilitiesCAD.CreatePolylineDanhCap(x1, x2, y1, y2, bacCap, docDanhCap);
                                         ListArea.Add(polyLineArea);
                                     }
-
                                 }
-
                             }
-
-
                         }
+                        else if (mode == "PhuHuuCo")
+                        {
+                            // Đối với phủ hữu cơ, ko cần kiểm tra dốc, cứ trong phạm vi datum là tính
+                            if (!((x1 < X0 & x2 < X0) | (x1 > Xn & x2 > Xn)))
+                            {
+                                if (x1 < X0) x1 = X0;
+                                if (x2 > Xn) x2 = Xn;
+                                if (x1 > Xn) x1 = Xn;
+                                if (x2 < X0) x2 = X0;
 
+                                if (x1 < x2)
+                                {
+                                    y1 = at * x1 + b;
+                                    y2 = at * x2 + b;
+                                    polyLineArea = UtilitiesCAD.CreatePolylinePhuHuuCo(x1, x2, y1, y2, depthHuuCo);
+                                    ListArea.Add(polyLineArea);
+                                }
+                            }
+                        }
                     }
 
-                    //ghi text đánh cấp                        
+                    //ghi text
+                    string label = mode == "PhuHuuCo" ? "Phủ hữu cơ:" : "Đánh cấp:";
                     Point3d textPosition = new(X + deltaX, Y + deltaY, 0);
-                    UtilitiesCAD.CCreateTextWithOutPut(textPosition, 0.4, "Đánh cấp:", alignmentName, "Standard");
+                    UtilitiesCAD.CCreateTextWithOutPut(textPosition, 0.4, label, alignmentName, "Standard");
                     Point3d textPosition2 = new(X + deltaX + deltaX2, Y + deltaY, 0);
                     DBText Text = UtilitiesCAD.CCreateText2(textPosition2, 0.4, UtilitiesCAD.CSumList(ListArea).ToString("N2") + " m2", alignmentName, "Standard");
                     String textFile = UtilitiesCAD.ConvertTextToField(Text);
@@ -943,15 +939,12 @@ namespace Civil3DCsharp
                     //đưa data vào mảng của table
                     listLyTrinh.Add(sampleLine1.Station.ToString("N2"));
                     listTenCoc.Add(sampleLine1.Name.ToString());
-                    listDanhCap.Add(textFile);
-
+                    listKhoiLuongResult.Add(textFile);
                 }
 
-                // bảng đánh cấp
-
-                UtilitiesCAD.CreateTableKhoiLuong(listLyTrinh.Count, 3, alignment.Name, listLyTrinh, listTenCoc, listDanhCap, alignmentName, "đánh cấp");
-
-
+                // bảng kết quả
+                string tableType = mode == "PhuHuuCo" ? "phủ hữu cơ" : "đánh cấp";
+                UtilitiesCAD.CreateTableKhoiLuong(listLyTrinh.Count, 3, alignment.Name, listLyTrinh, listTenCoc, listKhoiLuongResult, alignmentName, tableType);
 
                 tr.Commit();
             }
@@ -1982,12 +1975,12 @@ namespace Civil3DCsharp
                 /*
                 if (pIntRes.Status == PromptStatus.Keyword)
                 {
-                    Application.ShowAlertDialog("Entered keyword: " +
+                    Autodesk.AutoCAD.ApplicationServices.Application.ShowAlertDialog("Entered keyword: " +
                                                 pIntRes.StringResult);
                 }
                 else
                 {
-                    Application.ShowAlertDialog("Entered value: " +
+                    Autodesk.AutoCAD.ApplicationServices.Application.ShowAlertDialog("Entered value: " +
                                                 pIntRes.Value.ToString());
                 }
                 */
