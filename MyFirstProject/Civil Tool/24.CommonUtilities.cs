@@ -1,4 +1,4 @@
-// CommonUtilities.cs - Các tiện ích CAD thường dùng
+﻿// CommonUtilities.cs - Các tiện ích CAD thường dùng
 // Chuyển đổi từ LISP: MP, TONG, EXPTXT, TLP, T2M, APV, INTLINES
 
 using System;
@@ -11,9 +11,9 @@ using Autodesk.AutoCAD.Geometry;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-[assembly: CommandClass(typeof(Civil3DCsharp.CommonUtilitiesCommands))]
+[assembly: CommandClass(typeof(MyFirstProject.CommonUtilitiesCommands))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     /// <summary>
     /// Các lệnh tiện ích CAD thường dùng

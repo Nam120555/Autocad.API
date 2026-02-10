@@ -28,12 +28,12 @@ using ClosedXML.Excel;
 using MyFirstProject.Extensions;
 
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.TinhKhoiLuongExcel))]
+[assembly: CommandClass(typeof(MyFirstProject.TinhKhoiLuongExcel))]
 
 // Tắt cảnh báo nullable cho file lớn
 #pragma warning disable CS8600, CS8602, CS8618
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     #region Data Classes
 

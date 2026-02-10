@@ -17,9 +17,9 @@ using Entity = Autodesk.AutoCAD.DatabaseServices.Entity;
 using MyFirstProject.Extensions;
 
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3D_Csharp.PropertySets))]
+[assembly: CommandClass(typeof(MyFirstProject.PropertySets))]
 
-namespace Civil3D_Csharp
+namespace MyFirstProject
 {
     public class PropertySets
     {

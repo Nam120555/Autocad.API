@@ -1,4 +1,4 @@
-// UtilityCommands.cs - Các lệnh tiện ích Civil 3D
+﻿// UtilityCommands.cs - Các lệnh tiện ích Civil 3D
 // Chuyển đổi từ LISP: X7, X37, dump, UpDateStyle...
 
 using Autodesk.AutoCAD.Runtime;
@@ -11,9 +11,9 @@ using Autodesk.Civil.DatabaseServices;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using AcadEntity = Autodesk.AutoCAD.DatabaseServices.Entity;
 
-[assembly: CommandClass(typeof(Civil3DCsharp.UtilityCommands))]
+[assembly: CommandClass(typeof(MyFirstProject.UtilityCommands))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     /// <summary>
     /// Các lệnh tiện ích cho Civil 3D

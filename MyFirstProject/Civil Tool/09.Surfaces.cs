@@ -22,9 +22,9 @@ using CivSurface = Autodesk.Civil.DatabaseServices.Surface;
 using Entity = Autodesk.AutoCAD.DatabaseServices.Entity;
 using MyFirstProject.Extensions;
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.Surfaces))]
+[assembly: CommandClass(typeof(MyFirstProject.Surfaces))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     public class Surfaces
     {        

@@ -1,4 +1,4 @@
-// CivilToolTaskbar.cs - Thanh công cụ tổng hợp Civil Tool
+﻿// CivilToolTaskbar.cs - Thanh công cụ tổng hợp Civil Tool
 // Tổ chức theo nhóm lệnh với dropdown menu
 
 using Autodesk.AutoCAD.Runtime;
@@ -12,9 +12,9 @@ using System.Collections.Generic;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 // Đăng ký class chứa các lệnh với AutoCAD
-[assembly: CommandClass(typeof(Civil3DCsharp.CivilToolTaskbarCommands))]
+[assembly: CommandClass(typeof(MyFirstProject.CivilToolTaskbarCommands))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     /// <summary>
     /// Thanh công cụ tổng hợp tất cả các lệnh Civil Tool

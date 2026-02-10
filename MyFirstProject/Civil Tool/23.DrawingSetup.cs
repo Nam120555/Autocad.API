@@ -1,4 +1,4 @@
-// DrawingSetup.cs - Thiết lập bản vẽ CAD chuẩn
+﻿// DrawingSetup.cs - Thiết lập bản vẽ CAD chuẩn
 // Chuyển đổi từ LISP: TLBV, SAVC, PAL, PCL, IP
 
 using Autodesk.AutoCAD.Runtime;
@@ -8,9 +8,9 @@ using Autodesk.AutoCAD.DatabaseServices;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-[assembly: CommandClass(typeof(Civil3DCsharp.DrawingSetupCommands))]
+[assembly: CommandClass(typeof(MyFirstProject.DrawingSetupCommands))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     /// <summary>
     /// Các lệnh thiết lập bản vẽ CAD chuẩn

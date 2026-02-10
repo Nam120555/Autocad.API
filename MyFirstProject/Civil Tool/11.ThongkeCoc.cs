@@ -1,4 +1,4 @@
-// (C) Copyright 2024
+﻿// (C) Copyright 2024
 // Thống kê cọc từ SampleLine và xuất ra Excel
 //
 using System;
@@ -27,9 +27,9 @@ using ClosedXML.Excel;
 using MyFirstProject.Extensions;
 
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.ThongKeCoc))]
+[assembly: CommandClass(typeof(MyFirstProject.ThongKeCoc))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     #region Data Classes
 

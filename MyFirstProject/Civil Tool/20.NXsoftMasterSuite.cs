@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -6,12 +6,12 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.Civil.ApplicationServices;
 using Autodesk.Civil.DatabaseServices;
-using Civil3DCsharp.Helpers;
+using MyFirstProject.Helpers;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-[assembly: CommandClass(typeof(Civil3DCsharp.NXsoftMasterSuite))]
+[assembly: CommandClass(typeof(MyFirstProject.NXsoftMasterSuite))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     /// <summary>
     /// Bộ công cụ Master từ NXsoft được chuyển đổi sang C#

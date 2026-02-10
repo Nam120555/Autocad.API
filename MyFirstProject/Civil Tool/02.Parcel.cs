@@ -27,9 +27,9 @@ using System.Windows.Documents;
 using System.Globalization;
 using MyFirstProject.Extensions;
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.Parcel))]
+[assembly: CommandClass(typeof(MyFirstProject.Parcel))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     public class Parcel
     {
@@ -47,32 +47,37 @@ namespace Civil3DCsharp
 
                 //start here
                 ObjectIdCollection polylineIdColl = UserInput.GSelectionSetWithType("Chọn các polyline cần chuyển: \n", "LWPOLYLINE");
+
+                // Tìm hoặc tạo Site "TestSite" (chỉ 1 lần trước vòng lặp)
+                Site? site = null;
+                foreach (ObjectId siteId in A.Cdoc.GetSiteIds())
+                {
+                    Site? siteO = tr.GetObject(siteId, OpenMode.ForRead) as Site;
+                    if (siteO != null && siteO.Name == "TestSite")
+                    {
+                        site = siteO;
+                        break;
+                    }
+                }
+                // Nếu chưa có Site "TestSite" → tạo mới
+                if (site == null)
+                {
+                    ObjectId newSiteId = Site.Create(A.Cdoc, "TestSite");
+                    site = tr.GetObject(newSiteId, OpenMode.ForRead) as Site;
+                }
+                if (site == null) { A.Ed.WriteMessage("\nKhông thể tạo Site."); return; }
+
+                dynamic acadsite = site.AcadObject;
+                dynamic parcellines = acadsite.ParcelSegments;
+
                 foreach (ObjectId item in polylineIdColl)
                 {
                     Polyline? polyline = tr.GetObject(item, OpenMode.ForWrite) as Polyline;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    A.Ed.WriteMessage(polyline.Area.ToString() + "\n");
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    polyline.Closed = true;
-                    Site? site = null;
-                    foreach (ObjectId siteId in A.Cdoc.GetSiteIds())
-                    {
-                        Site? siteO = tr.GetObject(siteId, OpenMode.ForWrite) as Site;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                        if (siteO.Name == "TestSite")
-                        {
-                            site = siteO;
-                        }
-                        else site = (Site)Site.Create(A.Cdoc, "TestSite").GetObject(OpenMode.ForRead);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    }
-                    //Site site = (Site)Site.Create(a.cdoc, "TestSite").GetObject(OpenMode.ForRead);
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    dynamic acadsite = site.AcadObject;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    dynamic parcellines = acadsite.ParcelSegments;
-                    dynamic segment = parcellines.AddFromEntity(polyline.AcadObject, true);
+                    if (polyline == null) continue;
 
+                    A.Ed.WriteMessage(polyline.Area.ToString() + "\n");
+                    polyline.Closed = true;
+                    dynamic segment = parcellines.AddFromEntity(polyline.AcadObject, true);
                 }
 
                 tr.Commit();

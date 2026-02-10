@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
@@ -15,9 +15,9 @@ using Autodesk.Civil.DatabaseServices;
 using ClosedXML.Excel;
 using MyFirstProject.Extensions;
 
-[assembly: CommandClass(typeof(Civil3DCsharp.ThongKeCocV2))]
+[assembly: CommandClass(typeof(MyFirstProject.ThongKeCocV2))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     public class StakeLocationInfo
     {

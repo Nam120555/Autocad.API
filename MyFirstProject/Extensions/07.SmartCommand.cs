@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.EditorInput;
 using MyFirstProject.Extensions;
 
-namespace Civil3DCsharp.Helpers
+namespace MyFirstProject.Helpers
 {
     /// <summary>
     /// Cung cấp các phương thức để thực thi lệnh một cách "thông minh" với Progress Bar và Xử lý lỗi

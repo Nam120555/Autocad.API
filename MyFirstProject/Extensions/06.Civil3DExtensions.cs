@@ -1,10 +1,10 @@
-using Autodesk.AutoCAD.DatabaseServices;
+﻿using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.Civil.ApplicationServices;
 using Autodesk.Civil.DatabaseServices;
 using System;
 using System.Linq;
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     /// <summary>
     /// Extension methods for Civil 3D objects

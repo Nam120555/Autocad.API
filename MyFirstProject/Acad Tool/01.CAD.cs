@@ -29,9 +29,9 @@ using Autodesk.AutoCAD.Colors;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using MyFirstProject.Extensions;
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.CAD))]
+[assembly: CommandClass(typeof(MyFirstProject.CAD))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     class CAD
     {

@@ -1,4 +1,4 @@
-// CurveDesignStandards.cs - Thiết lập thông số đường cong theo tiêu chuẩn VN
+﻿// CurveDesignStandards.cs - Thiết lập thông số đường cong theo tiêu chuẩn VN
 // TCVN 4054:2005 - Đường ô tô (ngoài đô thị)
 // TCVN 13592:2022 - Đường đô thị
 
@@ -14,9 +14,9 @@ using Autodesk.Civil.DatabaseServices;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-[assembly: CommandClass(typeof(Civil3DCsharp.CurveDesignStandardsCommands))]
+[assembly: CommandClass(typeof(MyFirstProject.CurveDesignStandardsCommands))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     #region Data Classes
 

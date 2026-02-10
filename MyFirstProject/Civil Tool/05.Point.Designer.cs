@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Civil3D2019.Civil_Tool {
+namespace MyFirstProject.Resources {
     using System;
     
     

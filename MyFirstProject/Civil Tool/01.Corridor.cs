@@ -20,9 +20,9 @@ using Autodesk.Civil.ApplicationServices;
 using CivSurface = Autodesk.Civil.DatabaseServices.Surface;
 using MyFirstProject.Extensions;
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.Corridors))]
+[assembly: CommandClass(typeof(MyFirstProject.Corridors))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     class Corridors
     {

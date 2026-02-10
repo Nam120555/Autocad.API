@@ -28,9 +28,9 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using MyFirstProject.Extensions;
 //using Autodesk.Aec.DatabaseServices;
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.Sampleline))]
+[assembly: CommandClass(typeof(MyFirstProject.Sampleline))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     public class Sampleline
     {

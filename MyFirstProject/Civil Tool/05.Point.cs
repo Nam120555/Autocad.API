@@ -21,9 +21,9 @@ using CivSurface = Autodesk.Civil.DatabaseServices.Surface;
 using System.Windows.Forms;
 using MyFirstProject.Extensions;
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.Points))]
+[assembly: CommandClass(typeof(MyFirstProject.Points))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     class Points
     {

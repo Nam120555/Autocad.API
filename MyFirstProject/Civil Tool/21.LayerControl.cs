@@ -1,4 +1,4 @@
-// LayerControl.cs - Điều khiển Layer ON/OFF cho Civil 3D Objects
+﻿// LayerControl.cs - Điều khiển Layer ON/OFF cho Civil 3D Objects
 // Chuyển đổi từ LISP: 3. ON OFF CIVIL 3D OBJECT.lsp
 
 using Autodesk.AutoCAD.Runtime;
@@ -7,9 +7,9 @@ using Autodesk.AutoCAD.DatabaseServices;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-[assembly: CommandClass(typeof(Civil3DCsharp.LayerControlCommands))]
+[assembly: CommandClass(typeof(MyFirstProject.LayerControlCommands))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     /// <summary>
     /// Các lệnh điều khiển Layer ON/OFF cho Civil 3D objects

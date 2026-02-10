@@ -26,9 +26,9 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using MyFirstProject.Extensions;
 
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.SectionViews))]
+[assembly: CommandClass(typeof(MyFirstProject.SectionViews))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     public class SectionViews
     {

@@ -18,9 +18,9 @@ using Acad = Autodesk.AutoCAD.ApplicationServices;
 using Civil = Autodesk.Civil.ApplicationServices;
 using CivSurface = Autodesk.Civil.DatabaseServices.TinSurface;
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.Profiles))]
+[assembly: CommandClass(typeof(MyFirstProject.Profiles))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     public class Profiles
     {

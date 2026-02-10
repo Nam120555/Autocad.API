@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows.Media.Imaging;
 using Autodesk.Windows;
 
-namespace Civil3DCsharp.Helpers
+namespace MyFirstProject.Helpers
 {
     public static class RibbonFactory
     {

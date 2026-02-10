@@ -23,9 +23,9 @@ using System.Windows;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using MyFirstProject.Extensions;
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.PipeAndStructures))]
+[assembly: CommandClass(typeof(MyFirstProject.PipeAndStructures))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     public class PipeAndStructures
     {

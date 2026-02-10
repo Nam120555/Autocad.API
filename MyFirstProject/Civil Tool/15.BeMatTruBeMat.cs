@@ -1,4 +1,4 @@
-// (C) Copyright 2024
+﻿// (C) Copyright 2024
 // Tính khối lượng trắc ngang theo cú pháp Bề mặt trừ Bề mặt
 // Sử dụng Material List trong Section View
 //
@@ -27,9 +27,9 @@ using CivSection = Autodesk.Civil.DatabaseServices.Section;
 using ClosedXML.Excel;
 using MyFirstProject.Extensions;
 
-[assembly: CommandClass(typeof(Civil3DCsharp.BeMatTruBeMat))]
+[assembly: CommandClass(typeof(MyFirstProject.BeMatTruBeMat))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     #region Data Classes
 

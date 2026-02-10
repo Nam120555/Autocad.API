@@ -1,4 +1,4 @@
-// (C) Copyright 2024
+﻿// (C) Copyright 2024
 // Tool San Nền - Tính khối lượng đào đắp theo phương pháp lưới ô vuông
 //
 using System;
@@ -20,12 +20,12 @@ using ClosedXML.Excel;
 using FormLabel = System.Windows.Forms.Label;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using AcadColor = Autodesk.AutoCAD.Colors.Color;
-using Civil3DCsharp.Helpers;
+using MyFirstProject.Helpers;
 
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3DCsharp.SanNen))]
+[assembly: CommandClass(typeof(MyFirstProject.SanNen))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     #region Data Classes
 

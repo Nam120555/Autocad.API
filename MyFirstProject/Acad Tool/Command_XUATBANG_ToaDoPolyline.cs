@@ -9,9 +9,9 @@ using System.Collections.Generic;
 using System.Linq;
 
 // This line is not mandatory, but improves loading performances
-[assembly: CommandClass(typeof(Civil3D_Csharp.Command_XUATBANG_ToaDoPolyline))]
+[assembly: CommandClass(typeof(MyFirstProject.Command_XUATBANG_ToaDoPolyline))]
 
-namespace Civil3D_Csharp
+namespace MyFirstProject
 {
     /// <summary>
     /// Standalone command for exporting polyline coordinates with intersection calculations

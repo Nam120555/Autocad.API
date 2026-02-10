@@ -10,9 +10,9 @@ using Autodesk.AutoCAD.Runtime;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-[assembly: CommandClass(typeof(Civil3DCsharp.IconCustomizationCommands))]
+[assembly: CommandClass(typeof(MyFirstProject.IconCustomizationCommands))]
 
-namespace Civil3DCsharp
+namespace MyFirstProject
 {
     /// <summary>
     /// Form cho phép đổi icon của từng lệnh
