@@ -753,7 +753,7 @@ namespace MyFirstProject
         {
             return new List<(string, string, string)>
             {
-                ("CTS_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation Tại Tim", "ADD"),
+                ("CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation Tại Tim", "ADD"),
             };
         }
 

@@ -28,8 +28,8 @@ namespace MyFirstProject
 {
     public class Surfaces
     {        
-        [CommandMethod("CTS_TaoSpotElevation_OnSurface_TaiTim")]
-        public static void CTSTaoSpotElevationOnSurfaceTaiTim()
+        [CommandMethod("CTSu_TaoSpotElevation_OnSurface_TaiTim")]
+        public static void CTSuTaoSpotElevationOnSurfaceTaiTim()
         {
             // start transantion
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
