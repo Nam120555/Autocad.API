@@ -85,35 +85,17 @@ namespace MyFirstProject
             };
             ribbon.Tabs.Add(civilTab);
 
-            // Panel 1: Bề mặt & Điểm (Surface & Points)
-            AddCivilPanel(civilTab, "🗺 Bề Mặt", "SURFACE", GetSurfaceCommands());
-
-            // Panel 2: Lưới cọc (Sample Lines)
-            AddCivilPanel(civilTab, "📍 Lưới Cọc", "STATION", GetSampleLineCommands());
-
-            // Panel 3: Tuyến & Trắc dọc (Alignment & Profile)
-            AddCivilPanel(civilTab, "🛣 Tuyến", "ALIGN", GetAlignmentCommands());
-
-            // Panel 4: Corridor
-            AddCivilPanel(civilTab, "🛤 Corridor", "CORRIDOR", GetCorridorCommands());
-
-            // Panel 5: Trắc ngang (Section View)
-            AddCivilPanel(civilTab, "📐 Trắc Ngang", "SECTION", GetSectionViewCommands());
-
-            // Panel 6: San nền (Grading)  
-            AddCivilPanel(civilTab, "▦ San Nền", "GRADING", GetGradingCommands());
-
-            // Panel 7: Cống & Hố ga (Pipe & Structure)
-            AddCivilPanel(civilTab, "🔧 Thoát Nước", "PIPE", GetPipeCommands());
-
-            // Panel 8: Point
-            AddCivilPanel(civilTab, "📌 Điểm", "POINT", GetPointCommands());
-
-            // Panel 9: Tiện ích
-            AddCivilPanel(civilTab, "⚙ Tiện Ích", "UTILITY", GetUtilityCommands());
-
-            // Panel 10: Tài khoản
-            AddCivilPanel(civilTab, "👤 Tài Khoản", "ACCOUNT", GetAccountCommands());
+            // Sắp xếp theo bảng thống kê - 10 nhóm compact
+            AddCivilPanel(civilTab, "Corridor", "CORRIDOR", GetCorridorCommands());
+            AddCivilPanel(civilTab, "Parcel", "GRADING", GetParcelCommands());
+            AddCivilPanel(civilTab, "Pipe", "PIPE", GetPipeCommands());
+            AddCivilPanel(civilTab, "Point", "POINT", GetPointCommands());
+            AddCivilPanel(civilTab, "Profile", "PROFILE", GetProfileCommands());
+            AddCivilPanel(civilTab, "Cọc", "STATION", GetSampleLineCommands());
+            AddCivilPanel(civilTab, "Trắc ngang", "SECTION", GetSectionViewCommands());
+            AddCivilPanel(civilTab, "Khối lượng", "VOLUME", GetVolumeCommands());
+            AddCivilPanel(civilTab, "San nền", "GRADING", GetGradingCommands());
+            AddCivilPanel(civilTab, "Tool", "UTILITY", GetToolCommands());
 
             civilTab.IsActive = true;
         }
@@ -127,13 +109,12 @@ namespace MyFirstProject
             };
             ribbon.Tabs.Add(acadTab);
 
-            // Panel: CAD Commands
-            AddCivilPanel(acadTab, "📏 Đo Lường", "MEASURE", GetMeasureCommands());
-            AddCivilPanel(acadTab, "✏ Chỉnh Sửa", "EDIT", GetEditCommands());
-            AddCivilPanel(acadTab, "🔄 Layout", "LAYOUT", GetLayoutCommands());
+            AddCivilPanel(acadTab, "Đo Lường", "MEASURE", GetMeasureCommands());
+            AddCivilPanel(acadTab, "Chỉnh Sửa", "EDIT", GetEditCommands());
+            AddCivilPanel(acadTab, "Layout", "LAYOUT", GetLayoutCommands());
         }
 
-        private static void AddCivilPanel(RibbonTab tab, string title, string iconType, 
+        public static void AddCivilPanel(RibbonTab tab, string title, string iconType, 
             List<(string Command, string Label, string SubIcon)> commands)
         {
             if (commands.Count == 0) return;
@@ -141,16 +122,16 @@ namespace MyFirstProject
             RibbonPanelSource panelSource = new RibbonPanelSource { Title = title };
             RibbonPanel panel = new RibbonPanel { Source = panelSource };
 
-            // Tạo Split Button với dropdown
+            // Tạo Split Button với dropdown - compact size
             RibbonSplitButton splitButton = new RibbonSplitButton
             {
                 Text = title,
                 ShowText = true,
                 ShowImage = true,
-                Size = RibbonItemSize.Large,
-                Orientation = System.Windows.Controls.Orientation.Vertical,
+                Size = RibbonItemSize.Standard,
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
                 Image = CreateCivilIcon(iconType, 16),
-                LargeImage = CreateCivilIcon(iconType, 32),
+                LargeImage = CreateCivilIcon(iconType, 16),
                 ListStyle = RibbonSplitButtonListStyle.List
             };
 
@@ -747,125 +728,22 @@ namespace MyFirstProject
 
         #endregion
 
-        #region Command Lists
-
-        private static List<(string Command, string Label, string SubIcon)> GetSurfaceCommands()
-        {
-            return new List<(string, string, string)>
-            {
-                ("CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation Tại Tim", "ADD"),
-            };
-        }
-
-        private static List<(string Command, string Label, string SubIcon)> GetSampleLineCommands()
-        {
-            return new List<(string, string, string)>
-            {
-                ("CTS_DoiTenCoc", "Đổi Tên Cọc", "RENAME"),
-                ("CTS_DoiTenCoc2", "Đổi Tên Cọc Đoạn", "RENAME"),
-                ("CTS_DoiTenCoc3", "Đổi Tên Cọc Km", "RENAME"),
-                ("CTS_DoiTenCoc_fromCogoPoint", "Đổi Tên Từ CogoPoint", "RENAME"),
-                ("CTS_DoiTenCoc_TheoThuTu", "Đổi Tên Thứ Tự", "RENAME"),
-                ("CTS_DoiTenCoc_H", "Đổi Tên Hậu Tố A", "RENAME"),
-                ("---", "", ""),
-                ("CTS_TaoBang_ToaDoCoc", "Tọa Độ Cọc (X,Y)", "TABLE"),
-                ("CTS_TaoBang_ToaDoCoc2", "Tọa Độ Cọc (Lý Trình)", "TABLE"),
-                ("CTS_TaoBang_ToaDoCoc3", "Tọa Độ Cọc (Cao Độ)", "TABLE"),
-                ("AT_UPdate2Table", "Cập Nhật Từ Bảng", "SYNC"),
-                ("---", "", ""),
-                ("CTS_ChenCoc_TrenTracDoc", "Chèn Trên Trắc Dọc", "ADD"),
-                ("CTS_CHENCOC_TRENTRACNGANG", "Chèn Trên Trắc Ngang", "ADD"),
-                ("CTS_PhatSinhCoc", "Phát Sinh Cọc Auto", "ADD"),
-                ("CTS_PhatSinhCoc_ChiTiet", "Phát Sinh Chi Tiết", "ADD"),
-                ("CTS_PhatSinhCoc_theoKhoangDelta", "Phát Sinh Delta", "ADD"),
-                ("CTS_PhatSinhCoc_TuCogoPoint", "Phát Sinh Từ CogoPoint", "ADD"),
-                ("CTS_PhatSinhCoc_TheoBang", "Phát Sinh Từ Bảng", "ADD"),
-                ("---", "", ""),
-                ("CTS_DichCoc_TinhTien", "Dịch Cọc Tịnh Tiến", "MOVE"),
-                ("CTS_DichCoc_TinhTien40", "Dịch Cọc 40m", "MOVE"),
-                ("CTS_DichCoc_TinhTien_20", "Dịch Cọc 20m", "MOVE"),
-                ("CTS_Copy_NhomCoc", "Sao Chép Nhóm Cọc", "COPY"),
-                ("CTS_DongBo_2_NhomCoc", "Đồng Bộ Nhóm Cọc", "SYNC"),
-                ("CTS_DongBo_2_NhomCoc_TheoDoan", "Đồng Bộ Theo Đoạn", "SYNC"),
-                ("---", "", ""),
-                ("CTS_Copy_BeRong_sampleLine", "Copy Bề Rộng SL", "COPY"),
-                ("CTS_Thaydoi_BeRong_sampleLine", "Thay Đổi Bề Rộng SL", "SETTINGS"),
-                ("CTS_Offset_BeRong_sampleLine", "Offset Bề Rộng SL", "MOVE"),
-                ("---", "", ""),
-                ("CTSV_ThongKeCoc", "Thống Kê Cọc (Excel)", "EXPORT"),
-                ("CTSV_ThongKeCoc_TatCa", "Thống Kê Tất Cả Cọc", "EXPORT")
-            };
-        }
-
-        private static List<(string Command, string Label, string SubIcon)> GetAlignmentCommands()
-        {
-            return new List<(string, string, string)>
-            {
-                ("CTPV_TaoProfileView", "Tạo Trắc Dọc", "PROFILE"),
-                ("CTPV_SuaProfileView", "Edit Profile", "SETTINGS"),
-                ("CTPV_ThemBang_LyTrinh", "Thêm Bảng Lý Trình", "TABLE"),
-                ("CTPV_ThemLabel_CaoDo", "Thêm Label Cao Độ", "ADD"),
-                ("CTPV_ThayDoiScale", "Thay Đổi Scale", "SETTINGS"),
-                ("CTPV_FitKhung", "Fit Khung", "VIEW")
-            };
-        }
+        // ═══ CIVIL TOOL Commands - theo bảng thống kê ═══
 
         private static List<(string Command, string Label, string SubIcon)> GetCorridorCommands()
         {
             return new List<(string, string, string)>
             {
-                ("CTC_AddAllSection", "Thêm Tất Cả Section", "ADD"),
-                ("CTC_TaoCooridor_DuongDoThi_RePhai", "Corridor Rẽ Phải", "DRAW")
+                ("CTC_AddAllSection", "Thêm tất cả Section", "ADD"),
+                ("CTC_TaoCooridor_DuongDoThi_RePhai", "Corridor rẽ phải", "DRAW"),
             };
         }
 
-        private static List<(string Command, string Label, string SubIcon)> GetSectionViewCommands()
+        private static List<(string Command, string Label, string SubIcon)> GetParcelCommands()
         {
             return new List<(string, string, string)>
             {
-                ("CTSV_VeTracNgangThietKe", "Tạo Trắc Ngang", "DRAW"),
-                ("CVSV_VeTatCa_TracNgangThietKe", "Vẽ Tất Cả TN", "DRAW"),
-                ("CTSV_ChuyenDoi_TNTK_TNTN", "Chuyển TK Sang TN", "SYNC"),
-                ("---", "", ""),
-                ("CTSV_DanhCap", "Đánh Cấp - VHC", "SLOPE"),
-                ("CTSV_DanhCap_XoaBo", "Xóa Đánh Cấp", "DELETE"),
-                ("CTSV_DanhCap_VeThem", "Vẽ Thêm Đánh Cấp", "SLOPE"),
-                ("CTSV_DanhCap_VeThem1", "Vẽ Thêm 1m", "ADD"),
-                ("CTSV_DanhCap_VeThem2", "Vẽ Thêm 2m", "ADD"),
-                ("CTSV_DanhCap_CapNhat", "Cập Nhật KL Đánh Cấp", "SYNC"),
-                ("---", "", ""),
-                ("CTSV_ThemVatLieu_TrenCatNgang", "Điền KL Trắc Ngang", "VOLUME"),
-                ("CTSV_ThayDoi_MSS_Min_Max", "Hiệu Chỉnh MSS", "SETTINGS"),
-                ("CTSV_ThayDoi_GioiHan_traiPhai", "Thay Giới Hạn T/P", "SETTINGS"),
-                ("CTSV_ThayDoi_KhungIn", "Dàn Khung In", "VIEW"),
-                ("CTSV_KhoaCatNgang_AddPoint", "Khóa TN + Add Point", "ADD"),
-                ("---", "", ""),
-                ("CTSV_fit_KhungIn", "Fit Khung In", "VIEW"),
-                ("CTSV_fit_KhungIn_5_5_top", "Fit Khung 5x5", "VIEW"),
-                ("CTSV_fit_KhungIn_5_10_top", "Fit Khung 5x10", "VIEW"),
-                ("---", "", ""),
-                ("CTSV_An_DuongDiaChat", "Ẩn Đường Địa Chất", "VIEW"),
-                ("CTSV_HieuChinh_Section", "Hiệu Chỉnh (Static)", "SETTINGS"),
-                ("CTSV_HieuChinh_Section_Dynamic", "Hiệu Chỉnh (Dynamic)", "SETTINGS"),
-                ("---", "", ""),
-                ("CTSV_Taskbar", "Taskbar Khối Lượng", "VOLUME"),
-                ("CTSV_XuatKhoiLuong", "Xuất KL Excel", "EXCEL"),
-                ("CTSV_XuatCad", "Xuất KL CAD", "CAD"),
-                ("CTSV_CaiDatBang", "Cài Đặt Bảng KL", "SETTINGS")
-            };
-        }
-
-        private static List<(string Command, string Label, string SubIcon)> GetGradingCommands()
-        {
-            return new List<(string, string, string)>
-            {
-                ("CTSN_Taskbar", "Mở Taskbar SN", "VOLUME"),
-                ("---", "", ""),
-                ("CTSN_TaoLuoi", "Quản Lý Lưới", "GRADING"),
-                ("CTSN_NhapCaoDo", "Điền Cao Độ Lưới", "ADD"),
-                ("CTSN_Surface", "Lấy CĐ Surface", "SURFACE"),
-                ("CTSN_TinhKL", "Tính Khối Lượng SN", "VOLUME"),
-                ("CTSN_XuatBang", "Xuất Bảng KL CAD", "CAD")
+                ("CTPA_TaoParcel_CacLoaiNha", "Parcel từ Polyline", "DRAW"),
             };
         }
 
@@ -873,12 +751,11 @@ namespace MyFirstProject
         {
             return new List<(string, string, string)>
             {
-                ("CTPS_TaoBangThongKePipe", "Thống Kê Pipe", "TABLE"),
-                ("CTPS_TaoBangThongKeStructure", "Thống Kê Structure", "TABLE"),
-                ("CTPS_ThayDoi_CaoDo_Pipe", "Đổi Cao Độ Pipe", "SETTINGS"),
-                ("CTPS_ThayDoi_CaoDo_Structure", "Đổi Cao Độ Struct", "SETTINGS"),
-                ("CTPS_XoayPipe_90do", "Xoay Pipe 90°", "SYNC"),
-                ("CTPS_XoaConTrung", "Xóa Con Trùng", "DELETE")
+                ("CTPI_ThayDoi_DuongKinhCong", "Đổi ĐK cống", "SETTINGS"),
+                ("CTPI_ThayDoi_MatPhangRef_Cong", "MP ref cống", "SETTINGS"),
+                ("CTPI_ThayDoi_DoanDocCong", "Đổi dốc cống", "SETTINGS"),
+                ("CTPI_BangCaoDo_TuNhienHoThu", "Bảng CĐ hố thu", "TABLE"),
+                ("CTPI_XoayHoThu_Theo2diem", "Xoay hố thu", "SYNC"),
             };
         }
 
@@ -886,52 +763,117 @@ namespace MyFirstProject
         {
             return new List<(string, string, string)>
             {
-                ("CTPo_TaoPointTheoBang", "Tạo Point Từ Bảng", "ADD"),
-                ("CTPo_ChuyenPointThanhBlock", "Point → Block", "SYNC"),
-                ("CTPo_TaoBangThongKePoint", "Bảng Thống Kê Point", "TABLE"),
-                ("CTPo_ThayDoiCaoDo", "Thay Đổi Cao Độ", "SETTINGS"),
-                ("CTPo_DatTen_theoThuTu", "Đặt Tên Thứ Tự", "RENAME"),
-                ("CTPo_ThayDoiStyle", "Thay Đổi Style", "SETTINGS"),
-                ("CTPo_LayThongTin", "Lấy Thông Tin", "INFO")
+                ("CTPO_TaoCogoPoint_CaoDo_FromSurface", "CĐ từ Surface", "ADD"),
+                ("CTPO_TaoCogoPoint_CaoDo_Elevations", "CĐ từ Spot", "ADD"),
+                ("CTPO_CreateCogopointFromText", "Từ Text CĐ", "ADD"),
+                ("CTPO_An_CogoPoint", "Ẩn CogoPoint", "VIEW"),
+                ("CTPO_UpdateAllPointGroup", "Update PtGroup", "SYNC"),
+                ("CTPO_CPTT", "Point→Text CĐ", "SYNC"),
             };
         }
 
-        private static List<(string Command, string Label, string SubIcon)> GetUtilityCommands()
+        private static List<(string Command, string Label, string SubIcon)> GetProfileCommands()
         {
             return new List<(string, string, string)>
             {
-                ("AT_Solid_Set_PropertySet", "Gán Property Set", "ADD"),
-                ("AT_Solid_Show_Info", "Thông Tin Solid", "INFO"),
-                ("CT_VTOADOHG", "Tọa Độ Hố Ga", "POINT"),
+                ("CTP_VeTracDoc_TuNhien", "Trắc dọc TN", "PROFILE"),
+                ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "TD TN tất cả", "PROFILE"),
+                ("CTP_Fix_DuongTuNhien_TheoCoc", "Fix TN theo cọc", "SETTINGS"),
+                ("CTP_GanNhanNutGiao_LenTracDoc", "Nhãn nút giao", "ADD"),
+                ("CTP_TaoCogoPointTuPVI", "CogoPoint từ PVI", "POINT"),
+                ("CTP_TaoBangThongKeParcel", "TK Parcel", "TABLE"),
+            };
+        }
+
+        private static List<(string Command, string Label, string SubIcon)> GetSampleLineCommands()
+        {
+            return new List<(string, string, string)>
+            {
+                ("CTS_DoiTenCoc", "Đổi tên cọc", "RENAME"),
+                ("CTS_DoiTenCoc2", "Đổi tên đoạn", "RENAME"),
+                ("CTS_DoiTenCoc3", "Đổi tên Km", "RENAME"),
                 ("---", "", ""),
-                ("CIVIL_RIBBON", "Reload Menu", "RELOAD")
+                ("CTS_TaoBang_ToaDoCoc", "Bảng tọa độ", "TABLE"),
+                ("CTS_PhatSinhCoc", "Phát sinh auto", "ADD"),
+                ("CTS_PhatSinhCoc_ChiTiet", "Phát sinh CT", "ADD"),
+                ("---", "", ""),
+                ("CTS_DichCoc_TinhTien", "Dịch tịnh tiến", "MOVE"),
+                ("CTS_Copy_NhomCoc", "Copy nhóm cọc", "COPY"),
+                ("CTS_DongBo_2_NhomCoc", "Đồng bộ 2NC", "SYNC"),
             };
         }
 
-        private static List<(string Command, string Label, string SubIcon)> GetAccountCommands()
+        private static List<(string Command, string Label, string SubIcon)> GetSectionViewCommands()
         {
             return new List<(string, string, string)>
             {
-                ("", "Đăng Nhập", "ACCOUNT"),
-                ("", "Thông Tin", "INFO"),
-                ("", "Hướng Dẫn", "INFO")
+                ("CTSV_VeTracNgangThietKe", "Vẽ TN thiết kế", "DRAW"),
+                ("---", "", ""),
+                ("CTSV_DanhCap", "Đánh cấp VHC", "SLOPE"),
+                ("CTSV_DanhCap_XoaBo", "Xóa đánh cấp", "DELETE"),
+                ("CTSV_DanhCap_VeThem", "Vẽ thêm ĐC", "SLOPE"),
+                ("---", "", ""),
+                ("CTSV_ThemVatLieu_TrenCatNgang", "Điền vật liệu", "VOLUME"),
+                ("CTSV_fit_KhungIn", "Fit khung in", "VIEW"),
+                ("CTSV_An_DuongDiaChat", "Ẩn địa chất", "VIEW"),
             };
         }
 
-        // Acad Tool Commands
+        private static List<(string Command, string Label, string SubIcon)> GetVolumeCommands()
+        {
+            return new List<(string, string, string)>
+            {
+                ("CTSV_Taskbar", "Taskbar KL", "VOLUME"),
+                ("CTSV_XuatKhoiLuong", "Xuất KL Excel", "EXCEL"),
+                ("CTSV_XuatCad", "Xuất KL CAD", "CAD"),
+                ("CTSV_CaiDatBang", "Cài đặt bảng", "SETTINGS"),
+                ("---", "", ""),
+                ("CTSV_ThongKeCoc", "TK cọc Excel", "EXPORT"),
+                ("CTSV_ThongKeCoc_TatCa", "TK tất cả cọc", "EXPORT"),
+            };
+        }
+
+        private static List<(string Command, string Label, string SubIcon)> GetGradingCommands()
+        {
+            return new List<(string, string, string)>
+            {
+                ("CTSN_Taskbar", "Taskbar SN", "VOLUME"),
+                ("---", "", ""),
+                ("CTSN_TaoLuoi", "Tạo lưới", "GRADING"),
+                ("CTSN_NhapCaoDo", "Nhập CĐ lưới", "ADD"),
+                ("CTSN_Surface", "Lấy CĐ Surface", "SURFACE"),
+                ("CTSN_TinhKL", "Tính KL SN", "CALCULATE"),
+                ("CTSN_XuatBang", "Xuất bảng CAD", "CAD"),
+            };
+        }
+
+        private static List<(string Command, string Label, string SubIcon)> GetToolCommands()
+        {
+            return new List<(string, string, string)>
+            {
+                ("CT_Taskbar", "Thanh công cụ", "UTILITY"),
+                ("CT_VTOADOHG", "Tọa độ hố ga", "POINT"),
+                ("CT_MENU_SETTINGS", "Cài đặt menu", "SETTINGS"),
+                ("---", "", ""),
+                ("CIVIL_RIBBON", "Reload menu", "RELOAD"),
+            };
+        }
+
+        // ═══ ACAD TOOL Commands ═══
+
         private static List<(string Command, string Label, string SubIcon)> GetMeasureCommands()
         {
             return new List<(string, string, string)>
             {
-                ("AT_TongDoDai_Full", "Tổng Độ Dài (Full)", "CALCULATE"),
-                ("AT_TongDoDai_Replace", "Tổng Độ Dài (Replace)", "CALCULATE"),
-                ("AT_TongDoDai_Replace2", "Tổng Độ Dài (Replace2)", "CALCULATE"),
-                ("AT_TongDoDai_Replace_CongThem", "Tổng Độ Dài (Cộng Thêm)", "CALCULATE"),
+                ("AT_TongDoDai_Full", "Tổng dài (Full)", "CALCULATE"),
+                ("AT_TongDoDai_Replace", "Tổng dài (Replace)", "CALCULATE"),
+                ("AT_TongDoDai_Replace2", "Tổng dài (Replace2)", "CALCULATE"),
+                ("AT_TongDoDai_Replace_CongThem", "Tổng dài (Cộng)", "CALCULATE"),
                 ("---", "", ""),
-                ("AT_TongDienTich_Full", "Tổng Diện Tích (Full)", "CALCULATE"),
-                ("AT_TongDienTich_Replace", "Tổng Diện Tích (Replace)", "CALCULATE"),
-                ("AT_TongDienTich_Replace2", "Tổng Diện Tích (Replace2)", "CALCULATE"),
-                ("AT_TongDienTich_Replace_CongThem", "Tổng Diện Tích (Cộng Thêm)", "CALCULATE")
+                ("AT_TongDienTich_Full", "Tổng DT (Full)", "CALCULATE"),
+                ("AT_TongDienTich_Replace", "Tổng DT (Replace)", "CALCULATE"),
+                ("AT_TongDienTich_Replace2", "Tổng DT (Replace2)", "CALCULATE"),
+                ("AT_TongDienTich_Replace_CongThem", "Tổng DT (Cộng)", "CALCULATE"),
             };
         }
 
@@ -940,14 +882,14 @@ namespace MyFirstProject
             return new List<(string, string, string)>
             {
                 ("AT_TextLink", "Text Link", "ADD"),
-                ("AT_DanhSoThuTu", "Đánh Số Thứ Tự", "ADD"),
-                ("AT_XoaDoiTuong_CungLayer", "Xóa Đối Tượng Cùng Layer", "DELETE"),
-                ("AT_XoaDoiTuong_3DSolid_Body", "Xóa 3DSolid/Body", "DELETE"),
-                ("AT_Offset_2Ben", "Offset 2 Bên", "COPY"),
-                ("AT_annotive_scale_currentOnly", "Annotative Scale Current Only", "SETTINGS"),
+                ("AT_DanhSoThuTu", "Đánh số TT", "ADD"),
+                ("AT_XoaDoiTuong_CungLayer", "Xóa cùng Layer", "DELETE"),
+                ("AT_XoaDoiTuong_3DSolid_Body", "Xóa 3DSolid", "DELETE"),
+                ("AT_Offset_2Ben", "Offset 2 bên", "COPY"),
+                ("AT_annotive_scale_currentOnly", "Annot. Scale", "SETTINGS"),
                 ("---", "", ""),
-                ("AT_XoayDoiTuong_TheoViewport", "Xoay Theo Viewport", "SYNC"),
-                ("AT_XoayDoiTuong_Theo2Diem", "Xoay Theo 2 Điểm", "SYNC")
+                ("AT_XoayDoiTuong_TheoViewport", "Xoay VP", "SYNC"),
+                ("AT_XoayDoiTuong_Theo2Diem", "Xoay 2 điểm", "SYNC"),
             };
         }
 
@@ -956,13 +898,13 @@ namespace MyFirstProject
             return new List<(string, string, string)>
             {
                 ("AT_TextLayout", "Text Layout", "ADD"),
-                ("AT_TaoMoi_TextLayout", "Tạo Mới Text Layout", "ADD"),
+                ("AT_TaoMoi_TextLayout", "Tạo mới TL", "ADD"),
                 ("AT_DimLayout", "Dim Layout", "ADD"),
                 ("AT_DimLayout2", "Dim Layout 2", "ADD"),
                 ("AT_BlockLayout", "Block Layout", "ADD"),
-                ("AT_Label_FromText", "Label From Text", "ADD"),
+                ("AT_Label_FromText", "Label Text", "ADD"),
                 ("---", "", ""),
-                ("AT_UpdateLayout", "Update Layout", "SYNC")
+                ("AT_UpdateLayout", "Update Layout", "SYNC"),
             };
         }
 

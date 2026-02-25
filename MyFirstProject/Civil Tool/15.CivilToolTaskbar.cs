@@ -148,6 +148,13 @@ namespace MyFirstProject
 
                 foreach (var cmd in commands)
                 {
+                    // Separator: thêm đường kẻ thay vì nút bấm
+                    if (string.IsNullOrEmpty(cmd.Command))
+                    {
+                        menu.Items.Add(new ToolStripSeparator());
+                        continue;
+                    }
+
                     var item = new ToolStripMenuItem(cmd.Name);
                     item.BackColor = Color.FromArgb(55, 55, 58);
                     item.ForeColor = Color.White;
@@ -238,12 +245,11 @@ namespace MyFirstProject
         {
             return new List<(string, string)>
             {
-                ("➕ Tạo trắc dọc", "CTPV_TaoProfileView"),
-                ("✏ Edit profile", "CTPV_SuaProfileView"),
-                ("📋 Thêm bảng lý trình", "CTPV_ThemBang_LyTrinh"),
-                ("🏷 Thêm Label cao độ", "CTPV_ThemLabel_CaoDo"),
-                ("📏 Thay đổi Scale", "CTPV_ThayDoiScale"),
-                ("📐 Fit khung", "CTPV_FitKhung"),
+                ("📈 Vẽ trắc dọc TN", "CTP_VeTracDoc_TuNhien"),
+                ("📈 Vẽ trắc dọc TN (Tất cả)", "CTP_VeTracDoc_TuNhien_TatCaTuyen"),
+                ("🔧 Fix đường TN theo cọc", "CTP_Fix_DuongTuNhien_TheoCoc"),
+                ("🏷 Gán nhãn nút giao", "CTP_GanNhanNutGiao_LenTracDoc"),
+                ("📍 Tạo CogoPoint từ PVI", "CTP_TaoCogoPointTuPVI"),
             };
         }
 
@@ -306,12 +312,11 @@ namespace MyFirstProject
                 ("➕ Thêm tất cả Section", "CTC_AddAllSection"),
                 ("🛤 Corridor rẽ phải", "CTC_TaoCooridor_DuongDoThi_RePhai"),
                 ("─────────────", ""),
-                ("🔧 Thống kê Pipe", "CTPS_TaoBangThongKePipe"),
-                ("🔧 Thống kê Structure", "CTPS_TaoBangThongKeStructure"),
-                ("📏 Đổi cao độ Pipe", "CTPS_ThayDoi_CaoDo_Pipe"),
-                ("📏 Đổi cao độ Struct", "CTPS_ThayDoi_CaoDo_Structure"),
-                ("🔄 Xoay Pipe 90°", "CTPS_XoayPipe_90do"),
-                ("❌ Xóa con trùng", "CTPS_XoaConTrung"),
+                ("🔧 Đổi đường kính cống", "CTPI_ThayDoi_DuongKinhCong"),
+                ("🔧 Đổi mặt phẳng Ref cống", "CTPI_ThayDoi_MatPhangRef_Cong"),
+                ("📏 Đổi độ dốc cống", "CTPI_ThayDoi_DoanDocCong"),
+                ("📋 Bảng cao độ hố thu", "CTPI_BangCaoDo_TuNhienHoThu"),
+                ("🔄 Xoay hố thu", "CTPI_XoayHoThu_Theo2diem"),
             };
         }
 
@@ -319,8 +324,7 @@ namespace MyFirstProject
         {
             return new List<(string, string)>
             {
-                ("🏷 Đánh tên nút giao", ""),
-                ("⚙ Thiết lập thông số", ""),
+                ("🏷 Gán nhãn nút giao", "CTP_GanNhanNutGiao_LenTracDoc"),
             };
         }
 
@@ -342,10 +346,10 @@ namespace MyFirstProject
         {
             return new List<(string, string)>
             {
-                ("📐 Thiết lập khung in", ""),
                 ("📋 Dàn khung in", "CTSV_ThayDoi_KhungIn"),
-                ("─────────────", ""),
                 ("📐 Fit khung in", "CTSV_fit_KhungIn"),
+                ("📐 Fit khung 5x5", "CTSV_fit_KhungIn_5_5_top"),
+                ("📐 Fit khung 5x10", "CTSV_fit_KhungIn_5_10_top"),
             };
         }
 
@@ -497,22 +501,24 @@ namespace MyFirstProject
                 ("Pipe", "CTPI_ThayDoi_DuongKinhCong", "Thay đổi đường kính ống cống"),
                 ("Pipe", "CTPI_ThayDoi_MatPhangRef_Cong", "Đặt mặt phẳng reference cho cống"),
                 ("Pipe", "CTPI_ThayDoi_DoanDocCong", "Thay đổi độ dốc ống cống"),
-                ("Pipe", "CTPI_ThayDoi_CaoDoDayCong", "Thay đổi cao độ đáy cống"),
-                ("Pipe", "CTPI_TaoBang_CaoDoDayHoGa", "Tạo bảng cao độ đáy hố ga"),
+                ("Pipe", "CTPI_BangCaoDo_TuNhienHoThu", "Bảng cao độ tự nhiên hố thu"),
+                ("Pipe", "CTPI_XoayHoThu_Theo2diem", "Xoay hố thu theo 2 điểm"),
                 
                 // Point
                 ("Point", "CTPO_TaoCogoPoint_CaoDo_FromSurface", "Tạo CogoPoint lấy cao độ từ Surface"),
-                ("Point", "CTPO_TaoCogoPoint_CaoDoSpotElevation", "Tạo CogoPoint từ Spot Elevation"),
-                ("Point", "CTPO_TaoCogoPoint_CaoDo_FromText", "Tạo CogoPoint từ Text cao độ"),
-                ("Point", "CTPO_AnCacPoint", "Ẩn các điểm CogoPoint"),
-                ("Point", "CTPO_TaoSurfaceFromPoints", "Tạo Surface từ Points"),
+                ("Point", "CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Tạo CogoPoint từ Spot Elevation"),
+                ("Point", "CTPO_CreateCogopointFromText", "Tạo CogoPoint từ Text cao độ"),
+                ("Point", "CTPO_An_CogoPoint", "Ẩn các điểm CogoPoint"),
+                ("Point", "CTPO_UpdateAllPointGroup", "Cập nhật tất cả Point Group"),
+                ("Point", "CTPO_CPTT", "Chuyển Point thành Text cao độ"),
                 
                 // Profile
                 ("Profile", "CTP_VeTracDoc_TuNhien", "Vẽ trắc dọc địa hình tự nhiên"),
-                ("Profile", "CTP_SuaProfile_TheoSampleline", "Sửa profile theo sampleline"),
+                ("Profile", "CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ trắc dọc TN tất cả tuyến"),
+                ("Profile", "CTP_Fix_DuongTuNhien_TheoCoc", "Fix đường TN theo cọc"),
+                ("Profile", "CTP_GanNhanNutGiao_LenTracDoc", "Gán nhãn nút giao lên trắc dọc"),
+                ("Profile", "CTP_TaoCogoPointTuPVI", "Tạo CogoPoint từ PVI"),
                 ("Profile", "CTP_TaoBangThongKeParcel", "Tạo bảng thống kê parcel"),
-                ("Profile", "CTP_ThemLabel_NutGiao", "Thêm label nút giao"),
-                ("Profile", "CTP_VeTracDoc_ThietKe", "Vẽ trắc dọc thiết kế"),
                 
                 // Sample Line / Cọc  
                 ("Cọc", "CTS_DoiTenCoc", "Đổi tên cọc"),
