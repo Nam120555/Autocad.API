@@ -82,6 +82,7 @@ namespace MyFirstProject
         private Button btnCmdUp = null!, btnCmdDown = null!;
         private Button btnSave = null!, btnCancel = null!, btnReset = null!;
         private Button btnExport = null!, btnImport = null!;
+        private ComboBox cmbCmdIcon = null!;
 
         // ─── Constructor ───
         public MenuSettingsForm()
@@ -110,7 +111,7 @@ namespace MyFirstProject
             this.MaximizeBox = false;
 
             // ─── HEADER ───
-            var header = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.FromArgb(0, 122, 204) };
+            var header = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.FromArgb(0, 93, 160) };
             var lblTitle = new Label
             {
                 Text = "⚙  CÀI ĐẶT MENU LỆNH",
@@ -152,6 +153,51 @@ namespace MyFirstProject
             btnCmdUp = CreateButton("▲", 5, 380, 40, 32, pnlCmds, BtnCmdUp_Click);
             btnCmdDown = CreateButton("▼", 50, 380, 40, 32, pnlCmds, BtnCmdDown_Click);
             btnRemoveCmd = CreateButton("◀ Xóa khỏi nhóm", 95, 380, 165, 32, pnlCmds, BtnRemoveCmd_Click);
+
+            // Icon lệnh
+            var lblCmdIcon = new Label
+            {
+                Text = "🎨 Icon lệnh:",
+                Location = new Point(5, 420),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(0, 93, 160),
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold)
+            };
+            pnlCmds.Controls.Add(lblCmdIcon);
+
+            cmbCmdIcon = new ComboBox
+            {
+                Location = new Point(85, 418),
+                Size = new Size(180, 26),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = Color.FromArgb(60, 60, 67),
+                ForeColor = Color.White
+            };
+            var cmdIconTypes = new[] { "SURFACE", "STATION", "ALIGN", "CORRIDOR", "SECTION",
+                "GRADING", "PIPE", "POINT", "UTILITY", "ACCOUNT", "PROFILE",
+                "VOLUME", "SLOPE", "EXCEL", "CALCULATE", "DRAW", "SETTINGS",
+                "ADD", "RENAME", "TABLE", "EXPORT", "SYNC", "INFO", "DELETE",
+                "COPY", "MOVE", "RELOAD", "VIEW", "EDIT", "LAYOUT", "MEASURE",
+                "SPIRAL", "SUPERELEVATION", "CULVERT", "BRIDGE", "WIDENING", "INTERSECTION", "CAD" };
+            cmbCmdIcon.Items.AddRange(cmdIconTypes);
+            cmbCmdIcon.SelectedIndexChanged += (s, e) =>
+            {
+                if (lstGroups.SelectedIndex >= 0 && lstCommands.SelectedIndex >= 0
+                    && cmbCmdIcon.SelectedItem is string icon)
+                {
+                    var groups = GetCurrentGroupList();
+                    if (lstGroups.SelectedIndex < groups.Count)
+                    {
+                        var group = groups[lstGroups.SelectedIndex];
+                        int cmdIdx = lstCommands.SelectedIndex;
+                        if (cmdIdx < group.Commands.Count && group.Commands[cmdIdx].Command != "---")
+                        {
+                            group.Commands[cmdIdx].SubIcon = icon;
+                        }
+                    }
+                }
+            };
+            pnlCmds.Controls.Add(cmbCmdIcon);
 
             // Col3: Tất cả lệnh (để thêm vào nhóm)
             var pnlAll = CreateSection("📦 TẤT CẢ LỆNH CÓ SẴN", 550, 10, 270, 480, mainPanel);
@@ -236,8 +282,8 @@ namespace MyFirstProject
                 Appearance = TabAppearance.Buttons,
                 ItemSize = new Size(95, 24)
             };
-            tabMain.TabPages.Add("civil", "🛠 CIVIL");
-            tabMain.TabPages.Add("acad", "📏 ACAD");
+            tabMain.TabPages.Add("civil", "Civil Tool");
+            tabMain.TabPages.Add("acad", "ACAD Tool");
             tabMain.SelectedIndexChanged += (s, e) => { RefreshGroupList(); RefreshAllCommandsList(); };
             mainPanel.Controls.Add(tabMain);
             tabMain.BringToFront();
@@ -597,6 +643,36 @@ namespace MyFirstProject
                 else
                     lstCommands.Items.Add(cmd);
             }
+
+            // Cập nhật combo icon lệnh
+            UpdateCmdIconCombo();
+        }
+
+        private void UpdateCmdIconCombo()
+        {
+            if (lstGroups.SelectedIndex < 0 || lstCommands.SelectedIndex < 0)
+            {
+                cmbCmdIcon.SelectedIndex = -1;
+                cmbCmdIcon.Enabled = false;
+                return;
+            }
+
+            var groups = GetCurrentGroupList();
+            if (lstGroups.SelectedIndex >= groups.Count) return;
+
+            var group = groups[lstGroups.SelectedIndex];
+            int cmdIdx = lstCommands.SelectedIndex;
+            if (cmdIdx >= group.Commands.Count || group.Commands[cmdIdx].Command == "---")
+            {
+                cmbCmdIcon.SelectedIndex = -1;
+                cmbCmdIcon.Enabled = false;
+                return;
+            }
+
+            cmbCmdIcon.Enabled = true;
+            string currentIcon = group.Commands[cmdIdx].SubIcon;
+            int idx = cmbCmdIcon.Items.IndexOf(currentIcon);
+            cmbCmdIcon.SelectedIndex = idx;
         }
 
         private List<MenuCommandItem> _allCommandsCache = new();
@@ -958,7 +1034,7 @@ namespace MyFirstProject
             // Tạo lại Civil Tab
             var civilTab = new Autodesk.Windows.RibbonTab
             {
-                Title = "🛠 CIVIL TOOL",
+                Title = "Civil Tool",
                 Id = "CivilTool.MainTab"
             };
             ribbon.Tabs.Add(civilTab);
@@ -974,7 +1050,7 @@ namespace MyFirstProject
             // Tạo lại Acad Tab
             var acadTab = new Autodesk.Windows.RibbonTab
             {
-                Title = "📏 ACAD TOOL",
+                Title = "ACAD Tool",
                 Id = "CivilTool.AcadTab"
             };
             ribbon.Tabs.Add(acadTab);

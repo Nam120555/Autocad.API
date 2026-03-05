@@ -1,5 +1,5 @@
-// 19.CivilRibbonTaskbar.cs - Thanh Ribbon Civil Tool với màu xanh da trời
-// Thiết kế theo phong cách Civil 3D chuyên nghiệp
+// 19.CivilRibbonTaskbar.cs - Thanh Ribbon Civil Tool
+// Thiết kế theo phong cách Civil 3D - Load config từ MenuSettingsForm
 
 using System;
 using System.Collections.Generic;
@@ -22,11 +22,11 @@ namespace MyFirstProject
     /// </summary>
     public class CivilRibbonTaskbar
     {
-        // Màu xanh da trời chủ đạo
-        private static readonly System.Windows.Media.Color PrimaryBlue = System.Windows.Media.Color.FromRgb(0, 149, 217);
-        private static readonly System.Windows.Media.Color LightBlue = System.Windows.Media.Color.FromRgb(135, 206, 250);
-        private static readonly System.Windows.Media.Color DarkBlue = System.Windows.Media.Color.FromRgb(0, 102, 153);
-        private static readonly System.Windows.Media.Color AccentBlue = System.Windows.Media.Color.FromRgb(100, 181, 246);
+        // Màu Civil 3D nguyên bản
+        private static readonly System.Windows.Media.Color PrimaryBlue = System.Windows.Media.Color.FromRgb(0, 93, 160);
+        private static readonly System.Windows.Media.Color LightBlue = System.Windows.Media.Color.FromRgb(180, 210, 235);
+        private static readonly System.Windows.Media.Color DarkBlue = System.Windows.Media.Color.FromRgb(0, 60, 105);
+        private static readonly System.Windows.Media.Color AccentBlue = System.Windows.Media.Color.FromRgb(0, 122, 194);
 
         [CommandMethod("CIVIL_RIBBON")]
         public static void ShowCivilRibbon()
@@ -49,14 +49,17 @@ namespace MyFirstProject
                 // Xóa tab cũ nếu có
                 RemoveExistingTabs(ribbon);
 
-                // Tạo tab Civil Tool mới
-                CreateCivilToolTab(ribbon);
+                // Load config đã lưu (từ MenuSettingsForm)
+                var config = MenuSettingsForm.LoadSavedConfig();
 
-                // Tạo tab Acad Tool
-                CreateAcadToolTab(ribbon);
+                // Tạo tab Civil Tool từ config
+                CreateCivilToolTabFromConfig(ribbon, config);
+
+                // Tạo tab Acad Tool từ config
+                CreateAcadToolTabFromConfig(ribbon, config);
 
                 var ed = AcadApplication.DocumentManager.MdiActiveDocument?.Editor;
-                ed?.WriteMessage("\n✅ Đã tạo Civil Ribbon với theme xanh da trời thành công!");
+                ed?.WriteMessage("\n✅ Đã tạo Civil Ribbon thành công!");
             }
             catch (System.Exception ex)
             {
@@ -76,42 +79,40 @@ namespace MyFirstProject
             }
         }
 
-        private static void CreateCivilToolTab(RibbonControl ribbon)
+        private static void CreateCivilToolTabFromConfig(RibbonControl ribbon, MenuConfig config)
         {
             RibbonTab civilTab = new RibbonTab
             {
-                Title = "🛠 CIVIL TOOL",
+                Title = "Civil Tool",
                 Id = "CivilTool.MainTab"
             };
             ribbon.Tabs.Add(civilTab);
 
-            // Sắp xếp theo bảng thống kê - 10 nhóm compact
-            AddCivilPanel(civilTab, "Corridor", "CORRIDOR", GetCorridorCommands());
-            AddCivilPanel(civilTab, "Parcel", "GRADING", GetParcelCommands());
-            AddCivilPanel(civilTab, "Pipe", "PIPE", GetPipeCommands());
-            AddCivilPanel(civilTab, "Point", "POINT", GetPointCommands());
-            AddCivilPanel(civilTab, "Profile", "PROFILE", GetProfileCommands());
-            AddCivilPanel(civilTab, "Cọc", "STATION", GetSampleLineCommands());
-            AddCivilPanel(civilTab, "Trắc ngang", "SECTION", GetSectionViewCommands());
-            AddCivilPanel(civilTab, "Khối lượng", "VOLUME", GetVolumeCommands());
-            AddCivilPanel(civilTab, "San nền", "GRADING", GetGradingCommands());
-            AddCivilPanel(civilTab, "Tool", "UTILITY", GetToolCommands());
+            foreach (var group in config.CivilGroups)
+            {
+                if (group.Commands.Count == 0) continue;
+                var cmds = group.Commands.Select(c => (c.Command, c.Label, c.SubIcon)).ToList();
+                AddCivilPanel(civilTab, group.GroupName, group.IconType, cmds);
+            }
 
             civilTab.IsActive = true;
         }
 
-        private static void CreateAcadToolTab(RibbonControl ribbon)
+        private static void CreateAcadToolTabFromConfig(RibbonControl ribbon, MenuConfig config)
         {
             RibbonTab acadTab = new RibbonTab
             {
-                Title = "📏 ACAD TOOL",
+                Title = "ACAD Tool",
                 Id = "CivilTool.AcadTab"
             };
             ribbon.Tabs.Add(acadTab);
 
-            AddCivilPanel(acadTab, "Đo Lường", "MEASURE", GetMeasureCommands());
-            AddCivilPanel(acadTab, "Chỉnh Sửa", "EDIT", GetEditCommands());
-            AddCivilPanel(acadTab, "Layout", "LAYOUT", GetLayoutCommands());
+            foreach (var group in config.AcadGroups)
+            {
+                if (group.Commands.Count == 0) continue;
+                var cmds = group.Commands.Select(c => (c.Command, c.Label, c.SubIcon)).ToList();
+                AddCivilPanel(acadTab, group.GroupName, group.IconType, cmds);
+            }
         }
 
         public static void AddCivilPanel(RibbonTab tab, string title, string iconType, 
@@ -908,7 +909,6 @@ namespace MyFirstProject
             };
         }
 
-        #endregion
     }
 
     /// <summary>
