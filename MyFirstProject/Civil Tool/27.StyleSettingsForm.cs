@@ -199,15 +199,15 @@ namespace MyFirstProject
     /// </summary>
     public class StyleSettingsForm : Form
     {
-        // ─── Theme Colors ───
-        private static readonly Color BgDark = Color.FromArgb(30, 30, 34);
-        private static readonly Color BgPanel = Color.FromArgb(40, 40, 45);
-        private static readonly Color BgInput = Color.FromArgb(50, 50, 58);
-        private static readonly Color AccentBlue = Color.FromArgb(0, 122, 204);
-        private static readonly Color HeaderBlue = Color.FromArgb(0, 93, 160);
-        private static readonly Color TextWhite = Color.White;
-        private static readonly Color TextDim = Color.FromArgb(160, 160, 170);
-        private static readonly Color BorderColor = Color.FromArgb(65, 65, 75);
+        // ─── Theme Colors (Navy / White) ───
+        private static readonly Color BgDark = Color.FromArgb(255, 255, 255);
+        private static readonly Color BgPanel = Color.FromArgb(245, 247, 250);
+        private static readonly Color BgInput = Color.FromArgb(255, 255, 255);
+        private static readonly Color AccentBlue = Color.FromArgb(27, 42, 74);
+        private static readonly Color HeaderBlue = Color.FromArgb(27, 42, 74);
+        private static readonly Color TextWhite = Color.FromArgb(61, 61, 61);
+        private static readonly Color TextDim = Color.FromArgb(122, 122, 122);
+        private static readonly Color BorderColor = Color.FromArgb(208, 213, 221);
 
         // ─── Data ───
         private StyleConfig _config;
@@ -275,7 +275,7 @@ namespace MyFirstProject
             {
                 Text = "🎨  CÀI ĐẶT STYLE — CIVIL 3D",
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = TextWhite,
+                ForeColor = Color.White,
                 AutoSize = false,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Fill,
@@ -295,7 +295,7 @@ namespace MyFirstProject
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Top,
                 Padding = new Padding(18, 0, 0, 0),
-                BackColor = Color.FromArgb(35, 35, 40)
+                BackColor = Color.FromArgb(245, 247, 250)
             };
             this.Controls.Add(subtitle);
             subtitle.BringToFront();
@@ -305,7 +305,7 @@ namespace MyFirstProject
             {
                 Dock = DockStyle.Bottom,
                 Height = 55,
-                BackColor = Color.FromArgb(38, 38, 42),
+                BackColor = Color.FromArgb(245, 247, 250),
                 Padding = new Padding(12, 8, 12, 8)
             };
             this.Controls.Add(pnlBottom);
@@ -329,7 +329,8 @@ namespace MyFirstProject
 
             var btnSave = CreateButton("✅ Lưu & Áp dụng", 752, 8, 150, 36, pnlBottom);
             btnSave.BackColor = AccentBlue;
-            btnSave.FlatAppearance.BorderColor = Color.FromArgb(0, 102, 180);
+            btnSave.ForeColor = Color.White;
+            btnSave.FlatAppearance.BorderColor = Color.FromArgb(16, 28, 52);
             btnSave.Click += BtnSave_Click;
 
             // ── MAIN CONTENT ──
@@ -433,7 +434,7 @@ namespace MyFirstProject
             e.Graphics.DrawString(lstCategories.Items[e.Index]?.ToString() ?? "", e.Font!, fgBrush, textBounds);
 
             // Bottom border
-            using var borderPen = new Pen(Color.FromArgb(55, 55, 62));
+            using var borderPen = new Pen(Color.FromArgb(208, 213, 221));
             e.Graphics.DrawLine(borderPen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
         }
 
@@ -710,7 +711,7 @@ namespace MyFirstProject
                 Text = text,
                 Location = new Point(10, y),
                 Size = new Size(580, 30),
-                ForeColor = Color.FromArgb(100, 180, 255),
+                ForeColor = Color.FromArgb(211, 47, 47),
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Italic)
             };
             pnlDetail.Controls.Add(lbl);
@@ -734,14 +735,14 @@ namespace MyFirstProject
                 Location = new Point(x, y),
                 Size = new Size(w, h),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
+                BackColor = Color.FromArgb(245, 247, 250),
+                ForeColor = Color.FromArgb(61, 61, 61),
                 Font = new Font("Segoe UI", 9f),
                 Cursor = Cursors.Hand,
                 TextAlign = ContentAlignment.MiddleCenter
             };
             btn.FlatAppearance.BorderColor = BorderColor;
-            btn.FlatAppearance.MouseOverBackColor = AccentBlue;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(46, 74, 122);
             parent.Controls.Add(btn);
             return btn;
         }

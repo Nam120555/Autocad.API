@@ -23,13 +23,13 @@ namespace MyFirstProject
     /// </summary>
     public class CivilRibbonTaskbar
     {
-        // ═══ Bảng màu Civil 3D nguyên bản ═══
-        private static readonly System.Windows.Media.Color PrimaryBlue = System.Windows.Media.Color.FromRgb(0, 93, 160);     // #005DA0 - Civil 3D chủ đạo
-        private static readonly System.Windows.Media.Color LightBlue = System.Windows.Media.Color.FromRgb(180, 210, 235);    // Highlight nhạt
-        private static readonly System.Windows.Media.Color DarkBlue = System.Windows.Media.Color.FromRgb(0, 60, 105);        // Đậm hơn
-        private static readonly System.Windows.Media.Color AccentBlue = System.Windows.Media.Color.FromRgb(0, 122, 194);     // #007AC2 - Accent Civil
-        private static readonly System.Windows.Media.Color AccentTeal = System.Windows.Media.Color.FromRgb(0, 148, 142);     // Teal Civil
-        private static readonly System.Windows.Media.Color SoftGray = System.Windows.Media.Color.FromRgb(88, 88, 88);        // Neutral
+        // ═══ Bảng màu Navy thống nhất ═══
+        private static readonly System.Windows.Media.Color PrimaryBlue = System.Windows.Media.Color.FromRgb(27, 42, 74);      // #1B2A4A Navy đậm
+        private static readonly System.Windows.Media.Color LightBlue = System.Windows.Media.Color.FromRgb(210, 220, 235);     // Highlight nhạt
+        private static readonly System.Windows.Media.Color DarkBlue = System.Windows.Media.Color.FromRgb(16, 28, 52);         // Navy tối
+        private static readonly System.Windows.Media.Color AccentBlue = System.Windows.Media.Color.FromRgb(46, 74, 122);      // #2E4A7A Navy vừa
+        private static readonly System.Windows.Media.Color AccentTeal = System.Windows.Media.Color.FromRgb(46, 74, 122);      // Dùng Navy thay Teal
+        private static readonly System.Windows.Media.Color SoftGray = System.Windows.Media.Color.FromRgb(122, 122, 122);      // Xám
         
         // Số lệnh featured (hiện nút lớn) cho mỗi panel
         private const int FEATURED_COUNT = 1;
@@ -115,8 +115,8 @@ namespace MyFirstProject
 
         /// <summary>
         /// Tạo panel kiểu Civil 3D hiện đại:
-        /// - Lệnh đầu tiên: NÚT LỚN (Large, icon 32px + text bên dưới)
-        /// - Các lệnh tiếp: HÀNG NÚT NHỎ (3 nút/hàng, icon 16px + text bên cạnh)
+        /// - Lệnh đầu tiên: NÚT LỚN (Large, icon 24px + text bên dưới)
+        /// - Các lệnh tiếp: HÀNG NÚT NHỎ (3 nút/hàng, icon 12px + text bên cạnh)
         /// - Nếu nhiều quá (&gt;7): gộp vào SplitButton dropdown
         /// </summary>
         public static void AddCivilPanel(RibbonTab tab, string title, string iconType, 
@@ -141,8 +141,8 @@ namespace MyFirstProject
                     Text = label,
                     ShowText = true,
                     ShowImage = true,
-                    Image = CreateCivilIcon(subIcon, 16),
-                    LargeImage = CreateCivilIcon(subIcon, 32),
+                    Image = CreateCivilIcon(subIcon, 12),
+                    LargeImage = CreateCivilIcon(subIcon, 24),
                     Size = RibbonItemSize.Large,
                     Orientation = System.Windows.Controls.Orientation.Vertical,
                     CommandHandler = new CivilRibbonCommandHandler(),
@@ -207,8 +207,8 @@ namespace MyFirstProject
                     ShowImage = true,
                     Size = RibbonItemSize.Large,
                     Orientation = System.Windows.Controls.Orientation.Vertical,
-                    Image = CreateCivilIcon(iconType, 16),
-                    LargeImage = CreateCivilIcon(iconType, 32),
+                    Image = CreateCivilIcon(iconType, 12),
+                    LargeImage = CreateCivilIcon(iconType, 24),
                     ListStyle = RibbonSplitButtonListStyle.List
                 };
 
@@ -223,7 +223,7 @@ namespace MyFirstProject
         }
 
         /// <summary>
-        /// Tạo nút nhỏ chuẩn (Standard size, icon 16px + text bên cạnh)
+        /// Tạo nút nhỏ chuẩn (Standard size, icon 12px + text bên cạnh)
         /// </summary>
         private static RibbonButton CreateSmallButton(string command, string label, string subIcon)
         {
@@ -232,8 +232,8 @@ namespace MyFirstProject
                 Text = label,
                 ShowText = true,
                 ShowImage = true,
-                Image = CreateCivilIcon(subIcon, 16),
-                LargeImage = CreateCivilIcon(subIcon, 32),
+                Image = CreateCivilIcon(subIcon, 12),
+                LargeImage = CreateCivilIcon(subIcon, 24),
                 Size = RibbonItemSize.Standard,
                 Orientation = System.Windows.Controls.Orientation.Horizontal,
                 CommandHandler = new CivilRibbonCommandHandler(),

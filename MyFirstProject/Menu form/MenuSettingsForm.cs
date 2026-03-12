@@ -109,13 +109,13 @@ namespace MyFirstProject
             this.Size = new Size(1050, 680);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = new Font("Segoe UI", 9.5f);
-            this.BackColor = Color.FromArgb(30, 30, 34);
-            this.ForeColor = Color.White;
+            this.BackColor = Color.FromArgb(255, 255, 255);
+            this.ForeColor = Color.FromArgb(61, 61, 61);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
 
             // ─── HEADER ───
-            var header = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.FromArgb(0, 93, 160) };
+            var header = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.FromArgb(27, 42, 74) };
             var lblTitle = new Label
             {
                 Text = "⚙  CÀI ĐẶT MENU LỆNH",
@@ -156,8 +156,8 @@ namespace MyFirstProject
             {
                 Location = new Point(5, 30),
                 Size = new Size(260, 320),
-                BackColor = Color.FromArgb(50, 50, 55),
-                ForeColor = Color.White,
+                BackColor = Color.FromArgb(245, 247, 250),
+                ForeColor = Color.FromArgb(61, 61, 61),
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Segoe UI", 9),
                 IntegralHeight = false,
@@ -181,7 +181,7 @@ namespace MyFirstProject
                 Text = "🎨 Icon lệnh:",
                 Location = new Point(5, 432),
                 AutoSize = true,
-                ForeColor = Color.FromArgb(0, 93, 160),
+                ForeColor = Color.FromArgb(27, 42, 74),
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Bold)
             };
             pnlCmds.Controls.Add(lblCmdIcon);
@@ -191,8 +191,8 @@ namespace MyFirstProject
                 Location = new Point(85, 430),
                 Size = new Size(140, 26),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(60, 60, 67),
-                ForeColor = Color.White
+                BackColor = Color.FromArgb(245, 247, 250),
+                ForeColor = Color.FromArgb(61, 61, 61)
             };
             var cmdIconTypes = new[] { "SURFACE", "STATION", "ALIGN", "CORRIDOR", "SECTION",
                 "GRADING", "PIPE", "POINT", "UTILITY", "ACCOUNT", "PROFILE",
@@ -226,7 +226,7 @@ namespace MyFirstProject
             {
                 Location = new Point(230, 427),
                 Size = new Size(32, 32),
-                BackColor = Color.FromArgb(50, 50, 55),
+                BackColor = Color.FromArgb(245, 247, 250),
                 SizeMode = PictureBoxSizeMode.CenterImage,
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -243,8 +243,8 @@ namespace MyFirstProject
             {
                 Location = new Point(5, 418),
                 Size = new Size(260, 26),
-                BackColor = Color.FromArgb(60, 60, 67),
-                ForeColor = Color.White,
+                BackColor = Color.FromArgb(245, 247, 250),
+                ForeColor = Color.FromArgb(61, 61, 61),
                 PlaceholderText = "🔍 Tìm lệnh...",
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -259,7 +259,7 @@ namespace MyFirstProject
                 Text = "Vạch ngăn cách (---) giúp\nphân chia lệnh trong 1 nhóm\nthành các phần nhỏ hơn.",
                 Location = new Point(5, 70),
                 Size = new Size(180, 60),
-                ForeColor = Color.FromArgb(150, 150, 160)
+                ForeColor = Color.FromArgb(122, 122, 122)
             };
             pnlSep.Controls.Add(lblHint);
 
@@ -270,8 +270,8 @@ namespace MyFirstProject
                 Location = new Point(5, 30),
                 Size = new Size(135, 26),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(60, 60, 67),
-                ForeColor = Color.White
+                BackColor = Color.FromArgb(245, 247, 250),
+                ForeColor = Color.FromArgb(61, 61, 61)
             };
             var iconTypes = new[] { "SURFACE", "STATION", "ALIGN", "CORRIDOR", "SECTION",
                 "GRADING", "PIPE", "POINT", "UTILITY", "ACCOUNT", "PROFILE",
@@ -294,7 +294,7 @@ namespace MyFirstProject
             {
                 Location = new Point(145, 27),
                 Size = new Size(32, 32),
-                BackColor = Color.FromArgb(50, 50, 55),
+                BackColor = Color.FromArgb(245, 247, 250),
                 SizeMode = PictureBoxSizeMode.CenterImage,
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -306,7 +306,7 @@ namespace MyFirstProject
                 Text = "Chọn icon type để xem\npreview icon trước khi lưu.",
                 Location = new Point(5, 70),
                 Size = new Size(180, 40),
-                ForeColor = Color.FromArgb(150, 150, 160),
+                ForeColor = Color.FromArgb(122, 122, 122),
                 Font = new Font("Segoe UI", 8f)
             };
             pnlIcon.Controls.Add(lblIconHint);
@@ -316,7 +316,7 @@ namespace MyFirstProject
             {
                 Dock = DockStyle.Bottom,
                 Height = 55,
-                BackColor = Color.FromArgb(38, 38, 42),
+                BackColor = Color.FromArgb(245, 247, 250),
                 Padding = new Padding(12, 8, 12, 8)
             };
             this.Controls.Add(pnlBottom);
@@ -327,8 +327,8 @@ namespace MyFirstProject
 
             btnCancel = CreateButton("✖ Hủy", 750, 8, 100, 36, pnlBottom, (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); });
             btnSave = CreateButton("✅ Lưu & Áp dụng", 860, 8, 150, 36, pnlBottom, BtnSave_Click);
-            btnSave.BackColor = Color.FromArgb(0, 122, 204);
-            btnSave.FlatAppearance.BorderColor = Color.FromArgb(0, 102, 180);
+            btnSave.BackColor = Color.FromArgb(27, 42, 74);
+            btnSave.FlatAppearance.BorderColor = Color.FromArgb(16, 28, 52);
 
             // Tab for Civil/Acad
             tabMain = new TabControl
@@ -351,14 +351,14 @@ namespace MyFirstProject
             {
                 Location = new Point(x, y + 35), // offset for tab
                 Size = new Size(w, h),
-                BackColor = Color.FromArgb(40, 40, 45),
+                BackColor = Color.FromArgb(245, 247, 250),
                 BorderStyle = BorderStyle.FixedSingle
             };
             var lbl = new Label
             {
                 Text = title,
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                ForeColor = Color.FromArgb(0, 149, 217),
+                ForeColor = Color.FromArgb(27, 42, 74),
                 Location = new Point(5, 5),
                 AutoSize = true
             };
@@ -373,8 +373,8 @@ namespace MyFirstProject
             {
                 Location = new Point(x, y),
                 Size = new Size(w, h),
-                BackColor = Color.FromArgb(50, 50, 55),
-                ForeColor = Color.White,
+                BackColor = Color.FromArgb(255, 255, 255),
+                ForeColor = Color.FromArgb(61, 61, 61),
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Segoe UI", 9),
                 IntegralHeight = false,
@@ -392,14 +392,14 @@ namespace MyFirstProject
                 Location = new Point(x, y),
                 Size = new Size(w, h),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = Color.White,
+                BackColor = Color.FromArgb(245, 247, 250),
+                ForeColor = Color.FromArgb(61, 61, 61),
                 Font = new Font("Segoe UI", 8.5f),
                 Cursor = Cursors.Hand,
                 TextAlign = ContentAlignment.MiddleCenter
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(80, 80, 90);
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 122, 204);
+            btn.FlatAppearance.BorderColor = Color.FromArgb(208, 213, 221);
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(46, 74, 122);
             btn.Click += onClick;
             parent.Controls.Add(btn);
             return btn;

@@ -20,31 +20,31 @@ namespace MyFirstProject
 {
     public class CivilToolPaletteControl : UserControl
     {
-        // ═══ Autodesk Dark Theme Colors ═══
-        private static readonly Color BgMain = Color.FromArgb(37, 37, 38);        // #252526
-        private static readonly Color BgTree = Color.FromArgb(30, 30, 30);         // #1E1E1E
-        private static readonly Color BgSearch = Color.FromArgb(60, 60, 60);       // Search input
-        private static readonly Color BgHeader = Color.FromArgb(0, 93, 160);       // #005DA0 Civil Blue
-        private static readonly Color BgHeaderDark = Color.FromArgb(0, 60, 105);   // Gradient end
-        private static readonly Color BgSelected = Color.FromArgb(9, 71, 113);     // #094771 Selection
-        private static readonly Color BgHover = Color.FromArgb(42, 45, 46);        // #2A2D2E Hover
-        private static readonly Color BgStatus = Color.FromArgb(0, 122, 204);      // #007AC2 Status bar
-        private static readonly Color TextMain = Color.FromArgb(204, 204, 204);    // #CCCCCC
-        private static readonly Color TextActive = Color.FromArgb(224, 224, 224);  // #E0E0E0
-        private static readonly Color TextDim = Color.FromArgb(128, 128, 128);     // #808080
-        private static readonly Color AccentBlue = Color.FromArgb(0, 122, 194);    // #007AC2
-        private static readonly Color BorderDark = Color.FromArgb(51, 51, 51);     // #333333
+        // ═══ Navy / White Theme ═══
+        private static readonly Color BgMain = Color.FromArgb(255, 255, 255);      // Trắng
+        private static readonly Color BgTree = Color.FromArgb(255, 255, 255);      // Trắng
+        private static readonly Color BgSearch = Color.FromArgb(245, 247, 250);    // Xám rất nhạt
+        private static readonly Color BgHeader = Color.FromArgb(27, 42, 74);       // #1B2A4A Navy đậm
+        private static readonly Color BgHeaderDark = Color.FromArgb(16, 28, 52);   // Navy tối hơn
+        private static readonly Color BgSelected = Color.FromArgb(27, 42, 74);     // Navy — selected
+        private static readonly Color BgHover = Color.FromArgb(232, 238, 248);     // Navy rất nhạt — hover
+        private static readonly Color BgStatus = Color.FromArgb(27, 42, 74);       // Navy — status bar
+        private static readonly Color TextMain = Color.FromArgb(61, 61, 61);       // #3D3D3D Xám đậm
+        private static readonly Color TextActive = Color.FromArgb(27, 42, 74);     // Navy — tiêu đề
+        private static readonly Color TextDim = Color.FromArgb(122, 122, 122);     // #7A7A7A Xám trung
+        private static readonly Color AccentBlue = Color.FromArgb(46, 74, 122);    // #2E4A7A Navy vừa
+        private static readonly Color BorderDark = Color.FromArgb(208, 213, 221);  // #D0D5DD Xám nhạt
 
-        // ═══ Category Colors (giống Civil 3D) ═══
-        private static readonly Color ClrSurface = Color.FromArgb(76, 175, 80);    // Green
-        private static readonly Color ClrAlign = Color.FromArgb(33, 150, 243);     // Blue
-        private static readonly Color ClrProfile = Color.FromArgb(156, 39, 176);   // Purple
-        private static readonly Color ClrSection = Color.FromArgb(255, 152, 0);    // Orange
-        private static readonly Color ClrSample = Color.FromArgb(0, 188, 212);     // Cyan
-        private static readonly Color ClrCorridor = Color.FromArgb(96, 125, 139);  // Blue Grey
-        private static readonly Color ClrPipe = Color.FromArgb(121, 85, 72);       // Brown
-        private static readonly Color ClrGrading = Color.FromArgb(255, 193, 7);    // Amber
-        private static readonly Color ClrUtils = Color.FromArgb(158, 158, 158);    // Grey
+        // ═══ Category Colors (tông Navy thống nhất) ═══
+        private static readonly Color ClrSurface = Color.FromArgb(46, 74, 122);    // Navy
+        private static readonly Color ClrAlign = Color.FromArgb(27, 42, 74);       // Navy đậm
+        private static readonly Color ClrProfile = Color.FromArgb(46, 74, 122);    // Navy
+        private static readonly Color ClrSection = Color.FromArgb(46, 74, 122);    // Navy
+        private static readonly Color ClrSample = Color.FromArgb(27, 42, 74);      // Navy đậm
+        private static readonly Color ClrCorridor = Color.FromArgb(46, 74, 122);   // Navy
+        private static readonly Color ClrPipe = Color.FromArgb(46, 74, 122);       // Navy
+        private static readonly Color ClrGrading = Color.FromArgb(27, 42, 74);     // Navy đậm
+        private static readonly Color ClrUtils = Color.FromArgb(122, 122, 122);    // Xám
 
         private TreeView treeView = null!;
         private TextBox searchBox = null!;
@@ -87,7 +87,7 @@ namespace MyFirstProject
 
                 // Version tag
                 using var verFont = new Font("Segoe UI", 7.5f);
-                using var verBrush = new SolidBrush(Color.FromArgb(180, 210, 235));
+                using var verBrush = new SolidBrush(Color.FromArgb(200, 210, 230));
                 e.Graphics.DrawString("v2.0", verFont, verBrush, headerPanel.Width - 35, 15);
             };
 
@@ -104,7 +104,7 @@ namespace MyFirstProject
                 Cursor = Cursors.Hand
             };
             btnExpand.FlatAppearance.BorderSize = 0;
-            btnExpand.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 255, 255, 255);
+            btnExpand.FlatAppearance.MouseOverBackColor = Color.FromArgb(46, 74, 122);
             btnExpand.Click += (s, e) =>
             {
                 if (treeView.Nodes.Count > 0 && treeView.Nodes[0].IsExpanded)
@@ -120,7 +120,7 @@ namespace MyFirstProject
             {
                 Dock = DockStyle.Top,
                 Height = 34,
-                BackColor = Color.FromArgb(45, 45, 48),
+                BackColor = Color.FromArgb(245, 247, 250),
                 Padding = new Padding(6, 4, 6, 4)
             };
 
@@ -150,7 +150,7 @@ namespace MyFirstProject
             searchPanel.Resize += (s, e) => searchBox.Width = searchPanel.Width - 42;
 
             // ═══ 3. TREEVIEW — Custom Draw ═══
-            imageList = new ImageList { ImageSize = new Size(16, 16), ColorDepth = ColorDepth.Depth32Bit };
+            imageList = new ImageList { ImageSize = new Size(14, 14), ColorDepth = ColorDepth.Depth32Bit };
             CreateCategoryIcons();
 
             treeView = new TreeView
@@ -163,8 +163,8 @@ namespace MyFirstProject
                 ShowPlusMinus = true,
                 ShowRootLines = false,
                 FullRowSelect = true,
-                ItemHeight = 26,
-                Font = new Font("Segoe UI", 9.25f),
+                ItemHeight = 22,
+                Font = new Font("Segoe UI", 8.75f),
                 ImageList = imageList,
                 HotTracking = true,
                 DrawMode = TreeViewDrawMode.OwnerDrawAll,
@@ -186,7 +186,7 @@ namespace MyFirstProject
             statusPanel.Paint += (s, e) =>
             {
                 using var grad = new LinearGradientBrush(
-                    statusPanel.ClientRectangle, BgStatus, Color.FromArgb(0, 100, 170), 0f);
+                    statusPanel.ClientRectangle, BgStatus, Color.FromArgb(16, 28, 52), 0f);
                 e.Graphics.FillRectangle(grad, statusPanel.ClientRectangle);
             };
 
@@ -205,7 +205,7 @@ namespace MyFirstProject
             {
                 Text = "",
                 AutoSize = true,
-                ForeColor = Color.FromArgb(200, 220, 255),
+                ForeColor = Color.FromArgb(200, 210, 230),
                 BackColor = Color.Transparent,
                 Font = new Font("Segoe UI", 8f),
                 Anchor = AnchorStyles.Top | AnchorStyles.Right
@@ -215,7 +215,7 @@ namespace MyFirstProject
 
             // ═══ 5. Context Menu ═══
             var ctxMenu = new ContextMenuStrip();
-            ctxMenu.BackColor = Color.FromArgb(45, 45, 48);
+            ctxMenu.BackColor = Color.FromArgb(255, 255, 255);
             ctxMenu.ForeColor = TextMain;
             ctxMenu.Renderer = new DarkToolStripRenderer();
 
@@ -244,7 +244,7 @@ namespace MyFirstProject
             this.Controls.Add(headerPanel);
             this.Controls.Add(statusPanel);
 
-            toolTip = new ToolTip { BackColor = Color.FromArgb(45, 45, 48), ForeColor = TextMain };
+            toolTip = new ToolTip { BackColor = Color.FromArgb(245, 247, 250), ForeColor = TextMain };
         }
 
         // ═══ Custom TreeView Drawing ═══
@@ -275,7 +275,7 @@ namespace MyFirstProject
             }
 
             // Indent
-            int indent = e.Node.Level * 18 + 22;
+            int indent = e.Node.Level * 16 + 18;
 
             // Expand/Collapse indicator for categories
             if (isCategory && e.Node.Nodes.Count > 0)
@@ -283,33 +283,33 @@ namespace MyFirstProject
                 string arrow = e.Node.IsExpanded ? "▾" : "▸";
                 using var arrowFont = new Font("Segoe UI", 8f);
                 using var arrowBrush = new SolidBrush(TextDim);
-                g.DrawString(arrow, arrowFont, arrowBrush, indent - 16, e.Bounds.Y + 6);
+                g.DrawString(arrow, arrowFont, arrowBrush, indent - 14, e.Bounds.Y + 4);
             }
 
             // Icon
             if (e.Node.ImageKey != null && imageList.Images.ContainsKey(e.Node.ImageKey))
             {
                 var icon = imageList.Images[e.Node.ImageKey];
-                g.DrawImage(icon, indent, e.Bounds.Y + 5, 16, 16);
+                g.DrawImage(icon, indent, e.Bounds.Y + 3, 14, 14);
             }
 
             // Text
             Color textColor = isCategory ? TextActive : (isSelected ? Color.White : TextMain);
-            var font = isCategory ? new Font("Segoe UI Semibold", 9.25f) : new Font("Segoe UI", 9f);
+            var font = isCategory ? new Font("Segoe UI Semibold", 8.75f) : new Font("Segoe UI", 8.5f);
             using (font)
             using (var textBrush = new SolidBrush(textColor))
             {
-                g.DrawString(e.Node.Text, font, textBrush, indent + 20, e.Bounds.Y + 4);
+                g.DrawString(e.Node.Text, font, textBrush, indent + 18, e.Bounds.Y + 3);
             }
 
             // Command count for categories
             if (isCategory)
             {
                 string countText = $"({e.Node.Nodes.Count})";
-                using var countFont = new Font("Segoe UI", 7.5f);
+                using var countFont = new Font("Segoe UI", 7f);
                 using var countBrush = new SolidBrush(TextDim);
-                var textSize = g.MeasureString(e.Node.Text, new Font("Segoe UI Semibold", 9.25f));
-                g.DrawString(countText, countFont, countBrush, indent + 22 + textSize.Width, e.Bounds.Y + 7);
+                var textSize = g.MeasureString(e.Node.Text, new Font("Segoe UI Semibold", 8.75f));
+                g.DrawString(countText, countFont, countBrush, indent + 20 + textSize.Width, e.Bounds.Y + 5);
             }
 
             // Bottom separator for categories
@@ -355,7 +355,7 @@ namespace MyFirstProject
                 });
                 pen2.Dispose();
                 // PI marker
-                using var redBrush = new SolidBrush(Color.FromArgb(232, 65, 78));
+                using var redBrush = new SolidBrush(Color.FromArgb(211, 47, 47));
                 g.FillEllipse(redBrush, 6, 4, 4, 4);
             }));
 
@@ -641,36 +641,38 @@ namespace MyFirstProject
         {
             if (e.Item.Selected)
             {
-                using var brush = new SolidBrush(Color.FromArgb(9, 71, 113));
+                using var brush = new SolidBrush(Color.FromArgb(232, 238, 248));
                 e.Graphics.FillRectangle(brush, new Rectangle(Point.Empty, e.Item.Size));
+                e.Item.ForeColor = Color.FromArgb(27, 42, 74);
             }
             else
             {
-                using var brush = new SolidBrush(Color.FromArgb(45, 45, 48));
+                using var brush = new SolidBrush(Color.FromArgb(255, 255, 255));
                 e.Graphics.FillRectangle(brush, new Rectangle(Point.Empty, e.Item.Size));
+                e.Item.ForeColor = Color.FromArgb(61, 61, 61);
             }
         }
 
         protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
         {
-            using var pen = new Pen(Color.FromArgb(65, 65, 68));
+            using var pen = new Pen(Color.FromArgb(208, 213, 221));
             e.Graphics.DrawLine(pen, 30, e.Item.Height / 2, e.Item.Width - 4, e.Item.Height / 2);
         }
     }
 
     internal class DarkColorTable : ProfessionalColorTable
     {
-        public override Color MenuBorder => Color.FromArgb(51, 51, 51);
-        public override Color MenuItemBorder => Color.FromArgb(9, 71, 113);
-        public override Color MenuItemSelected => Color.FromArgb(9, 71, 113);
-        public override Color MenuStripGradientBegin => Color.FromArgb(45, 45, 48);
-        public override Color MenuStripGradientEnd => Color.FromArgb(45, 45, 48);
-        public override Color ToolStripDropDownBackground => Color.FromArgb(45, 45, 48);
-        public override Color ImageMarginGradientBegin => Color.FromArgb(45, 45, 48);
-        public override Color ImageMarginGradientMiddle => Color.FromArgb(45, 45, 48);
-        public override Color ImageMarginGradientEnd => Color.FromArgb(45, 45, 48);
-        public override Color SeparatorDark => Color.FromArgb(65, 65, 68);
-        public override Color SeparatorLight => Color.FromArgb(65, 65, 68);
+        public override Color MenuBorder => Color.FromArgb(208, 213, 221);
+        public override Color MenuItemBorder => Color.FromArgb(232, 238, 248);
+        public override Color MenuItemSelected => Color.FromArgb(232, 238, 248);
+        public override Color MenuStripGradientBegin => Color.FromArgb(255, 255, 255);
+        public override Color MenuStripGradientEnd => Color.FromArgb(255, 255, 255);
+        public override Color ToolStripDropDownBackground => Color.FromArgb(255, 255, 255);
+        public override Color ImageMarginGradientBegin => Color.FromArgb(255, 255, 255);
+        public override Color ImageMarginGradientMiddle => Color.FromArgb(255, 255, 255);
+        public override Color ImageMarginGradientEnd => Color.FromArgb(255, 255, 255);
+        public override Color SeparatorDark => Color.FromArgb(208, 213, 221);
+        public override Color SeparatorLight => Color.FromArgb(232, 238, 248);
     }
 
     // ═══ Palette Commands ═══

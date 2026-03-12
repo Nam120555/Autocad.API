@@ -804,27 +804,28 @@ namespace MyFirstProject
 
             // ══════════════════════════════════════════════════════
             // PHẦN 2: Tạo Viewport trong Layout
-            // Phương pháp: Tạo MView trống → Set UCS theo hướng tuyến → Tỉ lệ 1:1
-            // Kích thước viewport = kích thước khung trong Model Space (đồng bộ)
+            // ─ Lấy hướng từ khung CAD (polyline frame Model Space)
+            // ─ Kích thước viewport = kích thước khung CAD (đồng bộ)
+            // ─ Xoay view theo hướng tuyến (TwistAngle)
+            // ─ Tỉ lệ 1:1 (ViewHeight = chiều cao thực)
             // ══════════════════════════════════════════════════════
             string baseLayoutName = form.SelectedAlignmentName;
             int maxVpPerLayout = form.MaxVpPerLayout;
             int totalSegments = form.ViewSegments.Count;
             int totalLayouts = (int)Math.Ceiling((double)totalSegments / maxVpPerLayout);
 
-            db.TileMode = false; // Chuyển Paper Space
-
             int segIndex = 0;
             int totalVpCreated = 0;
 
             for (int layoutIdx = 1; layoutIdx <= totalLayouts; layoutIdx++)
             {
-                // Tên layout: "TenTuyen_1", "TenTuyen_2", ...
                 string layoutName = totalLayouts == 1
                     ? baseLayoutName
                     : $"{baseLayoutName}_{layoutIdx}";
 
-                // Tạo layout mới (nếu trùng tên thì thêm hậu tố)
+                ObjectId layoutId = ObjectId.Null;
+
+                // ── Tạo Layout mới ──
                 using (Transaction tr = db.TransactionManager.StartTransaction())
                 {
                     try
@@ -832,7 +833,6 @@ namespace MyFirstProject
                         LayoutManager layoutMgr = LayoutManager.Current;
                         DBDictionary? layoutDict = tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead) as DBDictionary;
 
-                        // Đảm bảo tên không trùng
                         string finalName = layoutName;
                         int suffix = 2;
                         while (layoutDict != null && layoutDict.Contains(finalName))
@@ -842,7 +842,7 @@ namespace MyFirstProject
                         }
                         layoutName = finalName;
 
-                        layoutMgr.CreateLayout(layoutName);
+                        layoutId = layoutMgr.CreateLayout(layoutName);
                         layoutMgr.CurrentLayout = layoutName;
                         tr.Commit();
                     }
@@ -853,13 +853,37 @@ namespace MyFirstProject
                     }
                 }
 
-                // Tạo viewport trong layout này (tối đa maxVpPerLayout)
+                if (layoutId == ObjectId.Null) continue;
+
+                // Danh sách VP đã tạo để set view ở transaction sau
+                var vpDataList = new List<(ObjectId VpId, double CenterX, double CenterY, 
+                    double VpH, double AngleRad, int STT, double AngleDeg, double VpW)>();
+
+                // ═══ TRANSACTION 1: Tạo viewport trống + bật On ═══
                 using (Transaction tr = db.TransactionManager.StartTransaction())
                 {
                     try
                     {
-                        BlockTableRecord? paperBtr = tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord;
+                        Layout? layout = tr.GetObject(layoutId, OpenMode.ForRead) as Layout;
+                        if (layout == null) { tr.Commit(); continue; }
+
+                        BlockTableRecord? paperBtr = tr.GetObject(
+                            layout.BlockTableRecordId, OpenMode.ForWrite) as BlockTableRecord;
                         if (paperBtr == null) { tr.Commit(); continue; }
+
+                        // Xóa viewport mặc định (VP#2+)
+                        List<ObjectId> toDelete = new();
+                        foreach (ObjectId entId in paperBtr)
+                        {
+                            var obj = tr.GetObject(entId, OpenMode.ForRead);
+                            if (obj is Viewport existingVp && existingVp.Number > 1)
+                                toDelete.Add(entId);
+                        }
+                        foreach (var delId in toDelete)
+                        {
+                            var vpDel = tr.GetObject(delId, OpenMode.ForWrite) as Viewport;
+                            vpDel?.Erase();
+                        }
 
                         int vpInLayout = 0;
                         double paperGap = 10;
@@ -869,60 +893,24 @@ namespace MyFirstProject
                         {
                             var seg = form.ViewSegments[segIndex];
 
-                            // Kích thước viewport = kích thước khung Model Space (đồng bộ)
                             double vpW = viewWidthReal;
                             double vpH = viewHeightReal;
-
                             double vpX = startX + vpW / 2.0 + vpInLayout * (vpW + paperGap);
                             double vpY = startY + vpH / 2.0;
 
-                            // ── Bước 1: Tạo Viewport trống rồi thêm vào database TRƯỚC ──
+                            // Tạo viewport trống
                             Viewport vp = new Viewport();
                             paperBtr.AppendEntity(vp);
                             tr.AddNewlyCreatedDBObject(vp, true);
 
-                            // ── Bước 2: Set kích thước và vị trí trên giấy (SAU khi add) ──
                             vp.CenterPoint = new Point3d(vpX, vpY, 0);
                             vp.Width = vpW;
                             vp.Height = vpH;
                             vp.On = true;
 
-                            // ── Bước 3: Thiết lập camera nhìn vào Model Space ──
-                            // ViewTarget = gốc tọa độ WCS (điểm camera nhắm vào)
-                            vp.ViewTarget = Point3d.Origin;
-                            // ViewDirection = nhìn từ trên xuống (plan view)
-                            vp.ViewDirection = new Vector3d(0, 0, 1);
-
-                            // ── Bước 4: Đặt tâm view = tâm đoạn tuyến (WCS) ──
-                            vp.ViewCenter = new Point2d(seg.CenterX, seg.CenterY);
-
-                            // ── Bước 5: Zoom 1:1 bằng ViewHeight ──
-                            // ViewHeight = chiều cao vùng hiển thị trong model space
-                            // Khi ViewHeight = viewport height → tỉ lệ 1:1
-                            vp.ViewHeight = vpH;
-
-                            // ── Bước 6: Xoay view theo hướng tiếp tuyến alignment ──
-                            vp.TwistAngle = -seg.AngleRad;
-
-                            // ── Bước 7: Gắn UCS (tách riêng để không gây lỗi viewport) ──
-                            try
-                            {
-                                Point3d ucsOrigin = new Point3d(seg.CenterX, seg.CenterY, 0);
-                                Vector3d ucsXAxis = new Vector3d(Math.Cos(seg.AngleRad), Math.Sin(seg.AngleRad), 0);
-                                Vector3d ucsYAxis = new Vector3d(-Math.Sin(seg.AngleRad), Math.Cos(seg.AngleRad), 0);
-
-                                string ucsName = $"CTC_VP_{form.SelectedAlignmentName}_{seg.STT}";
-                                ObjectId ucsId = GetOrCreateUcs(tr, db, ucsName, ucsOrigin, ucsXAxis, ucsYAxis);
-                                if (ucsId != ObjectId.Null)
-                                {
-                                    vp.SetUcs(ucsId);
-                                    vp.UcsPerViewport = true;
-                                }
-                            }
-                            catch { /* Bỏ qua lỗi UCS, viewport vẫn hoạt động */ }
-
-                            // ── Bước 8: Khóa viewport ──
-                            vp.Locked = true;
+                            // Lưu lại ObjectId và thông tin để set view ở transaction sau
+                            vpDataList.Add((vp.ObjectId, seg.CenterX, seg.CenterY, 
+                                vpH, seg.AngleRad, seg.STT, seg.AngleDeg, vpW));
 
                             vpInLayout++;
                             segIndex++;
@@ -930,16 +918,59 @@ namespace MyFirstProject
                         }
 
                         tr.Commit();
-                        ed.WriteMessage($"\n✅ Layout '{layoutName}': {vpInLayout} viewport (1:1, UCS theo tuyến)");
+                        ed.WriteMessage($"\n✅ Layout '{layoutName}': đã tạo {vpInLayout} viewport trống");
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception e)
                     {
                         ed.WriteMessage($"\n❌ Lỗi tạo viewport: {e.Message}");
+                        continue;
+                    }
+                }
+
+                // ═══ TRANSACTION 2: Set view (SAU khi AutoCAD đã init viewport) ═══
+                if (vpDataList.Count > 0)
+                {
+                    using (Transaction tr = db.TransactionManager.StartTransaction())
+                    {
+                        try
+                        {
+                            foreach (var vpData in vpDataList)
+                            {
+                                Viewport? vp = tr.GetObject(vpData.VpId, OpenMode.ForWrite) as Viewport;
+                                if (vp == null) continue;
+
+                                // Đặt ViewTarget = tâm khung CAD → DCS gốc trùng tâm khung
+                                vp.ViewTarget = new Point3d(vpData.CenterX, vpData.CenterY, 0);
+                                // ViewCenter = (0,0) trong DCS → hiển thị đúng tại ViewTarget
+                                vp.ViewCenter = new Point2d(0, 0);
+
+                                // ViewHeight = chiều cao khung CAD → 1:1
+                                vp.ViewHeight = vpData.VpH;
+
+                                // Xoay theo hướng tuyến (lấy từ khung CAD)
+                                vp.TwistAngle = -vpData.AngleRad;
+
+                                // Khóa
+                                vp.Locked = true;
+
+                                ed.WriteMessage($"\n   VP#{vpData.STT}: Center=({vpData.CenterX:F1},{vpData.CenterY:F1}) " +
+                                    $"Size={vpData.VpW:F1}x{vpData.VpH:F1} Angle={vpData.AngleDeg:F1}°");
+                            }
+
+                            tr.Commit();
+                            ed.WriteMessage($"\n✅ Đã set view cho {vpDataList.Count} viewport");
+                        }
+                        catch (Autodesk.AutoCAD.Runtime.Exception e)
+                        {
+                            ed.WriteMessage($"\n❌ Lỗi set view: {e.Message}");
+                        }
                     }
                 }
             }
 
-            ed.WriteMessage($"\n✅ Tổng cộng: {totalVpCreated} viewport trong {totalLayouts} layout (tỉ lệ 1:1, đồng bộ khung Model)");
+            // Chuyển về paper space để xem layout
+            db.TileMode = false;
+            ed.WriteMessage($"\n✅ Tổng: {totalVpCreated} viewport trong {totalLayouts} layout (1:1, khung theo CAD)");
         }
 
         private static void CreateLayerIfNotExist(string name, short color)

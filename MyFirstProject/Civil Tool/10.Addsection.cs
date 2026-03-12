@@ -39,15 +39,15 @@ namespace MyFirstProject
     /// </summary>
     public class AddSectionForm : Form
     {
-        // ─── Theme Colors ───
-        private static readonly Color BgDark = Color.FromArgb(30, 30, 34);
-        private static readonly Color BgPanel = Color.FromArgb(40, 40, 45);
-        private static readonly Color BgInput = Color.FromArgb(50, 50, 58);
-        private static readonly Color AccentBlue = Color.FromArgb(0, 122, 204);
-        private static readonly Color HeaderBlue = Color.FromArgb(0, 93, 160);
-        private static readonly Color TextWhite = Color.White;
-        private static readonly Color TextDim = Color.FromArgb(160, 160, 170);
-        private static readonly Color BorderColor = Color.FromArgb(65, 65, 75);
+        // ─── Theme Colors (Navy / White) ───
+        private static readonly Color BgDark = Color.FromArgb(255, 255, 255);
+        private static readonly Color BgPanel = Color.FromArgb(245, 247, 250);
+        private static readonly Color BgInput = Color.FromArgb(255, 255, 255);
+        private static readonly Color AccentBlue = Color.FromArgb(27, 42, 74);
+        private static readonly Color HeaderBlue = Color.FromArgb(27, 42, 74);
+        private static readonly Color TextWhite = Color.FromArgb(61, 61, 61);
+        private static readonly Color TextDim = Color.FromArgb(122, 122, 122);
+        private static readonly Color BorderColor = Color.FromArgb(208, 213, 221);
         private static readonly Color GreenOk = Color.FromArgb(46, 160, 67);
 
         // ─── Controls ───
@@ -161,7 +161,7 @@ namespace MyFirstProject
             {
                 Text = "📐  THÊM SECTION VÀO CORRIDOR",
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = TextWhite,
+                ForeColor = Color.White,
                 AutoSize = false,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Fill,
@@ -181,7 +181,7 @@ namespace MyFirstProject
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Top,
                 Padding = new Padding(18, 0, 0, 0),
-                BackColor = Color.FromArgb(35, 35, 40)
+                BackColor = Color.FromArgb(245, 247, 250)
             };
             this.Controls.Add(subtitle);
             subtitle.BringToFront();
@@ -263,7 +263,7 @@ namespace MyFirstProject
             {
                 Location = new Point(10, 85),
                 Size = new Size(680, 45),
-                BackColor = Color.FromArgb(35, 38, 42)
+                BackColor = Color.FromArgb(245, 247, 250)
             };
             grpMode.Controls.Add(pnlSampleLine);
 
@@ -285,7 +285,7 @@ namespace MyFirstProject
             {
                 Location = new Point(10, 85),
                 Size = new Size(680, 80),
-                BackColor = Color.FromArgb(35, 38, 42),
+                BackColor = Color.FromArgb(245, 247, 250),
                 Visible = false
             };
             grpMode.Controls.Add(pnlPolyline);
@@ -301,7 +301,7 @@ namespace MyFirstProject
                 Font = new Font("Segoe UI", 9f),
                 Cursor = Cursors.Hand
             };
-            btnSelectPolylines.FlatAppearance.BorderColor = Color.FromArgb(0, 102, 180);
+            btnSelectPolylines.FlatAppearance.BorderColor = Color.FromArgb(16, 28, 52);
             btnSelectPolylines.Click += BtnSelectPolylines_Click;
             pnlPolyline.Controls.Add(btnSelectPolylines);
 
@@ -375,7 +375,7 @@ namespace MyFirstProject
                 },
                 ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
                 {
-                    BackColor = Color.FromArgb(45, 48, 55),
+                    BackColor = Color.FromArgb(245, 247, 250),
                     ForeColor = TextWhite,
                     Font = new Font("Segoe UI", 9f, FontStyle.Bold),
                     Alignment = DataGridViewContentAlignment.MiddleCenter
@@ -406,7 +406,7 @@ namespace MyFirstProject
             {
                 Dock = DockStyle.Bottom,
                 Height = 55,
-                BackColor = Color.FromArgb(38, 38, 42),
+                BackColor = Color.FromArgb(245, 247, 250),
                 Padding = new Padding(12, 8, 12, 8)
             };
             this.Controls.Add(pnlBottom);

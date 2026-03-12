@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Forms;
+
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -8,22 +13,279 @@ using Autodesk.Civil.DatabaseServices;
 using Autodesk.Civil.DatabaseServices.Styles;
 using MyFirstProject.Extensions;
 
-// This line is not mandatory, but improves loading performances
+using WinLabel = System.Windows.Forms.Label;
+using Font = System.Drawing.Font;
+using Point = System.Drawing.Point;
+using Size = System.Drawing.Size;
+using Color = System.Drawing.Color;
+using FontStyle = System.Drawing.FontStyle;
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+
 [assembly: CommandClass(typeof(MyFirstProject.AlignmentHangLoat))]
 
 namespace MyFirstProject
 {
-    /// <summary>
-    /// Lệnh tạo tuyến (Alignment) hàng loạt từ các Polyline có sẵn trong bản vẽ.
-    /// - Chọn nhiều Polyline cùng lúc
-    /// - Tự động đặt tên theo prefix + số thứ tự
-    /// - Cho phép chọn Alignment Style, Label Set Style, Site
-    /// </summary>
+    // ═══════════════════════════════════════════════════════════════
+    //  FORM: Tạo Alignment hàng loạt
+    // ═══════════════════════════════════════════════════════════════
+    public class AlignmentBatchForm : CivilFormBase
+    {
+        private TextBox txtPrefix = null!;
+        private NumericUpDown numStart = null!;
+        private ComboBox cboStyle = null!;
+        private ComboBox cboLabelSet = null!;
+        private ComboBox cboSite = null!;
+        private TextBox txtLayer = null!;
+        private WinLabel lblPolyCount = null!;
+
+        public bool IsConfirmed { get; private set; }
+        public string Prefix => txtPrefix.Text;
+        public int StartIndex => (int)numStart.Value;
+        public string LayerName => txtLayer.Text;
+
+        private List<(ObjectId Id, string Name)> styles = new();
+        private List<(ObjectId Id, string Name)> labelSets = new();
+        private List<(ObjectId Id, string Name)> sites = new();
+
+        public AlignmentBatchForm(int polylineCount)
+        {
+            LoadCivilData();
+            InitUI(polylineCount);
+        }
+
+        private void LoadCivilData()
+        {
+            try
+            {
+                using Transaction tr = A.Db.TransactionManager.StartTransaction();
+                CivilDocument cdoc = CivilApplication.ActiveDocument;
+
+                foreach (ObjectId sId in cdoc.Styles.AlignmentStyles)
+                {
+                    AlignmentStyle st = (AlignmentStyle)tr.GetObject(sId, OpenMode.ForRead);
+                    styles.Add((sId, st.Name));
+                }
+
+                foreach (ObjectId lId in cdoc.Styles.LabelSetStyles.AlignmentLabelSetStyles)
+                {
+                    StyleBase lb = (StyleBase)tr.GetObject(lId, OpenMode.ForRead);
+                    labelSets.Add((lId, lb.Name));
+                }
+
+                foreach (ObjectId stId in cdoc.GetSiteIds())
+                {
+                    Site site = (Site)tr.GetObject(stId, OpenMode.ForRead);
+                    sites.Add((stId, site.Name));
+                }
+
+                tr.Commit();
+            }
+            catch { }
+        }
+
+        private void InitUI(int polyCount)
+        {
+            InitBaseTheme("TẠO TUYẾN HÀNG LOẠT — Civil Tool", 600, 520);
+
+            this.Controls.Add(CreateHeader("🛣  TẠO TUYẾN HÀNG LOẠT TỪ POLYLINE"));
+
+            var sub = CreateSubtitle($"Đã chọn {polyCount} Polyline — Thiết lập thông số bên dưới");
+            this.Controls.Add(sub);
+            sub.BringToFront();
+
+            var main = new Panel { Dock = DockStyle.Fill, Padding = new Padding(20, 12, 20, 0), AutoScroll = true };
+            this.Controls.Add(main);
+            main.BringToFront();
+
+            int y = 5;
+
+            lblPolyCount = CreateTitleLabel($"📐 Số Polyline đã chọn: {polyCount}", 0, y);
+            main.Controls.Add(lblPolyCount);
+            y += 35;
+
+            // ═══ GROUP 1: TÊN TUYẾN ═══
+            var grp1 = CreateGroupBox("📝  Đặt tên tuyến", 0, y, 545, 95);
+            main.Controls.Add(grp1);
+
+            grp1.Controls.Add(CreateLabel("Prefix:", 12, 30));
+            txtPrefix = CreateTextBox(100, 27, 200, "Tuyen");
+            grp1.Controls.Add(txtPrefix);
+
+            grp1.Controls.Add(CreateLabel("Số bắt đầu:", 320, 30));
+            numStart = CreateNumeric(420, 27, 100, 0, 9999, 1, 0);
+            grp1.Controls.Add(numStart);
+
+            grp1.Controls.Add(CreateHintLabel("Tên sẽ là: Tuyen-001, Tuyen-002, ...", 12, 65));
+            y += 105;
+
+            // ═══ GROUP 2: STYLE ═══
+            var grp2 = CreateGroupBox("🎨  Style & Label", 0, y, 545, 110);
+            main.Controls.Add(grp2);
+
+            grp2.Controls.Add(CreateLabel("Alignment Style:", 12, 30));
+            cboStyle = CreateComboBox(160, 27, 370);
+            foreach (var s in styles) cboStyle.Items.Add(s.Name);
+            if (cboStyle.Items.Count > 0) cboStyle.SelectedIndex = 0;
+            grp2.Controls.Add(cboStyle);
+
+            grp2.Controls.Add(CreateLabel("Label Set Style:", 12, 65));
+            cboLabelSet = CreateComboBox(160, 62, 370);
+            foreach (var l in labelSets) cboLabelSet.Items.Add(l.Name);
+            if (cboLabelSet.Items.Count > 0) cboLabelSet.SelectedIndex = 0;
+            grp2.Controls.Add(cboLabelSet);
+
+            y += 120;
+
+            // ═══ GROUP 3: SITE & LAYER ═══
+            var grp3 = CreateGroupBox("📂  Site & Layer", 0, y, 545, 110);
+            main.Controls.Add(grp3);
+
+            grp3.Controls.Add(CreateLabel("Site:", 12, 30));
+            cboSite = CreateComboBox(100, 27, 430);
+            cboSite.Items.Add("<< Không chọn Site (Siteless) >>");
+            foreach (var s in sites) cboSite.Items.Add(s.Name);
+            cboSite.SelectedIndex = 0;
+            grp3.Controls.Add(cboSite);
+
+            grp3.Controls.Add(CreateLabel("Layer:", 12, 65));
+            txtLayer = CreateTextBox(100, 62, 430, "C-ROAD-ALGN");
+            grp3.Controls.Add(txtLayer);
+
+            y += 120;
+
+            var note = CreateRedNote("⚠ Nếu tên trùng, hệ thống sẽ tự thêm hậu tố _1, _2...", 0, y);
+            main.Controls.Add(note);
+
+            var bottom = CreateBottomBar();
+            this.Controls.Add(bottom);
+
+            CreateButton("✖ Hủy", 340, 8, 100, 34, bottom).Click += (s, e) =>
+            { this.DialogResult = DialogResult.Cancel; this.Close(); };
+
+            CreateSuccessButton("✅ Tạo tuyến", 450, 8, 120, 34, bottom).Click += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(txtPrefix.Text))
+                {
+                    MessageBox.Show("Vui lòng nhập prefix tên tuyến!", "Thiếu dữ liệu",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                IsConfirmed = true;
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            };
+        }
+
+        public ObjectId GetSelectedStyleId() =>
+            cboStyle.SelectedIndex >= 0 && cboStyle.SelectedIndex < styles.Count
+                ? styles[cboStyle.SelectedIndex].Id : ObjectId.Null;
+
+        public ObjectId GetSelectedLabelSetId() =>
+            cboLabelSet.SelectedIndex >= 0 && cboLabelSet.SelectedIndex < labelSets.Count
+                ? labelSets[cboLabelSet.SelectedIndex].Id : ObjectId.Null;
+
+        public ObjectId GetSelectedSiteId() =>
+            cboSite.SelectedIndex > 0 && (cboSite.SelectedIndex - 1) < sites.Count
+                ? sites[cboSite.SelectedIndex - 1].Id : ObjectId.Null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  FORM: Đổi tên Alignment hàng loạt
+    // ═══════════════════════════════════════════════════════════════
+    public class RenameBatchForm : CivilFormBase
+    {
+        private TextBox txtPrefix = null!;
+        private ListView lvAlignments = null!;
+
+        public bool IsConfirmed { get; private set; }
+        public string NewPrefix => txtPrefix.Text;
+
+        private List<(ObjectId Id, string Name)> alignments;
+
+        public RenameBatchForm(List<(ObjectId Id, string Name)> aligns)
+        {
+            alignments = aligns;
+            InitUI();
+        }
+
+        private void InitUI()
+        {
+            InitBaseTheme("ĐỔI TÊN TUYẾN HÀNG LOẠT — Civil Tool", 550, 450);
+
+            this.Controls.Add(CreateHeader("✏️  ĐỔI TÊN TUYẾN HÀNG LOẠT"));
+
+            var sub = CreateSubtitle($"Có {alignments.Count} tuyến trong bản vẽ");
+            this.Controls.Add(sub);
+            sub.BringToFront();
+
+            var main = new Panel { Dock = DockStyle.Fill, Padding = new Padding(20, 12, 20, 0) };
+            this.Controls.Add(main);
+            main.BringToFront();
+
+            int y = 5;
+
+            main.Controls.Add(CreateLabel("Prefix mới:", 0, y));
+            txtPrefix = CreateTextBox(100, y - 3, 390);
+            main.Controls.Add(txtPrefix);
+            y += 35;
+
+            main.Controls.Add(CreateHintLabel("Tên mới sẽ là: [Prefix]-001, [Prefix]-002, ...", 0, y));
+            y += 25;
+
+            main.Controls.Add(CreateTitleLabel("Danh sách tuyến hiện có:", 0, y));
+            y += 25;
+
+            lvAlignments = CreateListView(0, y, 495, 230);
+            lvAlignments.Columns.Add("STT", 50);
+            lvAlignments.Columns.Add("Tên hiện tại", 220);
+            lvAlignments.Columns.Add("Tên mới (preview)", 220);
+            main.Controls.Add(lvAlignments);
+
+            int stt = 1;
+            foreach (var a in alignments)
+            {
+                var item = new ListViewItem(stt.ToString());
+                item.SubItems.Add(a.Name);
+                item.SubItems.Add($"???-{stt:D3}");
+                lvAlignments.Items.Add(item);
+                stt++;
+            }
+
+            txtPrefix.TextChanged += (s, e) =>
+            {
+                for (int i = 0; i < lvAlignments.Items.Count; i++)
+                {
+                    string p = string.IsNullOrWhiteSpace(txtPrefix.Text) ? "???" : txtPrefix.Text;
+                    lvAlignments.Items[i].SubItems[2].Text = $"{p}-{(i + 1):D3}";
+                }
+            };
+
+            var bottom = CreateBottomBar();
+            this.Controls.Add(bottom);
+
+            CreateButton("✖ Hủy", 300, 8, 100, 34, bottom).Click += (s, e) =>
+            { this.DialogResult = DialogResult.Cancel; this.Close(); };
+
+            CreatePrimaryButton("✅ Đổi tên", 410, 8, 110, 34, bottom).Click += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(txtPrefix.Text))
+                {
+                    MessageBox.Show("Vui lòng nhập prefix mới!", "Thiếu dữ liệu",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                IsConfirmed = true;
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            };
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  LỆNH
+    // ═══════════════════════════════════════════════════════════════
     class AlignmentHangLoat
     {
-        // ═══════════════════════════════════════════════════════════════
-        //  LỆNH CHÍNH: Tạo Alignment hàng loạt từ Polyline
-        // ═══════════════════════════════════════════════════════════════
         [CommandMethod("CTA_TaoTuyenHangLoat")]
         public static void CTA_TaoTuyenHangLoat()
         {
@@ -31,220 +293,63 @@ namespace MyFirstProject
             Database db = A.Db;
             CivilDocument cdoc = A.Cdoc;
 
+            var filter = new SelectionFilter(new[]
+            {
+                new TypedValue((int)DxfCode.Start, "LWPOLYLINE")
+            });
+
+            ed.WriteMessage("\n⊙ Chọn các Polyline để tạo tuyến (Alignment):");
+            PromptSelectionResult selResult = ed.GetSelection(filter);
+            if (selResult.Status != PromptStatus.OK || selResult.Value.Count == 0)
+            {
+                ed.WriteMessage("\n⚠️ Không chọn được Polyline nào. Hủy lệnh.");
+                return;
+            }
+
+            var form = new AlignmentBatchForm(selResult.Value.Count);
+            var result = AcadApp.ShowModalDialog(form);
+
+            if (result != DialogResult.OK || !form.IsConfirmed)
+            {
+                ed.WriteMessage("\n⚠️ Đã hủy lệnh.");
+                return;
+            }
+
             using Transaction tr = db.TransactionManager.StartTransaction();
             try
             {
-                // ── 1. Chọn nhiều Polyline ──────────────────────────────
-                ed.WriteMessage("\n╔════════════════════════════════════════════╗");
-                ed.WriteMessage("\n║  TẠO TUYẾN HÀNG LOẠT TỪ POLYLINE          ║");
-                ed.WriteMessage("\n╚════════════════════════════════════════════╝\n");
+                string prefix = form.Prefix;
+                int startIndex = form.StartIndex;
+                ObjectId alignStyleId = form.GetSelectedStyleId();
+                ObjectId labelSetId = form.GetSelectedLabelSetId();
+                ObjectId siteId = form.GetSelectedSiteId();
+                string layerName = form.LayerName;
 
-                var filter = new SelectionFilter(new[]
-                {
-                    new TypedValue((int)DxfCode.Start, "LWPOLYLINE")
-                });
-
-                ed.WriteMessage("\n⊙ Chọn các Polyline để tạo tuyến (Alignment):");
-                PromptSelectionResult selResult = ed.GetSelection(filter);
-                if (selResult.Status != PromptStatus.OK || selResult.Value.Count == 0)
-                {
-                    ed.WriteMessage("\n⚠️ Không chọn được Polyline nào. Hủy lệnh.");
-                    return;
-                }
-
-                int soLuongPL = selResult.Value.Count;
-                ed.WriteMessage($"\n✅ Đã chọn {soLuongPL} Polyline.");
-
-                // ── 2. Nhập Prefix tên tuyến ────────────────────────────
-                PromptStringOptions pso = new("\n⊙ Nhập tiền tố (prefix) tên tuyến [mặc định: Tuyen]: ")
-                {
-                    AllowSpaces = true,
-                    DefaultValue = "Tuyen"
-                };
-                PromptResult prPrefix = ed.GetString(pso);
-                if (prPrefix.Status != PromptStatus.OK) return;
-                string prefix = string.IsNullOrWhiteSpace(prPrefix.StringResult) ? "Tuyen" : prPrefix.StringResult;
-
-                // ── 3. Nhập số bắt đầu ─────────────────────────────────
-                PromptIntegerOptions pio = new("\n⊙ Nhập số thứ tự bắt đầu [mặc định: 1]: ")
-                {
-                    DefaultValue = 1,
-                    LowerLimit = 0,
-                    UpperLimit = 9999
-                };
-                PromptIntegerResult prStart = ed.GetInteger(pio);
-                if (prStart.Status != PromptStatus.OK) return;
-                int startIndex = prStart.Value;
-
-                // ── 4. Lấy danh sách Alignment Style ────────────────────
-                ObjectId alignStyleId = ObjectId.Null;
-                AlignmentStyleCollection styleCollection = cdoc.Styles.AlignmentStyles;
-                if (styleCollection.Count > 0)
-                {
-                    ed.WriteMessage("\n─── Danh sách Alignment Style ───");
-                    List<string> styleNames = new();
-                    List<ObjectId> styleIdList = new();
-                    int idx = 0;
-                    foreach (ObjectId sId in styleCollection)
-                    {
-                        AlignmentStyle style = (AlignmentStyle)tr.GetObject(sId, OpenMode.ForRead);
-                        styleNames.Add(style.Name);
-                        styleIdList.Add(sId);
-                        ed.WriteMessage($"\n  [{idx}] {style.Name}");
-                        idx++;
-                    }
-
-                    PromptIntegerOptions pioStyle = new($"\n⊙ Chọn Alignment Style [0-{idx - 1}] [mặc định: 0]: ")
-                    {
-                        DefaultValue = 0,
-                        LowerLimit = 0,
-                        UpperLimit = idx - 1
-                    };
-                    PromptIntegerResult prStyle = ed.GetInteger(pioStyle);
-                    if (prStyle.Status == PromptStatus.OK)
-                        alignStyleId = styleIdList[prStyle.Value];
-                    else
-                        alignStyleId = styleIdList[0];
-                }
-
-                // ── 5. Lấy danh sách Alignment Label Set Style ──────────
-                ObjectId labelSetId = ObjectId.Null;
-                AlignmentLabelSetStyleCollection labelSetCollection = cdoc.Styles.LabelSetStyles.AlignmentLabelSetStyles;
-                if (labelSetCollection.Count > 0)
-                {
-                    ed.WriteMessage("\n─── Danh sách Alignment Label Set Style ───");
-                    List<ObjectId> labelIdList = new();
-                    int idx = 0;
-                    foreach (ObjectId lId in labelSetCollection)
-                    {
-                        StyleBase labelSet = (StyleBase)tr.GetObject(lId, OpenMode.ForRead);
-                        labelIdList.Add(lId);
-                        ed.WriteMessage($"\n  [{idx}] {labelSet.Name}");
-                        idx++;
-                    }
-
-                    PromptIntegerOptions pioLabel = new($"\n⊙ Chọn Label Set Style [0-{idx - 1}] [mặc định: 0]: ")
-                    {
-                        DefaultValue = 0,
-                        LowerLimit = 0,
-                        UpperLimit = idx - 1
-                    };
-                    PromptIntegerResult prLabel = ed.GetInteger(pioLabel);
-                    if (prLabel.Status == PromptStatus.OK)
-                        labelSetId = labelIdList[prLabel.Value];
-                    else
-                        labelSetId = labelIdList[0];
-                }
-
-                // ── 6. Chọn Site (hoặc không) ───────────────────────────
-                ObjectId siteId = ObjectId.Null; // Null = "No Site" (Siteless)
-                ObjectIdCollection siteIds = cdoc.GetSiteIds();
-                if (siteIds.Count > 0)
-                {
-                    ed.WriteMessage("\n─── Danh sách Site ───");
-                    ed.WriteMessage("\n  [0] << Không chọn Site (Siteless) >>");
-                    List<ObjectId> siteIdList = new() { ObjectId.Null };
-                    int idx = 1;
-                    foreach (ObjectId stId in siteIds)
-                    {
-                        Site site = (Site)tr.GetObject(stId, OpenMode.ForRead);
-                        siteIdList.Add(stId);
-                        ed.WriteMessage($"\n  [{idx}] {site.Name}");
-                        idx++;
-                    }
-
-                    PromptIntegerOptions pioSite = new($"\n⊙ Chọn Site [0-{idx - 1}] [mặc định: 0 - Siteless]: ")
-                    {
-                        DefaultValue = 0,
-                        LowerLimit = 0,
-                        UpperLimit = idx - 1
-                    };
-                    PromptIntegerResult prSite = ed.GetInteger(pioSite);
-                    if (prSite.Status == PromptStatus.OK)
-                        siteId = siteIdList[prSite.Value];
-                }
-
-                // ── 7. Nhập Layer cho Alignment ─────────────────────────
-                PromptStringOptions psoLayer = new("\n⊙ Nhập tên Layer cho tuyến [mặc định: C-ROAD-ALGN]: ")
-                {
-                    AllowSpaces = false,
-                    DefaultValue = "C-ROAD-ALGN"
-                };
-                PromptResult prLayer = ed.GetString(psoLayer);
-                string layerName = string.IsNullOrWhiteSpace(prLayer.StringResult) ? "C-ROAD-ALGN" : prLayer.StringResult;
-
-                // Tạo layer nếu chưa có
                 EnsureLayerExists(db, tr, layerName);
 
-                // ── 8. Xác nhận trước khi tạo ──────────────────────────
-                ed.WriteMessage("\n╔════════════════════════════════════════════╗");
-                ed.WriteMessage($"\n║  SỐ LƯỢNG POLYLINE : {soLuongPL,-22}║");
-                ed.WriteMessage($"\n║  PREFIX TÊN        : {prefix,-22}║");
-                ed.WriteMessage($"\n║  SỐ BẮT ĐẦU       : {startIndex,-22}║");
-                ed.WriteMessage($"\n║  LAYER             : {layerName,-22}║");
-                ed.WriteMessage("\n╚════════════════════════════════════════════╝");
-
-                PromptKeywordOptions pko = new("\n⊙ Xác nhận tạo tuyến? [Co/Khong] <Co>: ", "Co Khong")
-                {
-                    AllowNone = true
-                };
-                PromptResult prConfirm = ed.GetKeywords(pko);
-                if (prConfirm.Status == PromptStatus.OK && prConfirm.StringResult == "Khong")
-                {
-                    ed.WriteMessage("\n⚠️ Đã hủy lệnh.");
-                    return;
-                }
-
-                // ── 9. Tạo Alignment hàng loạt ─────────────────────────
-                int successCount = 0;
-                int failCount = 0;
-                int currentIndex = startIndex;
-
-                // Sắp xếp polyline theo vị trí (từ trái sang phải, trên xuống dưới)
                 List<ObjectId> sortedPolyIds = SortPolylinesByPosition(selResult.Value, tr);
+                int successCount = 0, failCount = 0;
+                int currentIndex = startIndex;
 
                 foreach (ObjectId plId in sortedPolyIds)
                 {
                     try
                     {
-                        Polyline? pline = tr.GetObject(plId, OpenMode.ForRead) as Polyline;
-                        if (pline == null) continue;
-
-                        // Tạo tên tuyến
-                        string alignName = $"{prefix}-{currentIndex:D3}";
-
-                        // Kiểm tra tên trùng
-                        alignName = GetUniqueAlignmentName(cdoc, tr, alignName);
-
-                        // Tạo Alignment từ Polyline
-                        // Chữ ký: Alignment.Create(CivilDocument, string name, ObjectId polylineId, ObjectId siteId, ObjectId styleId, ObjectId labelSetStyleId)
-                        ObjectId newAlignId = Alignment.Create(
-                            cdoc,
-                            alignName,
-                            plId,
-                            siteId,
-                            alignStyleId,
-                            labelSetId
-                        );
+                        string alignName = GetUniqueAlignmentName(cdoc, tr, $"{prefix}-{currentIndex:D3}");
+                        ObjectId newAlignId = Alignment.Create(cdoc, alignName, plId, siteId, alignStyleId, labelSetId);
 
                         if (newAlignId != ObjectId.Null)
                         {
-                            // Gán layer cho alignment
                             Alignment? newAlign = tr.GetObject(newAlignId, OpenMode.ForWrite) as Alignment;
-                            if (newAlign != null)
-                            {
-                                newAlign.Layer = layerName;
-                            }
-
+                            if (newAlign != null) newAlign.Layer = layerName;
                             successCount++;
                             ed.WriteMessage($"\n  ✅ [{currentIndex:D3}] Tạo tuyến: {alignName}");
                         }
                         else
                         {
                             failCount++;
-                            ed.WriteMessage($"\n  ❌ [{currentIndex:D3}] Không thể tạo tuyến từ Polyline");
+                            ed.WriteMessage($"\n  ❌ [{currentIndex:D3}] Không thể tạo tuyến");
                         }
-
                         currentIndex++;
                     }
                     catch (System.Exception ex)
@@ -256,27 +361,14 @@ namespace MyFirstProject
                 }
 
                 tr.Commit();
-
-                // ── 10. Báo cáo kết quả ────────────────────────────────
-                ed.WriteMessage("\n╔════════════════════════════════════════════╗");
-                ed.WriteMessage("\n║          KẾT QUẢ TẠO TUYẾN HÀNG LOẠT     ║");
-                ed.WriteMessage("\n╠════════════════════════════════════════════╣");
-                ed.WriteMessage($"\n║  ✅ Thành công : {successCount,-26}║");
-                ed.WriteMessage($"\n║  ❌ Thất bại   : {failCount,-26}║");
-                ed.WriteMessage($"\n║  📊 Tổng cộng  : {successCount + failCount,-26}║");
-                ed.WriteMessage("\n╚════════════════════════════════════════════╝\n");
+                ed.WriteMessage($"\n\n✅ Hoàn thành! Thành công: {successCount}, Thất bại: {failCount}\n");
             }
             catch (System.Exception ex)
             {
                 ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
-                ed.WriteMessage($"\n   {ex.StackTrace}");
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        //  LỆNH PHỤ: Tạo Alignment hàng loạt - Chế độ nhanh
-        //  (Dùng style mặc định, không hỏi nhiều)
-        // ═══════════════════════════════════════════════════════════════
         [CommandMethod("CTA_TaoTuyenNhanh")]
         public static void CTA_TaoTuyenNhanh()
         {
@@ -284,66 +376,44 @@ namespace MyFirstProject
             Database db = A.Db;
             CivilDocument cdoc = A.Cdoc;
 
+            var filter = new SelectionFilter(new[]
+            {
+                new TypedValue((int)DxfCode.Start, "LWPOLYLINE")
+            });
+
+            ed.WriteMessage("\n⊙ TẠO TUYẾN NHANH - Chọn các Polyline:");
+            PromptSelectionResult selResult = ed.GetSelection(filter);
+            if (selResult.Status != PromptStatus.OK || selResult.Value.Count == 0)
+            {
+                ed.WriteMessage("\n⚠️ Không chọn được Polyline nào.");
+                return;
+            }
+
+            var form = new AlignmentBatchForm(selResult.Value.Count);
+            var result = AcadApp.ShowModalDialog(form);
+            if (result != DialogResult.OK || !form.IsConfirmed) return;
+
             using Transaction tr = db.TransactionManager.StartTransaction();
             try
             {
-                ed.WriteMessage("\n⊙ TẠO TUYẾN NHANH - Chọn các Polyline:");
+                EnsureLayerExists(db, tr, form.LayerName);
 
-                // Chọn polyline
-                var filter = new SelectionFilter(new[]
-                {
-                    new TypedValue((int)DxfCode.Start, "LWPOLYLINE")
-                });
-                PromptSelectionResult selResult = ed.GetSelection(filter);
-                if (selResult.Status != PromptStatus.OK || selResult.Value.Count == 0)
-                {
-                    ed.WriteMessage("\n⚠️ Không chọn được Polyline nào.");
-                    return;
-                }
-
-                // Nhập prefix
-                PromptStringOptions pso = new("\n⊙ Nhập tên prefix [mặc định: Tuyen]: ")
-                {
-                    AllowSpaces = true,
-                    DefaultValue = "Tuyen"
-                };
-                PromptResult prPrefix = ed.GetString(pso);
-                string prefix = string.IsNullOrWhiteSpace(prPrefix.StringResult) ? "Tuyen" : prPrefix.StringResult;
-
-                // Lấy style mặc định (đầu tiên trong danh sách)
-                ObjectId alignStyleId = GetFirstStyleId(cdoc.Styles.AlignmentStyles);
-                ObjectId labelSetId = GetFirstStyleId(cdoc.Styles.LabelSetStyles.AlignmentLabelSetStyles);
-
-                // Tạo layer nếu cần
-                string layerName = "C-ROAD-ALGN";
-                EnsureLayerExists(db, tr, layerName);
-
-                // Sắp xếp và tạo
                 List<ObjectId> sortedPolyIds = SortPolylinesByPosition(selResult.Value, tr);
-                int successCount = 0;
-                int index = 1;
+                int successCount = 0, index = form.StartIndex;
 
                 foreach (ObjectId plId in sortedPolyIds)
                 {
                     try
                     {
-                        string alignName = GetUniqueAlignmentName(cdoc, tr, $"{prefix}-{index:D3}");
-
+                        string alignName = GetUniqueAlignmentName(cdoc, tr, $"{form.Prefix}-{index:D3}");
                         ObjectId newAlignId = Alignment.Create(
-                            cdoc,
-                            alignName,
-                            plId,
-                            ObjectId.Null, // Siteless
-                            alignStyleId,
-                            labelSetId
-                        );
+                            cdoc, alignName, plId, ObjectId.Null,
+                            form.GetSelectedStyleId(), form.GetSelectedLabelSetId());
 
                         if (newAlignId != ObjectId.Null)
                         {
-                            // Gán layer
                             Alignment? newAlign = tr.GetObject(newAlignId, OpenMode.ForWrite) as Alignment;
-                            if (newAlign != null) newAlign.Layer = layerName;
-
+                            if (newAlign != null) newAlign.Layer = form.LayerName;
                             successCount++;
                             ed.WriteMessage($"\n  ✅ Tạo tuyến: {alignName}");
                         }
@@ -365,9 +435,6 @@ namespace MyFirstProject
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        //  LỆNH PHỤ: Đổi tên Alignment hàng loạt
-        // ═══════════════════════════════════════════════════════════════
         [CommandMethod("CTA_DoiTenTuyenHangLoat")]
         public static void CTA_DoiTenTuyenHangLoat()
         {
@@ -377,7 +444,6 @@ namespace MyFirstProject
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                // Lấy tất cả alignment
                 ObjectIdCollection alignIds = cdoc.GetAlignmentIds();
                 if (alignIds.Count == 0)
                 {
@@ -385,39 +451,26 @@ namespace MyFirstProject
                     return;
                 }
 
-                ed.WriteMessage("\n─── Danh sách tuyến hiện có ───");
-                int idx = 0;
-                List<ObjectId> alignList = new();
+                var alignList = new List<(ObjectId Id, string Name)>();
                 foreach (ObjectId aId in alignIds)
                 {
                     Alignment? algn = tr.GetObject(aId, OpenMode.ForRead) as Alignment;
-                    if (algn != null)
-                    {
-                        alignList.Add(aId);
-                        ed.WriteMessage($"\n  [{idx}] {algn.Name}");
-                        idx++;
-                    }
+                    if (algn != null) alignList.Add((aId, algn.Name));
                 }
 
-                // Nhập prefix mới
-                PromptStringOptions pso = new("\n⊙ Nhập prefix mới cho tên tuyến: ")
-                {
-                    AllowSpaces = true
-                };
-                PromptResult prPrefix = ed.GetString(pso);
-                if (prPrefix.Status != PromptStatus.OK || string.IsNullOrWhiteSpace(prPrefix.StringResult)) return;
-                string newPrefix = prPrefix.StringResult;
+                var form = new RenameBatchForm(alignList);
+                var result = AcadApp.ShowModalDialog(form);
+                if (result != DialogResult.OK || !form.IsConfirmed) return;
 
-                // Đổi tên
                 int count = 0;
-                foreach (ObjectId aId in alignList)
+                foreach (var (id, _) in alignList)
                 {
-                    Alignment? algn = tr.GetObject(aId, OpenMode.ForWrite) as Alignment;
+                    Alignment? algn = tr.GetObject(id, OpenMode.ForWrite) as Alignment;
                     if (algn != null)
                     {
                         count++;
                         string oldName = algn.Name;
-                        algn.Name = $"{newPrefix}-{count:D3}";
+                        algn.Name = $"{form.NewPrefix}-{count:D3}";
                         ed.WriteMessage($"\n  ✅ {oldName} → {algn.Name}");
                     }
                 }
@@ -431,93 +484,50 @@ namespace MyFirstProject
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        //  HÀM HỖ TRỢ
-        // ═══════════════════════════════════════════════════════════════
+        // ═══ HÀM HỖ TRỢ ═══
 
-        /// <summary>
-        /// Đảm bảo layer tồn tại, nếu chưa thì tạo mới
-        /// </summary>
         private static void EnsureLayerExists(Database db, Transaction tr, string layerName)
         {
             LayerTable lt = (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead);
             if (!lt.Has(layerName))
             {
                 lt.UpgradeOpen();
-                LayerTableRecord ltr = new()
-                {
-                    Name = layerName
-                };
+                LayerTableRecord ltr = new() { Name = layerName };
                 lt.Add(ltr);
                 tr.AddNewlyCreatedDBObject(ltr, true);
-                A.Ed.WriteMessage($"\n✅ Đã tạo layer mới: {layerName}");
             }
         }
 
-        /// <summary>
-        /// Lấy ObjectId đầu tiên từ một StyleCollection (dùng cho chế độ nhanh)
-        /// </summary>
-        private static ObjectId GetFirstStyleId(System.Collections.IEnumerable collection)
-        {
-            foreach (ObjectId id in collection)
-            {
-                return id;
-            }
-            return ObjectId.Null;
-        }
-
-        /// <summary>
-        /// Sắp xếp Polyline theo vị trí: từ trái sang phải, trên xuống dưới
-        /// (Ưu tiên theo X, sau đó theo Y giảm dần)
-        /// </summary>
         private static List<ObjectId> SortPolylinesByPosition(SelectionSet ss, Transaction tr)
         {
             var polyDataList = new List<(ObjectId Id, double X, double Y)>();
-
             foreach (SelectedObject so in ss)
             {
                 if (so == null) continue;
                 Polyline? pline = tr.GetObject(so.ObjectId, OpenMode.ForRead) as Polyline;
                 if (pline == null) continue;
-
-                // Dùng điểm đầu của Polyline làm vị trí tham chiếu
                 Point3d startPt = pline.StartPoint;
                 polyDataList.Add((so.ObjectId, startPt.X, startPt.Y));
             }
-
-            // Sắp xếp: X tăng dần, nếu X bằng thì Y giảm dần
             polyDataList.Sort((a, b) =>
             {
                 int cmpX = a.X.CompareTo(b.X);
-                if (cmpX != 0) return cmpX;
-                return b.Y.CompareTo(a.Y);
+                return cmpX != 0 ? cmpX : b.Y.CompareTo(a.Y);
             });
-
             return polyDataList.Select(p => p.Id).ToList();
         }
 
-        /// <summary>
-        /// Tạo tên Alignment duy nhất (tránh trùng) 
-        /// Nếu tên đã tồn tại, thêm hậu tố _1, _2, ...
-        /// </summary>
         private static string GetUniqueAlignmentName(CivilDocument cdoc, Transaction tr, string baseName)
         {
-            HashSet<string> existingNames = new(StringComparer.OrdinalIgnoreCase);
-            ObjectIdCollection alignIds = cdoc.GetAlignmentIds();
-            foreach (ObjectId aId in alignIds)
+            HashSet<string> existing = new(StringComparer.OrdinalIgnoreCase);
+            foreach (ObjectId aId in cdoc.GetAlignmentIds())
             {
                 Alignment? algn = tr.GetObject(aId, OpenMode.ForRead) as Alignment;
-                if (algn != null)
-                    existingNames.Add(algn.Name);
+                if (algn != null) existing.Add(algn.Name);
             }
-
-            if (!existingNames.Contains(baseName))
-                return baseName;
-
+            if (!existing.Contains(baseName)) return baseName;
             int suffix = 1;
-            while (existingNames.Contains($"{baseName}_{suffix}"))
-                suffix++;
-
+            while (existing.Contains($"{baseName}_{suffix}")) suffix++;
             return $"{baseName}_{suffix}";
         }
     }

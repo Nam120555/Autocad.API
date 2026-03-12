@@ -34,12 +34,12 @@ namespace MyFirstProject
         private void InitializeComponent()
         {
             this.Text = "Civil Tool";
-            this.Size = new Size(900, 60);
+            this.Size = new Size(900, 48);
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.Manual;
             this.TopMost = true;
-            this.BackColor = Color.FromArgb(45, 45, 48);
-            this.ForeColor = Color.FromArgb(220, 220, 220);
+            this.BackColor = Color.FromArgb(255, 255, 255);
+            this.ForeColor = Color.FromArgb(61, 61, 61);
             this.DoubleBuffered = true;
 
             // Rounded corners (Windows 11)
@@ -55,12 +55,12 @@ namespace MyFirstProject
             {
                 using var grad = new System.Drawing.Drawing2D.LinearGradientBrush(
                     this.ClientRectangle,
-                    Color.FromArgb(50, 50, 54),
-                    Color.FromArgb(38, 38, 42), 90f);
+                    Color.FromArgb(27, 42, 74),
+                    Color.FromArgb(16, 28, 52), 90f);
                 e.Graphics.FillRectangle(grad, this.ClientRectangle);
 
                 // Bottom accent line
-                using var accentPen = new Pen(Color.FromArgb(0, 122, 204), 2);
+                using var accentPen = new Pen(Color.FromArgb(46, 74, 122), 2);
                 e.Graphics.DrawLine(accentPen, 0, this.Height - 1, this.Width, this.Height - 1);
             };
 
@@ -71,11 +71,11 @@ namespace MyFirstProject
             // Load config đã lưu
             var config = MenuSettingsForm.LoadSavedConfig();
 
-            int btnWidth = 78;
-            int btnHeight = 36;
-            int margin = 3;
-            int x = 8;
-            int y = 12;
+            int btnWidth = 68;
+            int btnHeight = 28;
+            int margin = 2;
+            int x = 6;
+            int y = 10;
 
             // Tạo nút từ Civil groups
             foreach (var group in config.CivilGroups)
@@ -95,21 +95,21 @@ namespace MyFirstProject
             }
 
             // Nút Cài đặt
-            var btnSettings = CreateButton("⚙", x, y, 36, btnHeight, Color.FromArgb(0, 93, 160));
+            var btnSettings = CreateButton("⚙", x, y, 30, btnHeight, Color.FromArgb(27, 42, 74));
             btnSettings.ForeColor = Color.White;
             btnSettings.Click += (s, e) => { this.Hide(); RunCommand("CT_MENU_SETTINGS"); this.Show(); };
             this.Controls.Add(btnSettings);
-            x += 36 + margin;
+            x += 30 + margin;
 
             // Close Button
-            var btnClose = CreateButton("✕", x, y, 30, btnHeight, Color.FromArgb(70, 70, 75));
-            btnClose.ForeColor = Color.FromArgb(180, 180, 180);
-            btnClose.FlatAppearance.MouseOverBackColor = Color.FromArgb(196, 43, 28);
+            var btnClose = CreateButton("✕", x, y, 26, btnHeight, Color.FromArgb(46, 74, 122));
+            btnClose.ForeColor = Color.White;
+            btnClose.FlatAppearance.MouseOverBackColor = Color.FromArgb(211, 47, 47);
             btnClose.Click += (s, e) => this.Close();
             this.Controls.Add(btnClose);
 
             // Cập nhật kích thước form
-            this.Size = new Size(x + 40, 60);
+            this.Size = new Size(x + 30, 48);
             this.Region = CreateRoundedRegion(this.Width, this.Height, 8);
             this.Location = new Point((screenBounds.Width - this.Width) / 2, 5);
         }
@@ -134,26 +134,26 @@ namespace MyFirstProject
                 Size = new Size(width, height),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = bgColor,
-                ForeColor = Color.FromArgb(210, 210, 210),
+                ForeColor = Color.White,
                 Cursor = Cursors.Hand,
-                Font = new Font("Segoe UI", 8.5f)
+                Font = new Font("Segoe UI", 8f)
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(65, 65, 70);
+            btn.FlatAppearance.BorderColor = Color.FromArgb(46, 74, 122);
             btn.FlatAppearance.BorderSize = 1;
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 100, 180);
-            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(0, 80, 150);
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(46, 74, 122);
+            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(16, 28, 52);
             return btn;
         }
 
         private Button CreateDropdownButton(string text, int x, int y, int width, int height,
             List<(string Name, string Command)> commands)
         {
-            var btn = CreateButton(text + " ▾", x, y, width, height, Color.FromArgb(55, 55, 60));
+            var btn = CreateButton(text + " ▾", x, y, width, height, Color.FromArgb(27, 42, 74));
             btn.Click += (s, e) =>
             {
                 var menu = new ContextMenuStrip();
-                menu.BackColor = Color.FromArgb(45, 45, 48);
-                menu.ForeColor = Color.FromArgb(220, 220, 220);
+                menu.BackColor = Color.FromArgb(255, 255, 255);
+                menu.ForeColor = Color.FromArgb(61, 61, 61);
                 menu.Font = new Font("Segoe UI", 9);
                 menu.Renderer = new DarkToolStripRenderer();
                 menu.ShowImageMargin = false;
@@ -167,7 +167,7 @@ namespace MyFirstProject
                     }
 
                     var item = new ToolStripMenuItem($"  {cmd.Name}");
-                    item.ForeColor = Color.FromArgb(220, 220, 220);
+                    item.ForeColor = Color.FromArgb(61, 61, 61);
                     string cmdName = cmd.Command;
                     item.Click += (sender, args) => { this.Hide(); RunCommand(cmdName); this.Show(); };
                     menu.Items.Add(item);
@@ -230,8 +230,8 @@ namespace MyFirstProject
             this.Text = "📋 Danh Sách Lệnh Civil Tool";
             this.Size = new Size(750, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = Color.FromArgb(45, 45, 48);
-            this.ForeColor = Color.White;
+            this.BackColor = Color.FromArgb(255, 255, 255);
+            this.ForeColor = Color.FromArgb(61, 61, 61);
 
             // Search box
             var lblSearch = new Label
@@ -239,7 +239,7 @@ namespace MyFirstProject
                 Text = "🔍 Tìm kiếm:",
                 Location = new Point(10, 12),
                 Size = new Size(80, 25),
-                ForeColor = Color.White
+                ForeColor = Color.FromArgb(27, 42, 74)
             };
             this.Controls.Add(lblSearch);
 
@@ -247,8 +247,8 @@ namespace MyFirstProject
             {
                 Location = new Point(95, 10),
                 Size = new Size(300, 25),
-                BackColor = Color.FromArgb(60, 60, 65),
-                ForeColor = Color.White,
+                BackColor = Color.FromArgb(245, 247, 250),
+                ForeColor = Color.FromArgb(61, 61, 61),
                 BorderStyle = BorderStyle.FixedSingle
             };
             searchBox.TextChanged += SearchBox_TextChanged;
@@ -261,7 +261,7 @@ namespace MyFirstProject
                 Location = new Point(550, 8),
                 Size = new Size(90, 28),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(0, 120, 215),
+                BackColor = Color.FromArgb(27, 42, 74),
                 ForeColor = Color.White
             };
             btnRun.Click += BtnRun_Click;
@@ -274,8 +274,8 @@ namespace MyFirstProject
                 Location = new Point(645, 8),
                 Size = new Size(80, 28),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(150, 50, 50),
-                ForeColor = Color.White
+                BackColor = Color.FromArgb(245, 247, 250),
+                ForeColor = Color.FromArgb(61, 61, 61)
             };
             btnClose.Click += (s, e) => this.Close();
             this.Controls.Add(btnClose);
@@ -288,8 +288,8 @@ namespace MyFirstProject
                 View = View.Details,
                 FullRowSelect = true,
                 GridLines = true,
-                BackColor = Color.FromArgb(35, 35, 38),
-                ForeColor = Color.White
+                BackColor = Color.FromArgb(255, 255, 255),
+                ForeColor = Color.FromArgb(61, 61, 61)
             };
             listView.Columns.Add("STT", 45);
             listView.Columns.Add("Nhóm", 100);
@@ -329,6 +329,7 @@ namespace MyFirstProject
                 ("Point", "CTPO_An_CogoPoint", "Ẩn các điểm CogoPoint"),
                 ("Point", "CTPO_UpdateAllPointGroup", "Cập nhật tất cả Point Group"),
                 ("Point", "CTPO_CPTT", "Chuyển Point thành Text cao độ"),
+        ("Point", "CTPO_TaoPointTuExcel", "Import tọa độ từ Excel (Block + Name)"),
                 
                 // Profile
                 ("Profile", "CTP_VeTracDoc_TuNhien", "Vẽ trắc dọc địa hình tự nhiên"),
