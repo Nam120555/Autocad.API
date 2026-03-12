@@ -538,18 +538,8 @@ namespace MyFirstProject
                     ("CTS_Offset_BeRong_sampleLine", "Offset Bề Rộng SL", "MOVE"),
                     ("---", "", ""),
                     ("CTSV_ThongKeCoc", "Thống Kê Cọc (Excel)", "EXPORT"),
-                    ("CTSV_ThongKeCoc_TatCa", "Thống Kê Tất Cả Cọc", "EXPORT"),
                 }) },
 
-                new() { GroupName = "🛣 Tuyến", IconType = "ALIGN", Commands = ConvertCmds(new[]
-                {
-                    ("CTPV_TaoProfileView", "Tạo Trắc Dọc", "PROFILE"),
-                    ("CTPV_SuaProfileView", "Edit Profile", "SETTINGS"),
-                    ("CTPV_ThemBang_LyTrinh", "Thêm Bảng Lý Trình", "TABLE"),
-                    ("CTPV_ThemLabel_CaoDo", "Thêm Label Cao Độ", "ADD"),
-                    ("CTPV_ThayDoiScale", "Thay Đổi Scale", "SETTINGS"),
-                    ("CTPV_FitKhung", "Fit Khung", "VIEW"),
-                }) },
 
                 new() { GroupName = "🛤 Corridor", IconType = "CORRIDOR", Commands = ConvertCmds(new[]
                 {
@@ -601,25 +591,10 @@ namespace MyFirstProject
                     ("CTSN_XuatBang", "Xuất Bảng KL CAD", "CAD"),
                 }) },
 
-                new() { GroupName = "🔧 Thoát Nước", IconType = "PIPE", Commands = ConvertCmds(new[]
-                {
-                    ("CTPS_TaoBangThongKePipe", "Thống Kê Pipe", "TABLE"),
-                    ("CTPS_TaoBangThongKeStructure", "Thống Kê Structure", "TABLE"),
-                    ("CTPS_ThayDoi_CaoDo_Pipe", "Đổi Cao Độ Pipe", "SETTINGS"),
-                    ("CTPS_ThayDoi_CaoDo_Structure", "Đổi Cao Độ Struct", "SETTINGS"),
-                    ("CTPS_XoayPipe_90do", "Xoay Pipe 90°", "SYNC"),
-                    ("CTPS_XoaConTrung", "Xóa Con Trùng", "DELETE"),
-                }) },
 
                 new() { GroupName = "📌 Điểm", IconType = "POINT", Commands = ConvertCmds(new[]
                 {
                     ("CTPo_TaoPointTheoBang", "Tạo Point Từ Bảng", "ADD"),
-                    ("CTPo_ChuyenPointThanhBlock", "Point → Block", "SYNC"),
-                    ("CTPo_TaoBangThongKePoint", "Bảng Thống Kê Point", "TABLE"),
-                    ("CTPo_ThayDoiCaoDo", "Thay Đổi Cao Độ", "SETTINGS"),
-                    ("CTPo_DatTen_theoThuTu", "Đặt Tên Thứ Tự", "RENAME"),
-                    ("CTPo_ThayDoiStyle", "Thay Đổi Style", "SETTINGS"),
-                    ("CTPo_LayThongTin", "Lấy Thông Tin", "INFO"),
                 }) },
 
                 new() { GroupName = "⚙ Tiện Ích", IconType = "UTILITY", Commands = ConvertCmds(new[]
@@ -632,12 +607,7 @@ namespace MyFirstProject
                     ("CT_MENU_SETTINGS", "Cài Đặt Menu", "SETTINGS"),
                 }) },
 
-                new() { GroupName = "👤 Tài Khoản", IconType = "ACCOUNT", Commands = ConvertCmds(new[]
-                {
-                    ("", "Đăng Nhập", "ACCOUNT"),
-                    ("", "Thông Tin", "INFO"),
-                    ("", "Hướng Dẫn", "INFO"),
-                }) },
+
             };
 
             // ── ACAD TOOL panels ──

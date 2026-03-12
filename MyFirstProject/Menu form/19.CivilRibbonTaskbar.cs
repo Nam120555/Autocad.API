@@ -915,7 +915,6 @@ namespace MyFirstProject
                 ("CTSV_CaiDatBang", "Cài đặt bảng", "SETTINGS"),
                 ("---", "", ""),
                 ("CTSV_ThongKeCoc", "TK cọc Excel", "EXPORT"),
-                ("CTSV_ThongKeCoc_TatCa", "TK tất cả cọc", "EXPORT"),
             };
         }
 

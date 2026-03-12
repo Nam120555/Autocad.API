@@ -490,8 +490,8 @@ namespace MyFirstProject
     /// </summary>
     class ImportExcelPoints
     {
-        [CommandMethod("CTPO_TaoPointTuExcel")]
-        public static void CTPO_TaoPointTuExcel()
+        [CommandMethod("CTPO_TaoPointTheoBang")]
+        public static void CTPO_TaoPointTheoBang()
         {
             Document doc = AcadApp.DocumentManager.MdiActiveDocument;
             Editor ed = doc.Editor;

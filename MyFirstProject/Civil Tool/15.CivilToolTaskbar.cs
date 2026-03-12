@@ -1,4 +1,4 @@
-﻿// CivilToolTaskbar.cs - Thanh công cụ tổng hợp Civil Tool
+// CivilToolTaskbar.cs - Thanh công cụ tổng hợp Civil Tool
 // Tổ chức theo nhóm lệnh với dropdown menu
 
 using Autodesk.AutoCAD.Runtime;
@@ -329,7 +329,7 @@ namespace MyFirstProject
                 ("Point", "CTPO_An_CogoPoint", "Ẩn các điểm CogoPoint"),
                 ("Point", "CTPO_UpdateAllPointGroup", "Cập nhật tất cả Point Group"),
                 ("Point", "CTPO_CPTT", "Chuyển Point thành Text cao độ"),
-        ("Point", "CTPO_TaoPointTuExcel", "Import tọa độ từ Excel (Block + Name)"),
+        ("Point", "CTPO_TaoPointTheoBang", "Import tọa độ từ Excel (Block + Name)"),
                 
                 // Profile
                 ("Profile", "CTP_VeTracDoc_TuNhien", "Vẽ trắc dọc địa hình tự nhiên"),
@@ -365,7 +365,6 @@ namespace MyFirstProject
                 ("Khối lượng", "CTSV_XuatCad", "Xuất khối lượng ra CAD"),
                 ("Khối lượng", "CTSV_CaiDatBang", "Cài đặt bảng khối lượng"),
                 ("Khối lượng", "CTSV_ThongKeCoc", "Thống kê cọc ra Excel"),
-                ("Khối lượng", "CTSV_ThongKeCoc_TatCa", "Thống kê tất cả cọc"),
                 
                 // San nền
                 ("San nền", "CTSN_Taskbar", "Mở taskbar san nền"),
