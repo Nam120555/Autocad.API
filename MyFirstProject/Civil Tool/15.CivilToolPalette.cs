@@ -1,10 +1,10 @@
-
-// 15.CivilToolPalette.cs - Palette (Sidebar) giao diện chính cho Civil Tool
-// Thiết kế: PaletteSet dockable, chứa TreeView phân nhóm lệnh
-// Mục tiêu: "Khoa học, Nhỏ gọn", giống Civil 3D Toolspace
+// 15.CivilToolPalette.cs - Civil Tool Palette (Toolspace Style)
+// Thiết kế: PaletteSet dockable, TreeView custom-draw giống Civil 3D Toolspace
+// Dark theme chuẩn Autodesk: gradient header, custom TreeView, status bar
 
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,10 +20,41 @@ namespace MyFirstProject
 {
     public class CivilToolPaletteControl : UserControl
     {
-        private TreeView treeView;
-        private TextBox searchBox;
-        private Label lblSearch;
-        private ImageList imageList;
+        // ═══ Autodesk Dark Theme Colors ═══
+        private static readonly Color BgMain = Color.FromArgb(37, 37, 38);        // #252526
+        private static readonly Color BgTree = Color.FromArgb(30, 30, 30);         // #1E1E1E
+        private static readonly Color BgSearch = Color.FromArgb(60, 60, 60);       // Search input
+        private static readonly Color BgHeader = Color.FromArgb(0, 93, 160);       // #005DA0 Civil Blue
+        private static readonly Color BgHeaderDark = Color.FromArgb(0, 60, 105);   // Gradient end
+        private static readonly Color BgSelected = Color.FromArgb(9, 71, 113);     // #094771 Selection
+        private static readonly Color BgHover = Color.FromArgb(42, 45, 46);        // #2A2D2E Hover
+        private static readonly Color BgStatus = Color.FromArgb(0, 122, 204);      // #007AC2 Status bar
+        private static readonly Color TextMain = Color.FromArgb(204, 204, 204);    // #CCCCCC
+        private static readonly Color TextActive = Color.FromArgb(224, 224, 224);  // #E0E0E0
+        private static readonly Color TextDim = Color.FromArgb(128, 128, 128);     // #808080
+        private static readonly Color AccentBlue = Color.FromArgb(0, 122, 194);    // #007AC2
+        private static readonly Color BorderDark = Color.FromArgb(51, 51, 51);     // #333333
+
+        // ═══ Category Colors (giống Civil 3D) ═══
+        private static readonly Color ClrSurface = Color.FromArgb(76, 175, 80);    // Green
+        private static readonly Color ClrAlign = Color.FromArgb(33, 150, 243);     // Blue
+        private static readonly Color ClrProfile = Color.FromArgb(156, 39, 176);   // Purple
+        private static readonly Color ClrSection = Color.FromArgb(255, 152, 0);    // Orange
+        private static readonly Color ClrSample = Color.FromArgb(0, 188, 212);     // Cyan
+        private static readonly Color ClrCorridor = Color.FromArgb(96, 125, 139);  // Blue Grey
+        private static readonly Color ClrPipe = Color.FromArgb(121, 85, 72);       // Brown
+        private static readonly Color ClrGrading = Color.FromArgb(255, 193, 7);    // Amber
+        private static readonly Color ClrUtils = Color.FromArgb(158, 158, 158);    // Grey
+
+        private TreeView treeView = null!;
+        private TextBox searchBox = null!;
+        private Panel headerPanel = null!;
+        private Panel statusPanel = null!;
+        private Label lblStatus = null!;
+        private Label lblCount = null!;
+        private ImageList imageList = null!;
+        private ToolTip toolTip = null!;
+        private int _hoveredNodeIndex = -1;
 
         public CivilToolPaletteControl()
         {
@@ -33,209 +64,616 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.BackColor = Color.FromArgb(45, 45, 48);
-            this.ForeColor = Color.White;
-            this.Font = new Font("Segoe UI", 9F);
+            this.BackColor = BgMain;
+            this.ForeColor = TextMain;
+            this.Dock = DockStyle.Fill;
 
-            // 1. Search Box Panel
-            var pnlTop = new Panel
+            // ═══ 1. HEADER — Gradient Civil 3D ═══
+            headerPanel = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 35,
-                Padding = new Padding(5),
-                BackColor = Color.FromArgb(30, 30, 30)
+                Height = 42,
+                Padding = new Padding(0)
+            };
+            headerPanel.Paint += (s, e) =>
+            {
+                using var grad = new LinearGradientBrush(
+                    headerPanel.ClientRectangle, BgHeader, BgHeaderDark, 0f);
+                e.Graphics.FillRectangle(grad, headerPanel.ClientRectangle);
+
+                // Title
+                using var titleFont = new Font("Segoe UI Semibold", 11f);
+                e.Graphics.DrawString("  CIVIL TOOL", titleFont, Brushes.White, 4, 10);
+
+                // Version tag
+                using var verFont = new Font("Segoe UI", 7.5f);
+                using var verBrush = new SolidBrush(Color.FromArgb(180, 210, 235));
+                e.Graphics.DrawString("v2.0", verFont, verBrush, headerPanel.Width - 35, 15);
             };
 
-            lblSearch = new Label
+            // Nút Expand/Collapse All
+            var btnExpand = new Button
+            {
+                Text = "⊞",
+                Size = new Size(28, 28),
+                Location = new Point(0, 7),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.Transparent,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10f),
+                Cursor = Cursors.Hand
+            };
+            btnExpand.FlatAppearance.BorderSize = 0;
+            btnExpand.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 255, 255, 255);
+            btnExpand.Click += (s, e) =>
+            {
+                if (treeView.Nodes.Count > 0 && treeView.Nodes[0].IsExpanded)
+                    treeView.CollapseAll();
+                else
+                    treeView.ExpandAll();
+            };
+            headerPanel.Controls.Add(btnExpand);
+            headerPanel.Resize += (s, e) => btnExpand.Location = new Point(headerPanel.Width - 32, 7);
+
+            // ═══ 2. SEARCH BAR ═══
+            var searchPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 34,
+                BackColor = Color.FromArgb(45, 45, 48),
+                Padding = new Padding(6, 4, 6, 4)
+            };
+
+            var lblSearchIcon = new Label
             {
                 Text = "🔍",
                 AutoSize = true,
-                Location = new Point(5, 8),
-                ForeColor = Color.LightGray
+                Location = new Point(8, 7),
+                ForeColor = TextDim,
+                Font = new Font("Segoe UI", 9f)
             };
+            searchPanel.Controls.Add(lblSearchIcon);
 
             searchBox = new TextBox
             {
                 Location = new Point(30, 5),
-                Width = 200, // Will anchor
-                Anchor = AnchorStyles.Left | AnchorStyles.Right,
-                BackColor = Color.FromArgb(60, 60, 65),
-                ForeColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
+                Height = 24,
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top,
+                BackColor = BgSearch,
+                ForeColor = TextActive,
+                BorderStyle = BorderStyle.FixedSingle,
+                Font = new Font("Segoe UI", 9f)
             };
             searchBox.TextChanged += SearchBox_TextChanged;
+            searchBox.GotFocus += (s, e) => { if (searchBox.ForeColor == TextDim) { searchBox.Text = ""; searchBox.ForeColor = TextActive; } };
+            searchPanel.Controls.Add(searchBox);
+            searchPanel.Resize += (s, e) => searchBox.Width = searchPanel.Width - 42;
 
-            pnlTop.Controls.Add(lblSearch);
-            pnlTop.Controls.Add(searchBox);
+            // ═══ 3. TREEVIEW — Custom Draw ═══
+            imageList = new ImageList { ImageSize = new Size(16, 16), ColorDepth = ColorDepth.Depth32Bit };
+            CreateCategoryIcons();
 
-            // 2. TreeView
             treeView = new TreeView
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(37, 37, 38),
-                ForeColor = Color.White,
+                BackColor = BgTree,
+                ForeColor = TextMain,
                 BorderStyle = BorderStyle.None,
-                ShowLines = true,
+                ShowLines = false,
                 ShowPlusMinus = true,
-                ShowRootLines = true,
+                ShowRootLines = false,
                 FullRowSelect = true,
-                ItemHeight = 22
+                ItemHeight = 26,
+                Font = new Font("Segoe UI", 9.25f),
+                ImageList = imageList,
+                HotTracking = true,
+                DrawMode = TreeViewDrawMode.OwnerDrawAll,
+                ShowNodeToolTips = true
             };
-            
-            // ImageList cho icons
-            imageList = new ImageList { ImageSize = new Size(16, 16), ColorDepth = ColorDepth.Depth32Bit };
-            // Placeholder icons (trong thực tế nên load từ Resources)
-            imageList.Images.Add("folder", CreateBitmap(Color.Goldenrod)); // 0
-            imageList.Images.Add("cmd", CreateBitmap(Color.SteelBlue));    // 1
-            treeView.ImageList = imageList;
-
+            treeView.DrawNode += TreeView_DrawNode;
             treeView.NodeMouseDoubleClick += TreeView_NodeMouseDoubleClick;
+            treeView.NodeMouseClick += TreeView_NodeMouseClick;
+            treeView.MouseMove += TreeView_MouseMove;
+            treeView.MouseLeave += (s, e) => { _hoveredNodeIndex = -1; treeView.Invalidate(); };
 
+            // ═══ 4. STATUS BAR ═══
+            statusPanel = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 24,
+                BackColor = BgStatus
+            };
+            statusPanel.Paint += (s, e) =>
+            {
+                using var grad = new LinearGradientBrush(
+                    statusPanel.ClientRectangle, BgStatus, Color.FromArgb(0, 100, 170), 0f);
+                e.Graphics.FillRectangle(grad, statusPanel.ClientRectangle);
+            };
+
+            lblStatus = new Label
+            {
+                Text = "Ready",
+                AutoSize = true,
+                Location = new Point(6, 4),
+                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 8f)
+            };
+            statusPanel.Controls.Add(lblStatus);
+
+            lblCount = new Label
+            {
+                Text = "",
+                AutoSize = true,
+                ForeColor = Color.FromArgb(200, 220, 255),
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 8f),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
+            };
+            statusPanel.Controls.Add(lblCount);
+            statusPanel.Resize += (s, e) => lblCount.Location = new Point(statusPanel.Width - lblCount.Width - 8, 4);
+
+            // ═══ 5. Context Menu ═══
+            var ctxMenu = new ContextMenuStrip();
+            ctxMenu.BackColor = Color.FromArgb(45, 45, 48);
+            ctxMenu.ForeColor = TextMain;
+            ctxMenu.Renderer = new DarkToolStripRenderer();
+
+            var mnuRun = new ToolStripMenuItem("▶  Chạy lệnh") { Font = new Font("Segoe UI", 9f) };
+            mnuRun.Click += (s, e) => ExecuteSelectedCommand();
+
+            var mnuCopy = new ToolStripMenuItem("📋  Sao chép tên lệnh") { Font = new Font("Segoe UI", 9f) };
+            mnuCopy.Click += (s, e) =>
+            {
+                if (treeView.SelectedNode?.Tag is string cmd)
+                    Clipboard.SetText(cmd);
+            };
+
+            var mnuExpandAll = new ToolStripMenuItem("⊞  Mở rộng tất cả") { Font = new Font("Segoe UI", 9f) };
+            mnuExpandAll.Click += (s, e) => treeView.ExpandAll();
+
+            var mnuCollapseAll = new ToolStripMenuItem("⊟  Thu gọn tất cả") { Font = new Font("Segoe UI", 9f) };
+            mnuCollapseAll.Click += (s, e) => treeView.CollapseAll();
+
+            ctxMenu.Items.AddRange(new ToolStripItem[] { mnuRun, mnuCopy, new ToolStripSeparator(), mnuExpandAll, mnuCollapseAll });
+            treeView.ContextMenuStrip = ctxMenu;
+
+            // ═══ Assemble ═══
             this.Controls.Add(treeView);
-            this.Controls.Add(pnlTop);
+            this.Controls.Add(searchPanel);
+            this.Controls.Add(headerPanel);
+            this.Controls.Add(statusPanel);
+
+            toolTip = new ToolTip { BackColor = Color.FromArgb(45, 45, 48), ForeColor = TextMain };
         }
 
-        private Bitmap CreateBitmap(Color color)
+        // ═══ Custom TreeView Drawing ═══
+        private void TreeView_DrawNode(object? sender, DrawTreeNodeEventArgs e)
         {
-            Bitmap bmp = new Bitmap(16, 16);
-            using (Graphics g = Graphics.FromImage(bmp))
+            if (e.Node == null || e.Bounds.IsEmpty) return;
+
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            // Full row bounds
+            var rowBounds = new Rectangle(0, e.Bounds.Y, treeView.Width, e.Bounds.Height);
+            bool isSelected = e.Node == treeView.SelectedNode;
+            bool isHovered = e.Node.Bounds.Y == _hoveredNodeIndex;
+            bool isCategory = e.Node.Parent == null;
+
+            // Background
+            Color bgColor = isSelected ? BgSelected : (isHovered ? BgHover : BgTree);
+            using (var bgBrush = new SolidBrush(bgColor))
+                g.FillRectangle(bgBrush, rowBounds);
+
+            // Selected indicator (left bar)
+            if (isSelected)
             {
-                g.Clear(Color.Transparent);
-                g.FillEllipse(new SolidBrush(color), 2, 2, 12, 12);
+                using var accentBrush = new SolidBrush(AccentBlue);
+                g.FillRectangle(accentBrush, new Rectangle(0, e.Bounds.Y, 3, e.Bounds.Height));
             }
+
+            // Indent
+            int indent = e.Node.Level * 18 + 22;
+
+            // Expand/Collapse indicator for categories
+            if (isCategory && e.Node.Nodes.Count > 0)
+            {
+                string arrow = e.Node.IsExpanded ? "▾" : "▸";
+                using var arrowFont = new Font("Segoe UI", 8f);
+                using var arrowBrush = new SolidBrush(TextDim);
+                g.DrawString(arrow, arrowFont, arrowBrush, indent - 16, e.Bounds.Y + 6);
+            }
+
+            // Icon
+            if (e.Node.ImageKey != null && imageList.Images.ContainsKey(e.Node.ImageKey))
+            {
+                var icon = imageList.Images[e.Node.ImageKey];
+                g.DrawImage(icon, indent, e.Bounds.Y + 5, 16, 16);
+            }
+
+            // Text
+            Color textColor = isCategory ? TextActive : (isSelected ? Color.White : TextMain);
+            var font = isCategory ? new Font("Segoe UI Semibold", 9.25f) : new Font("Segoe UI", 9f);
+            using (font)
+            using (var textBrush = new SolidBrush(textColor))
+            {
+                g.DrawString(e.Node.Text, font, textBrush, indent + 20, e.Bounds.Y + 4);
+            }
+
+            // Command count for categories
+            if (isCategory)
+            {
+                string countText = $"({e.Node.Nodes.Count})";
+                using var countFont = new Font("Segoe UI", 7.5f);
+                using var countBrush = new SolidBrush(TextDim);
+                var textSize = g.MeasureString(e.Node.Text, new Font("Segoe UI Semibold", 9.25f));
+                g.DrawString(countText, countFont, countBrush, indent + 22 + textSize.Width, e.Bounds.Y + 7);
+            }
+
+            // Bottom separator for categories
+            if (isCategory)
+            {
+                using var sepPen = new Pen(BorderDark);
+                g.DrawLine(sepPen, 0, e.Bounds.Bottom - 1, treeView.Width, e.Bounds.Bottom - 1);
+            }
+        }
+
+        private void TreeView_MouseMove(object? sender, MouseEventArgs e)
+        {
+            var node = treeView.GetNodeAt(e.Location);
+            int newHover = node?.Bounds.Y ?? -1;
+            if (newHover != _hoveredNodeIndex)
+            {
+                _hoveredNodeIndex = newHover;
+                treeView.Invalidate();
+            }
+        }
+
+        // ═══ Category Icons — Color-Coded ═══
+        private void CreateCategoryIcons()
+        {
+            // Surface — TIN mesh triangle
+            imageList.Images.Add("surface", DrawIcon(ClrSurface, (g, p) =>
+            {
+                g.DrawLine(p, 2, 12, 7, 3);
+                g.DrawLine(p, 7, 3, 13, 8);
+                g.DrawLine(p, 13, 8, 14, 12);
+                g.DrawLine(p, 2, 12, 7, 10);
+                g.DrawLine(p, 7, 10, 14, 12);
+                g.DrawLine(p, 7, 3, 7, 10);
+                g.DrawLine(p, 13, 8, 7, 10);
+            }));
+
+            // Alignment — Horizontal curve (road centerline)
+            imageList.Images.Add("align", DrawIcon(ClrAlign, (g, p) =>
+            {
+                var pen2 = new Pen(ClrAlign, 2f);
+                g.DrawCurve(pen2, new PointF[] {
+                    new(1, 12), new(5, 4), new(11, 8), new(15, 3)
+                });
+                pen2.Dispose();
+                // PI marker
+                using var redBrush = new SolidBrush(Color.FromArgb(232, 65, 78));
+                g.FillEllipse(redBrush, 6, 4, 4, 4);
+            }));
+
+            // Profile — Elevation graph
+            imageList.Images.Add("profile", DrawIcon(ClrProfile, (g, p) =>
+            {
+                // Baseline
+                g.DrawLine(new Pen(ClrProfile, 1f), 1, 13, 15, 13);
+                // Profile line
+                var pen2 = new Pen(ClrProfile, 1.8f);
+                g.DrawLines(pen2, new PointF[] {
+                    new(1, 10), new(4, 6), new(7, 9), new(10, 4), new(14, 7)
+                });
+                pen2.Dispose();
+                // Grid ticks
+                var dimPen = new Pen(Color.FromArgb(120, ClrProfile), 0.8f);
+                for (int x = 4; x <= 12; x += 4)
+                    g.DrawLine(dimPen, x, 12, x, 14);
+                dimPen.Dispose();
+            }));
+
+            // Section — Cross-section (cut/fill shape)
+            imageList.Images.Add("section", DrawIcon(ClrSection, (g, p) =>
+            {
+                // Natural ground  
+                var brownPen = new Pen(Color.FromArgb(155, 100, 50), 1.2f);
+                g.DrawLines(brownPen, new PointF[] {
+                    new(1, 9), new(4, 6), new(8, 8), new(12, 5), new(15, 7)
+                });
+                brownPen.Dispose();
+                // Design line
+                var pen2 = new Pen(ClrSection, 1.8f);
+                g.DrawLine(pen2, 3, 8, 13, 8);
+                pen2.Dispose();
+                // Slopes
+                g.DrawLine(p, 3, 8, 1, 12);
+                g.DrawLine(p, 13, 8, 15, 12);
+            }));
+
+            // Sample Line — Station markers on alignment
+            imageList.Images.Add("sample", DrawIcon(ClrSample, (g, p) =>
+            {
+                // Centerline
+                var pen2 = new Pen(ClrSample, 1.5f);
+                g.DrawLine(pen2, 1, 8, 15, 8);
+                pen2.Dispose();
+                // Station ticks
+                for (int x = 3; x <= 13; x += 3)
+                    g.DrawLine(p, x, 5, x, 11);
+                // Main station (thicker)
+                g.DrawLine(new Pen(ClrSample, 2f), 8, 3, 8, 13);
+            }));
+
+            // Corridor — Road cross-section (trapezoidal)
+            imageList.Images.Add("corridor", DrawIcon(ClrCorridor, (g, p) =>
+            {
+                // Road surface
+                g.FillPolygon(new SolidBrush(Color.FromArgb(80, ClrCorridor)),
+                    new PointF[] { new(1, 12), new(4, 6), new(12, 6), new(15, 12) });
+                g.DrawPolygon(p, new PointF[] { new(1, 12), new(4, 6), new(12, 6), new(15, 12) });
+                // Centerline
+                var dashPen = new Pen(ClrAlign, 1f) { DashStyle = DashStyle.Dash };
+                g.DrawLine(dashPen, 8, 5, 8, 13);
+                dashPen.Dispose();
+            }));
+
+            // Pipe — Pipe with manhole
+            imageList.Images.Add("pipe", DrawIcon(ClrPipe, (g, p) =>
+            {
+                var pen2 = new Pen(ClrPipe, 2f);
+                g.DrawLine(pen2, 1, 9, 5, 8);
+                g.DrawLine(pen2, 11, 8, 15, 7);
+                pen2.Dispose();
+                // Manhole (rectangle)
+                g.DrawRectangle(p, 5, 4, 6, 8);
+                g.FillRectangle(new SolidBrush(Color.FromArgb(80, ClrPipe)), 5, 4, 6, 8);
+            }));
+
+            // Grading — Grid with elevation numbers
+            imageList.Images.Add("grading", DrawIcon(ClrGrading, (g, p) =>
+            {
+                var gridPen = new Pen(ClrGrading, 0.8f);
+                for (int i = 0; i <= 3; i++)
+                {
+                    int pos = 2 + i * 4;
+                    g.DrawLine(gridPen, 2, pos, 14, pos);
+                    g.DrawLine(gridPen, pos, 2, pos, 14);
+                }
+                gridPen.Dispose();
+                // Elevation dots at intersections
+                using var dotBrush = new SolidBrush(Color.FromArgb(60, 60, 60));
+                g.FillEllipse(dotBrush, 5, 5, 3, 3);
+                g.FillEllipse(dotBrush, 9, 9, 3, 3);
+            }));
+
+            // Utils — Gear/cog
+            imageList.Images.Add("utils", DrawIcon(ClrUtils, (g, p) =>
+            {
+                g.DrawEllipse(p, 4, 4, 8, 8);
+                g.FillEllipse(new SolidBrush(BgTree), 6, 6, 4, 4);
+                for (int i = 0; i < 6; i++)
+                {
+                    double angle = i * Math.PI / 3;
+                    float x1 = 8 + 4 * (float)Math.Cos(angle);
+                    float y1 = 8 + 4 * (float)Math.Sin(angle);
+                    float x2 = 8 + 6.5f * (float)Math.Cos(angle);
+                    float y2 = 8 + 6.5f * (float)Math.Sin(angle);
+                    g.DrawLine(new Pen(ClrUtils, 2f), x1, y1, x2, y2);
+                }
+            }));
+
+            // Command — Small arrow indicator
+            imageList.Images.Add("cmd", DrawIcon(AccentBlue, (g, p) =>
+            {
+                g.FillPolygon(new SolidBrush(AccentBlue),
+                    new PointF[] { new(5, 3), new(12, 8), new(5, 13) });
+            }));
+
+            // Point — Survey benchmark triangle
+            imageList.Images.Add("point", DrawIcon(ClrAlign, (g, p) =>
+            {
+                g.DrawPolygon(p, new PointF[] { new(8, 2), new(2, 13), new(14, 13) });
+                g.FillEllipse(new SolidBrush(ClrAlign), 6, 7, 4, 4);
+            }));
+
+            // Volume — Cut/Fill diagram
+            var clrVolume = Color.FromArgb(239, 83, 80);
+            imageList.Images.Add("volume", DrawIcon(clrVolume, (g, p) =>
+            {
+                // Cut (red area above line)
+                g.FillPolygon(new SolidBrush(Color.FromArgb(100, 220, 53, 69)),
+                    new PointF[] { new(1, 8), new(5, 4), new(8, 8) });
+                // Fill (green area below line)
+                g.FillPolygon(new SolidBrush(Color.FromArgb(100, 40, 167, 69)),
+                    new PointF[] { new(8, 8), new(13, 12), new(15, 8) });
+                // Design line
+                g.DrawLine(new Pen(clrVolume, 1.5f), 1, 8, 15, 8);
+            }));
+        }
+
+        private Bitmap DrawIcon(Color color, Action<Graphics, Pen> draw)
+        {
+            var bmp = new Bitmap(16, 16);
+            using var g = Graphics.FromImage(bmp);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Color.Transparent);
+            using var pen = new Pen(color, 1.2f);
+            draw(g, pen);
             return bmp;
         }
 
+        // ═══ Load Commands ═══
         private void LoadCommands(string filter = "")
         {
             treeView.BeginUpdate();
             treeView.Nodes.Clear();
 
-            // Root Nodes (Categories)
-            var rootSurface = CreateNode("Bề mặt (Surfaces)", "folder");
-            var rootAlign = CreateNode("Tuyến (Alignments)", "folder");
-            var rootProfile = CreateNode("Trắc dọc (Profiles)", "folder");
-            var rootSection = CreateNode("Trắc ngang (Sections)", "folder");
-            var rootSample = CreateNode("Cọc (sample Lines)", "folder");
-            var rootCorridor = CreateNode("Corridor", "folder");
-            var rootPipe = CreateNode("Thoát nước (Pipes)", "folder");
-            var rootGrading = CreateNode("San nền (Grading)", "folder");
-            var rootUtils = CreateNode("Tiện ích (Utilities)", "folder");
+            var config = MenuSettingsForm.LoadSavedConfig();
+            int totalCmds = 0;
 
-            // Add Commands to Categories (Filter applied here)
-            // Surfaces
-            AddCmd(rootSurface, "Spot Elevation tại tim", "CTSu_TaoSpotElevation_OnSurface_TaiTim", filter);
-            
-            // Sample Lines
-            AddCmd(rootSample, "Đổi tên Cọc", "CTS_DoiTenCoc", filter);
-            AddCmd(rootSample, "Đổi tên Cọc (Đoạn)", "CTS_DoiTenCoc2", filter);
-            AddCmd(rootSample, "Phát sinh Cọc Auto", "CTS_PhatSinhCoc", filter);
-            AddCmd(rootSample, "Thống kê Cọc (Excel)", "CTSV_ThongKeCoc", filter);
+            foreach (var group in config.CivilGroups)
+            {
+                if (group.Commands.Count == 0) continue;
 
-            // Alignments
-            AddCmd(rootAlign, "Tạo Trắc dọc", "CTPV_TaoProfileView", filter);
-            AddCmd(rootAlign, "Thêm Bảng Lý trình", "CTPV_ThemBang_LyTrinh", filter);
+                // Determine icon key from group IconType
+                string iconKey = group.IconType?.ToUpper() switch
+                {
+                    "SURFACE" => "surface",
+                    "ALIGN" => "align",
+                    "PROFILE" => "profile",
+                    "SECTION" => "section",
+                    "STATION" => "sample",
+                    "CORRIDOR" => "corridor",
+                    "PIPE" => "pipe",
+                    "GRADING" => "grading",
+                    "POINT" => "point",
+                    "VOLUME" => "volume",
+                    _ => "utils"
+                };
 
-            // Profiles
-            AddCmd(rootProfile, "Vẽ Trắc dọc Tự nhiên", "CTP_VeTracDoc_TuNhien", filter);
-            AddCmd(rootProfile, "Thống kê Parcel", "CTP_TaoBangThongKeParcel", filter);
+                // Clean group name (remove emojis)
+                string cleanName = System.Text.RegularExpressions.Regex.Replace(
+                    group.GroupName,
+                    @"[\u2600-\u27BF\u2B50-\u2B55\u25A0-\u25FF\uFE00-\uFEFF]+|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD00-\uDDFF]",
+                    "").Trim();
 
-            // Sections
-            AddCmd(rootSection, "Vẽ Trắc ngang TK", "CTSV_VeTracNgangThietKe", filter);
-            AddCmd(rootSection, "Đánh cấp Taluy", "CTSV_DanhCap", filter);
-            AddCmd(rootSection, "Xuất Khối lượng Excel", "CTSV_XuatKhoiLuong", filter);
+                var rootNode = new TreeNode(cleanName)
+                {
+                    ImageKey = iconKey,
+                    SelectedImageKey = iconKey
+                };
 
-            // Corridors
-            AddCmd(rootCorridor, "Thêm tất cả Section", "CTC_AddAllSection", filter);
-            AddCmd(rootCorridor, "Tạo Corridor Đô thị", "CTC_TaoCooridor_DuongDoThi_RePhai", filter);
+                foreach (var cmd in group.Commands)
+                {
+                    if (string.IsNullOrEmpty(cmd.Command) || cmd.Command == "---") continue;
+                    if (!cmd.IsEnabled) continue;
 
-            // Pipes
-            AddCmd(rootPipe, "Đổi đường kính Cống", "CTPi_ThayDoi_DuongKinhCong", filter);
-            AddCmd(rootPipe, "Thống kê Hố ga", "CTPi_TaoBang_CaoDoDayHoGa", filter); // Assuming rename
-            
-            // Grading
-            AddCmd(rootGrading, "Tạo Lưới San nền", "CTSN_TaoLuoi", filter);
-            AddCmd(rootGrading, "Tính Khối lượng SN", "CTSN_TinhKL", filter);
+                    // Filter
+                    if (!string.IsNullOrEmpty(filter) &&
+                        cmd.Label.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0 &&
+                        cmd.Command.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0)
+                        continue;
 
-            // Utils
-            AddCmd(rootUtils, "Xuất Tọa độ Polyline", "CT_XuatToaDo", filter);
-            AddCmd(rootUtils, "Tọa độ Hố ga (DLL)", "CT_VTOADOHG", filter);
+                    var node = new TreeNode(cmd.Label)
+                    {
+                        Tag = cmd.Command,
+                        ImageKey = "cmd",
+                        SelectedImageKey = "cmd",
+                        ToolTipText = $"Lệnh: {cmd.Command}"
+                    };
+                    rootNode.Nodes.Add(node);
+                    totalCmds++;
+                }
 
+                if (rootNode.Nodes.Count > 0)
+                    treeView.Nodes.Add(rootNode);
+            }
 
-            // Add roots to View if they have children
-            if (rootSurface.Nodes.Count > 0) treeView.Nodes.Add(rootSurface);
-            if (rootAlign.Nodes.Count > 0) treeView.Nodes.Add(rootAlign);
-            if (rootProfile.Nodes.Count > 0) treeView.Nodes.Add(rootProfile);
-            if (rootSection.Nodes.Count > 0) treeView.Nodes.Add(rootSection);
-            if (rootSample.Nodes.Count > 0) treeView.Nodes.Add(rootSample);
-            if (rootCorridor.Nodes.Count > 0) treeView.Nodes.Add(rootCorridor);
-            if (rootPipe.Nodes.Count > 0) treeView.Nodes.Add(rootPipe);
-            if (rootGrading.Nodes.Count > 0) treeView.Nodes.Add(rootGrading);
-            if (rootUtils.Nodes.Count > 0) treeView.Nodes.Add(rootUtils);
-
-            treeView.ExpandAll();
-            if (string.IsNullOrEmpty(filter)) treeView.CollapseAll(); // Default collapse if no search
-            else treeView.ExpandAll(); // Expand if searching
+            if (string.IsNullOrEmpty(filter))
+                treeView.CollapseAll();
+            else
+                treeView.ExpandAll();
 
             treeView.EndUpdate();
+
+            // Update status
+            lblCount.Text = $"{totalCmds} lệnh";
+            lblCount.Location = new Point(statusPanel.Width - lblCount.Width - 8, 4);
+            lblStatus.Text = string.IsNullOrEmpty(filter) ? "Ready" : $"Tìm: \"{filter}\"";
         }
 
-        private TreeNode CreateNode(string text, string imageKey)
-        {
-            return new TreeNode(text) { ImageKey = imageKey, SelectedImageKey = imageKey };
-        }
-
-        private void AddCmd(TreeNode parent, string text, string command, string filter)
-        {
-            // Simple filter logic
-            if (string.IsNullOrEmpty(filter) || 
-                text.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                command.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                var node = new TreeNode(text) 
-                { 
-                    Tag = command,
-                    ImageKey = "cmd",
-                    SelectedImageKey = "cmd",
-                    ToolTipText = command
-                };
-                parent.Nodes.Add(node);
-            }
-        }
-
-        private void SearchBox_TextChanged(object sender, EventArgs e)
+        // ═══ Events ═══
+        private void SearchBox_TextChanged(object? sender, EventArgs e)
         {
             LoadCommands(searchBox.Text);
         }
 
-        private void TreeView_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
+        private void TreeView_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
         {
-            if (e.Node.Tag != null)
+            ExecuteSelectedCommand();
+        }
+
+        private void TreeView_NodeMouseClick(object? sender, TreeNodeMouseClickEventArgs e)
+        {
+            // Toggle expand/collapse on category click
+            if (e.Node?.Parent == null && e.Button == MouseButtons.Left)
             {
-                string cmd = e.Node.Tag.ToString();
-                ExecuteCommand(cmd);
+                if (e.Node.IsExpanded)
+                    e.Node.Collapse();
+                else
+                    e.Node.Expand();
             }
         }
 
-        private void ExecuteCommand(string cmd)
+        private void ExecuteSelectedCommand()
         {
-            try
+            if (treeView.SelectedNode?.Tag is string cmd && !string.IsNullOrEmpty(cmd))
             {
-                var doc = AcadApp.DocumentManager.MdiActiveDocument;
-                if (doc != null)
+                try
                 {
-                    // Focus back to AutoCAD before sending command
-                    Autodesk.AutoCAD.Internal.Utils.SetFocusToDwgView();
-                    doc.SendStringToExecute($"{cmd} ", true, false, false);
+                    lblStatus.Text = $"▶ {cmd}";
+                    var doc = AcadApp.DocumentManager.MdiActiveDocument;
+                    if (doc != null)
+                    {
+                        Autodesk.AutoCAD.Internal.Utils.SetFocusToDwgView();
+                        doc.SendStringToExecute($"{cmd} ", true, false, false);
+                    }
                 }
-            }
-            catch (System.Exception ex)
-            {
-                MessageBox.Show($"Lỗi thực thi lệnh: {ex.Message}");
+                catch (System.Exception ex)
+                {
+                    lblStatus.Text = $"⚠ Lỗi: {ex.Message}";
+                }
             }
         }
     }
 
+    // ═══ Dark ToolStrip Renderer ═══
+    internal class DarkToolStripRenderer : ToolStripProfessionalRenderer
+    {
+        public DarkToolStripRenderer() : base(new DarkColorTable()) { }
+
+        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            if (e.Item.Selected)
+            {
+                using var brush = new SolidBrush(Color.FromArgb(9, 71, 113));
+                e.Graphics.FillRectangle(brush, new Rectangle(Point.Empty, e.Item.Size));
+            }
+            else
+            {
+                using var brush = new SolidBrush(Color.FromArgb(45, 45, 48));
+                e.Graphics.FillRectangle(brush, new Rectangle(Point.Empty, e.Item.Size));
+            }
+        }
+
+        protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+        {
+            using var pen = new Pen(Color.FromArgb(65, 65, 68));
+            e.Graphics.DrawLine(pen, 30, e.Item.Height / 2, e.Item.Width - 4, e.Item.Height / 2);
+        }
+    }
+
+    internal class DarkColorTable : ProfessionalColorTable
+    {
+        public override Color MenuBorder => Color.FromArgb(51, 51, 51);
+        public override Color MenuItemBorder => Color.FromArgb(9, 71, 113);
+        public override Color MenuItemSelected => Color.FromArgb(9, 71, 113);
+        public override Color MenuStripGradientBegin => Color.FromArgb(45, 45, 48);
+        public override Color MenuStripGradientEnd => Color.FromArgb(45, 45, 48);
+        public override Color ToolStripDropDownBackground => Color.FromArgb(45, 45, 48);
+        public override Color ImageMarginGradientBegin => Color.FromArgb(45, 45, 48);
+        public override Color ImageMarginGradientMiddle => Color.FromArgb(45, 45, 48);
+        public override Color ImageMarginGradientEnd => Color.FromArgb(45, 45, 48);
+        public override Color SeparatorDark => Color.FromArgb(65, 65, 68);
+        public override Color SeparatorLight => Color.FromArgb(65, 65, 68);
+    }
+
+    // ═══ Palette Commands ═══
     public class CivilToolPaletteCommands
     {
         private static PaletteSet? _ps = null;
@@ -246,18 +684,17 @@ namespace MyFirstProject
         {
             if (_ps == null)
             {
-                _ps = new PaletteSet("Civil Tool Palette", new Guid("AA9A60C8-5807-4C04-B473-45B13D5D7260"));
+                _ps = new PaletteSet("Civil Tool", new Guid("AA9A60C8-5807-4C04-B473-45B13D5D7260"));
                 _control = new CivilToolPaletteControl();
                 _ps.Add("Civil Commands", _control);
-                
-                // Docking defaults
-                _ps.Style = PaletteSetStyles.ShowAutoHideButton | 
+
+                _ps.Style = PaletteSetStyles.ShowAutoHideButton |
                            PaletteSetStyles.ShowCloseButton |
                            PaletteSetStyles.ShowPropertiesMenu;
-                _ps.MinimumSize = new Size(250, 300);
-                _ps.Dock = DockSides.Left; // Default dock left like Toolspace
+                _ps.MinimumSize = new Size(260, 400);
+                _ps.Dock = DockSides.Left;
             }
-            
+
             _ps.Visible = true;
         }
 

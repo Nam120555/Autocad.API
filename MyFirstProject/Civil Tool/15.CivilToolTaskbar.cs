@@ -23,6 +23,8 @@ namespace MyFirstProject
     public class CivilToolTaskbar : Form
     {
         private static CivilToolTaskbar? instance;
+        private Point _dragStart;
+        private bool _dragging = false;
 
         public CivilToolTaskbar()
         {
@@ -32,29 +34,48 @@ namespace MyFirstProject
         private void InitializeComponent()
         {
             this.Text = "Civil Tool";
-            this.Size = new Size(900, 75);
-            this.FormBorderStyle = FormBorderStyle.FixedToolWindow;
+            this.Size = new Size(900, 60);
+            this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.Manual;
             this.TopMost = true;
-            this.BackColor = Color.FromArgb(241, 241, 241);
-            this.ForeColor = Color.FromArgb(30, 30, 30);
+            this.BackColor = Color.FromArgb(45, 45, 48);
+            this.ForeColor = Color.FromArgb(220, 220, 220);
+            this.DoubleBuffered = true;
+
+            // Rounded corners (Windows 11)
+            this.Region = CreateRoundedRegion(this.Width, this.Height, 8);
+
+            // Drag support
+            this.MouseDown += (s, e) => { _dragging = true; _dragStart = e.Location; };
+            this.MouseMove += (s, e) => { if (_dragging) { this.Left += e.X - _dragStart.X; this.Top += e.Y - _dragStart.Y; } };
+            this.MouseUp += (s, e) => _dragging = false;
+
+            // Custom paint for gradient background
+            this.Paint += (s, e) =>
+            {
+                using var grad = new System.Drawing.Drawing2D.LinearGradientBrush(
+                    this.ClientRectangle,
+                    Color.FromArgb(50, 50, 54),
+                    Color.FromArgb(38, 38, 42), 90f);
+                e.Graphics.FillRectangle(grad, this.ClientRectangle);
+
+                // Bottom accent line
+                using var accentPen = new Pen(Color.FromArgb(0, 122, 204), 2);
+                e.Graphics.DrawLine(accentPen, 0, this.Height - 1, this.Width, this.Height - 1);
+            };
 
             // Đặt ở giữa phía trên màn hình
             var screenBounds = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
-            this.Location = new Point((screenBounds.Width - this.Width) / 2, 10);
+            this.Location = new Point((screenBounds.Width - this.Width) / 2, 5);
 
             // Load config đã lưu
             var config = MenuSettingsForm.LoadSavedConfig();
 
-            int btnWidth = 80;
-            int btnHeight = 42;
-            int margin = 2;
-            int x = margin;
-            int y = 5;
-
-            // Civil 3D color palette
-            var civilBlue = Color.FromArgb(0, 93, 160);
-            var civilGray = Color.FromArgb(210, 210, 210);
+            int btnWidth = 78;
+            int btnHeight = 36;
+            int margin = 3;
+            int x = 8;
+            int y = 12;
 
             // Tạo nút từ Civil groups
             foreach (var group in config.CivilGroups)
@@ -66,36 +87,42 @@ namespace MyFirstProject
                     .ToList();
                 if (cmds.Count == 0) continue;
 
-                // Bỏ emoji khỏi tên nhóm
                 string cleanName = System.Text.RegularExpressions.Regex.Replace(
                     group.GroupName, @"[\u2600-\u27BF\u2B50-\u2B55\u25A0-\u25FF\uFE00-\uFEFF]+|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD00-\uDDFF]", "").Trim();
 
-                this.Controls.Add(CreateDropdownButton(cleanName, x, y, btnWidth, btnHeight,
-                    civilGray, cmds));
+                this.Controls.Add(CreateDropdownButton(cleanName, x, y, btnWidth, btnHeight, cmds));
                 x += btnWidth + margin;
             }
 
-            // Nút Cài đặt menu
-            var btnSettings = CreateButton("⚙ Cài đặt", x, y, 65, btnHeight, Color.FromArgb(0, 93, 160));
+            // Nút Cài đặt
+            var btnSettings = CreateButton("⚙", x, y, 36, btnHeight, Color.FromArgb(0, 93, 160));
             btnSettings.ForeColor = Color.White;
-            btnSettings.Click += (s, e) =>
-            {
-                this.Hide();
-                RunCommand("CT_MENU_SETTINGS");
-                this.Show();
-            };
+            btnSettings.Click += (s, e) => { this.Hide(); RunCommand("CT_MENU_SETTINGS"); this.Show(); };
             this.Controls.Add(btnSettings);
-            x += 65 + margin;
+            x += 36 + margin;
 
             // Close Button
-            var btnClose = CreateButton("✕", x, y, 30, btnHeight, Color.FromArgb(200, 80, 80));
-            btnClose.ForeColor = Color.White;
+            var btnClose = CreateButton("✕", x, y, 30, btnHeight, Color.FromArgb(70, 70, 75));
+            btnClose.ForeColor = Color.FromArgb(180, 180, 180);
+            btnClose.FlatAppearance.MouseOverBackColor = Color.FromArgb(196, 43, 28);
             btnClose.Click += (s, e) => this.Close();
             this.Controls.Add(btnClose);
 
             // Cập nhật kích thước form
-            this.Size = new Size(x + 40, 75);
-            this.Location = new Point((screenBounds.Width - this.Width) / 2, 10);
+            this.Size = new Size(x + 40, 60);
+            this.Region = CreateRoundedRegion(this.Width, this.Height, 8);
+            this.Location = new Point((screenBounds.Width - this.Width) / 2, 5);
+        }
+
+        private static System.Drawing.Region CreateRoundedRegion(int w, int h, int r)
+        {
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
+            path.AddArc(0, 0, r * 2, r * 2, 180, 90);
+            path.AddArc(w - r * 2, 0, r * 2, r * 2, 270, 90);
+            path.AddArc(w - r * 2, h - r * 2, r * 2, r * 2, 0, 90);
+            path.AddArc(0, h - r * 2, r * 2, r * 2, 90, 90);
+            path.CloseFigure();
+            return new System.Drawing.Region(path);
         }
 
         private Button CreateButton(string text, int x, int y, int width, int height, Color bgColor)
@@ -107,25 +134,29 @@ namespace MyFirstProject
                 Size = new Size(width, height),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = bgColor,
-                ForeColor = Color.FromArgb(30, 30, 30),
+                ForeColor = Color.FromArgb(210, 210, 210),
                 Cursor = Cursors.Hand,
                 Font = new Font("Segoe UI", 8.5f)
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 180);
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(180, 210, 235);
+            btn.FlatAppearance.BorderColor = Color.FromArgb(65, 65, 70);
+            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 100, 180);
+            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(0, 80, 150);
             return btn;
         }
 
         private Button CreateDropdownButton(string text, int x, int y, int width, int height,
-            Color bgColor, List<(string Name, string Command)> commands)
+            List<(string Name, string Command)> commands)
         {
-            var btn = CreateButton(text + " ▾", x, y, width, height, bgColor);
+            var btn = CreateButton(text + " ▾", x, y, width, height, Color.FromArgb(55, 55, 60));
             btn.Click += (s, e) =>
             {
                 var menu = new ContextMenuStrip();
-                menu.BackColor = Color.FromArgb(250, 250, 250);
-                menu.ForeColor = Color.FromArgb(30, 30, 30);
+                menu.BackColor = Color.FromArgb(45, 45, 48);
+                menu.ForeColor = Color.FromArgb(220, 220, 220);
                 menu.Font = new Font("Segoe UI", 9);
+                menu.Renderer = new DarkToolStripRenderer();
+                menu.ShowImageMargin = false;
 
                 foreach (var cmd in commands)
                 {
@@ -135,16 +166,10 @@ namespace MyFirstProject
                         continue;
                     }
 
-                    var item = new ToolStripMenuItem(cmd.Name);
-                    item.BackColor = Color.FromArgb(250, 250, 250);
-                    item.ForeColor = Color.FromArgb(30, 30, 30);
+                    var item = new ToolStripMenuItem($"  {cmd.Name}");
+                    item.ForeColor = Color.FromArgb(220, 220, 220);
                     string cmdName = cmd.Command;
-                    item.Click += (sender, args) =>
-                    {
-                        this.Hide();
-                        RunCommand(cmdName);
-                        this.Show();
-                    };
+                    item.Click += (sender, args) => { this.Hide(); RunCommand(cmdName); this.Show(); };
                     menu.Items.Add(item);
                 }
 

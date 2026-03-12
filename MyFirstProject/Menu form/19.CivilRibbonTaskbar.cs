@@ -1,5 +1,5 @@
 // 19.CivilRibbonTaskbar.cs - Thanh Ribbon Civil Tool
-// Thiết kế theo phong cách Civil 3D - Load config từ MenuSettingsForm
+// Thiết kế hiện đại theo phong cách Civil 3D - Gộp 1 tab duy nhất
 
 using System;
 using System.Collections.Generic;
@@ -18,15 +18,21 @@ using AcadException = Autodesk.AutoCAD.Runtime.Exception;
 namespace MyFirstProject
 {
     /// <summary>
-    /// Civil Ribbon Taskbar với theme xanh da trời và icon Civil 3D style
+    /// Civil Ribbon Taskbar - Thiết kế hiện đại theo phong cách Civil 3D
+    /// Gộp tất cả lệnh Civil + ACAD vào 1 tab duy nhất
     /// </summary>
     public class CivilRibbonTaskbar
     {
-        // Màu Civil 3D nguyên bản
-        private static readonly System.Windows.Media.Color PrimaryBlue = System.Windows.Media.Color.FromRgb(0, 93, 160);
-        private static readonly System.Windows.Media.Color LightBlue = System.Windows.Media.Color.FromRgb(180, 210, 235);
-        private static readonly System.Windows.Media.Color DarkBlue = System.Windows.Media.Color.FromRgb(0, 60, 105);
-        private static readonly System.Windows.Media.Color AccentBlue = System.Windows.Media.Color.FromRgb(0, 122, 194);
+        // ═══ Bảng màu Civil 3D nguyên bản ═══
+        private static readonly System.Windows.Media.Color PrimaryBlue = System.Windows.Media.Color.FromRgb(0, 93, 160);     // #005DA0 - Civil 3D chủ đạo
+        private static readonly System.Windows.Media.Color LightBlue = System.Windows.Media.Color.FromRgb(180, 210, 235);    // Highlight nhạt
+        private static readonly System.Windows.Media.Color DarkBlue = System.Windows.Media.Color.FromRgb(0, 60, 105);        // Đậm hơn
+        private static readonly System.Windows.Media.Color AccentBlue = System.Windows.Media.Color.FromRgb(0, 122, 194);     // #007AC2 - Accent Civil
+        private static readonly System.Windows.Media.Color AccentTeal = System.Windows.Media.Color.FromRgb(0, 148, 142);     // Teal Civil
+        private static readonly System.Windows.Media.Color SoftGray = System.Windows.Media.Color.FromRgb(88, 88, 88);        // Neutral
+        
+        // Số lệnh featured (hiện nút lớn) cho mỗi panel
+        private const int FEATURED_COUNT = 1;
 
         [CommandMethod("CIVIL_RIBBON")]
         public static void ShowCivilRibbon()
@@ -52,14 +58,11 @@ namespace MyFirstProject
                 // Load config đã lưu (từ MenuSettingsForm)
                 var config = MenuSettingsForm.LoadSavedConfig();
 
-                // Tạo tab Civil Tool từ config
-                CreateCivilToolTabFromConfig(ribbon, config);
-
-                // Tạo tab Acad Tool từ config
-                CreateAcadToolTabFromConfig(ribbon, config);
+                // Gộp tất cả vào 1 tab duy nhất
+                CreateSingleCivilTab(ribbon, config);
 
                 var ed = AcadApplication.DocumentManager.MdiActiveDocument?.Editor;
-                ed?.WriteMessage("\n✅ Đã tạo Civil Ribbon thành công!");
+                ed?.WriteMessage("\n✅ Civil Ribbon đã sẵn sàng!");
             }
             catch (System.Exception ex)
             {
@@ -79,79 +82,69 @@ namespace MyFirstProject
             }
         }
 
-        private static void CreateCivilToolTabFromConfig(RibbonControl ribbon, MenuConfig config)
+        /// <summary>
+        /// Gộp tất cả Civil + ACAD groups vào 1 tab duy nhất
+        /// </summary>
+        private static void CreateSingleCivilTab(RibbonControl ribbon, MenuConfig config)
         {
-            RibbonTab civilTab = new RibbonTab
+            RibbonTab tab = new RibbonTab
             {
                 Title = "Civil Tool",
                 Id = "CivilTool.MainTab"
             };
-            ribbon.Tabs.Add(civilTab);
+            ribbon.Tabs.Add(tab);
 
+            // Thêm tất cả Civil groups
             foreach (var group in config.CivilGroups)
             {
                 if (group.Commands.Count == 0) continue;
                 var cmds = group.Commands.Select(c => (c.Command, c.Label, c.SubIcon)).ToList();
-                AddCivilPanel(civilTab, group.GroupName, group.IconType, cmds);
+                AddCivilPanel(tab, group.GroupName, group.IconType, cmds);
             }
 
-            civilTab.IsActive = true;
-        }
-
-        private static void CreateAcadToolTabFromConfig(RibbonControl ribbon, MenuConfig config)
-        {
-            RibbonTab acadTab = new RibbonTab
-            {
-                Title = "ACAD Tool",
-                Id = "CivilTool.AcadTab"
-            };
-            ribbon.Tabs.Add(acadTab);
-
+            // Thêm tất cả ACAD groups vào cùng tab
             foreach (var group in config.AcadGroups)
             {
                 if (group.Commands.Count == 0) continue;
                 var cmds = group.Commands.Select(c => (c.Command, c.Label, c.SubIcon)).ToList();
-                AddCivilPanel(acadTab, group.GroupName, group.IconType, cmds);
+                AddCivilPanel(tab, group.GroupName, group.IconType, cmds);
             }
+
+            tab.IsActive = true;
         }
 
+        /// <summary>
+        /// Tạo panel kiểu Civil 3D hiện đại:
+        /// - Lệnh đầu tiên: NÚT LỚN (Large, icon 32px + text bên dưới)
+        /// - Các lệnh tiếp: HÀNG NÚT NHỎ (3 nút/hàng, icon 16px + text bên cạnh)
+        /// - Nếu nhiều quá (&gt;7): gộp vào SplitButton dropdown
+        /// </summary>
         public static void AddCivilPanel(RibbonTab tab, string title, string iconType, 
             List<(string Command, string Label, string SubIcon)> commands)
         {
             if (commands.Count == 0) return;
 
+            // Lọc bỏ separator, chỉ lấy lệnh thực
+            var realCmds = commands.Where(c => c.Command != "---" && !string.IsNullOrEmpty(c.Command)).ToList();
+            if (realCmds.Count == 0) return;
+
             RibbonPanelSource panelSource = new RibbonPanelSource { Title = title };
             RibbonPanel panel = new RibbonPanel { Source = panelSource };
 
-            // Tạo Split Button với dropdown - compact size
-            RibbonSplitButton splitButton = new RibbonSplitButton
+            // ═══ 1. NÚT LỚN - Lệnh featured đầu tiên ═══
+            int featuredCount = Math.Min(FEATURED_COUNT, realCmds.Count);
+            for (int i = 0; i < featuredCount; i++)
             {
-                Text = title,
-                ShowText = true,
-                ShowImage = true,
-                Size = RibbonItemSize.Standard,
-                Orientation = System.Windows.Controls.Orientation.Horizontal,
-                Image = CreateCivilIcon(iconType, 16),
-                LargeImage = CreateCivilIcon(iconType, 16),
-                ListStyle = RibbonSplitButtonListStyle.List
-            };
-
-            foreach (var (command, label, subIcon) in commands)
-            {
-                if (command == "---")
-                {
-                    splitButton.Items.Add(new RibbonSeparator());
-                    continue;
-                }
-
-                RibbonButton btn = new RibbonButton
+                var (command, label, subIcon) = realCmds[i];
+                RibbonButton largeBtn = new RibbonButton
                 {
                     Text = label,
                     ShowText = true,
                     ShowImage = true,
                     Image = CreateCivilIcon(subIcon, 16),
                     LargeImage = CreateCivilIcon(subIcon, 32),
-                    Size = RibbonItemSize.Standard,
+                    Size = RibbonItemSize.Large,
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
                     CommandHandler = new CivilRibbonCommandHandler(),
                     Tag = command,
                     CommandParameter = command,
@@ -162,29 +155,121 @@ namespace MyFirstProject
                         Command = command
                     }
                 };
-                splitButton.Items.Add(btn);
+                panelSource.Items.Add(largeBtn);
             }
 
-            panelSource.Items.Add(splitButton);
+            // ═══ 2. HÀNG NÚT NHỎ - Các lệnh phụ xếp 3 nút/hàng ═══
+            var secondaryCmds = realCmds.Skip(featuredCount).ToList();
+            
+            if (secondaryCmds.Count > 0 && secondaryCmds.Count <= 9)
+            {
+                // Xếp thành các hàng, mỗi hàng tối đa 3 nút nhỏ
+                RibbonRowPanel rowPanel = new RibbonRowPanel();
+                int colCount = 0;
+
+                foreach (var (command, label, subIcon) in secondaryCmds)
+                {
+                    RibbonButton smallBtn = CreateSmallButton(command, label, subIcon);
+                    rowPanel.Items.Add(smallBtn);
+                    colCount++;
+
+                    // Xuống hàng sau mỗi 3 nút (trừ hàng cuối)
+                    if (colCount % 3 == 0 && colCount < secondaryCmds.Count)
+                    {
+                        rowPanel.Items.Add(new RibbonRowBreak());
+                    }
+                }
+
+                panelSource.Items.Add(rowPanel);
+            }
+            else if (secondaryCmds.Count > 9)
+            {
+                // Quá nhiều → Hiện 6 nút nhỏ + SplitButton dropdown cho phần còn lại
+                var visibleCmds = secondaryCmds.Take(6).ToList();
+                var overflowCmds = secondaryCmds.Skip(6).ToList();
+
+                RibbonRowPanel rowPanel = new RibbonRowPanel();
+                int colCount = 0;
+                foreach (var (command, label, subIcon) in visibleCmds)
+                {
+                    rowPanel.Items.Add(CreateSmallButton(command, label, subIcon));
+                    colCount++;
+                    if (colCount % 3 == 0 && colCount < visibleCmds.Count)
+                        rowPanel.Items.Add(new RibbonRowBreak());
+                }
+                panelSource.Items.Add(rowPanel);
+
+                // SplitButton dropdown cho overflow commands
+                RibbonSplitButton overflowSplit = new RibbonSplitButton
+                {
+                    Text = "Thêm...",
+                    ShowText = true,
+                    ShowImage = true,
+                    Size = RibbonItemSize.Large,
+                    Orientation = System.Windows.Controls.Orientation.Vertical,
+                    Image = CreateCivilIcon(iconType, 16),
+                    LargeImage = CreateCivilIcon(iconType, 32),
+                    ListStyle = RibbonSplitButtonListStyle.List
+                };
+
+                foreach (var (command, label, subIcon) in overflowCmds)
+                {
+                    overflowSplit.Items.Add(CreateSmallButton(command, label, subIcon));
+                }
+                panelSource.Items.Add(overflowSplit);
+            }
+
             tab.Panels.Add(panel);
+        }
+
+        /// <summary>
+        /// Tạo nút nhỏ chuẩn (Standard size, icon 16px + text bên cạnh)
+        /// </summary>
+        private static RibbonButton CreateSmallButton(string command, string label, string subIcon)
+        {
+            return new RibbonButton
+            {
+                Text = label,
+                ShowText = true,
+                ShowImage = true,
+                Image = CreateCivilIcon(subIcon, 16),
+                LargeImage = CreateCivilIcon(subIcon, 32),
+                Size = RibbonItemSize.Standard,
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                CommandHandler = new CivilRibbonCommandHandler(),
+                Tag = command,
+                CommandParameter = command,
+                ToolTip = new RibbonToolTip
+                {
+                    Title = label,
+                    Content = $"Lệnh: {command}",
+                    Command = command
+                }
+            };
         }
 
         #region Icon Generator - Civil Engineering Theme
 
-        private static ImageSource CreateCivilIcon(string iconType, int size)
+        public static ImageSource CreateCivilIcon(string iconType, int size)
         {
             // Tạo icon theo chuẩn ký hiệu kỹ thuật giao thông
             DrawingVisual visual = new DrawingVisual();
             using (DrawingContext dc = visual.RenderOpen())
             {
+                // Gradient brushes cho icon hiện đại
+                var gradBlue = new LinearGradientBrush(PrimaryBlue, DarkBlue, 45);
+                var gradAccent = new LinearGradientBrush(AccentBlue, PrimaryBlue, 90);
+                var gradTeal = new LinearGradientBrush(AccentTeal, System.Windows.Media.Color.FromRgb(0, 130, 120), 45);
+                
                 var brushBlue = new SolidColorBrush(PrimaryBlue);
                 var brushLight = new SolidColorBrush(LightBlue);
                 var brushDark = new SolidColorBrush(DarkBlue);
                 var brushAccent = new SolidColorBrush(AccentBlue);
                 var brushWhite = System.Windows.Media.Brushes.White;
-                var brushRed = new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69));
-                var brushGreen = new SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 167, 69));
-                var brushBrown = new SolidColorBrush(System.Windows.Media.Color.FromRgb(139, 90, 43));
+                var brushRed = new SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 65, 78));
+                var brushGreen = new SolidColorBrush(System.Windows.Media.Color.FromRgb(45, 183, 80));
+                var brushBrown = new SolidColorBrush(System.Windows.Media.Color.FromRgb(155, 100, 50));
+                var brushOrange = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
                 
                 var penBlue = new System.Windows.Media.Pen(brushBlue, size / 10.0);
                 var penDark = new System.Windows.Media.Pen(brushDark, size / 8.0);
@@ -855,6 +940,7 @@ namespace MyFirstProject
                 ("CT_Taskbar", "Thanh công cụ", "UTILITY"),
                 ("CT_VTOADOHG", "Tọa độ hố ga", "POINT"),
                 ("CT_MENU_SETTINGS", "Cài đặt menu", "SETTINGS"),
+                ("CTC_TaoMViewTheoTuyen", "Tạo MView theo tuyến", "VIEW"),
                 ("---", "", ""),
                 ("CIVIL_RIBBON", "Reload menu", "RELOAD"),
             };

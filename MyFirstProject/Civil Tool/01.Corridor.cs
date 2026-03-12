@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 using Acad = Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -29,95 +30,74 @@ namespace MyFirstProject
         [CommandMethod("CTC_AddAllSection")]
         public static void CVC_AddAllSection()
         {
-            // start transantion
+            // Mở form tùy chọn
+            AddSectionForm form = new();
+            var dialogResult = Autodesk.AutoCAD.ApplicationServices.Application.ShowModalDialog(form);
+
+            if (dialogResult != DialogResult.OK || !form.IsConfirmed) return;
+            if (form.SelectedCorridorId == ObjectId.Null) return;
+
+            // Thực hiện add section
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                //start here
-                UserInput uI = new();
+                Corridor? corridor = tr.GetObject(form.SelectedCorridorId, OpenMode.ForWrite) as Corridor;
+                if (corridor == null) { tr.Commit(); return; }
 
-                // get corridor
-                ObjectId corridorId = UserInput.GCorridorId("\n Chọn mô hình corridor để add section:\n");
-                Corridor? corridor = tr.GetObject(corridorId, OpenMode.ForWrite) as Corridor;
-                int soTT = 0;
+                // Lấy danh sách station từ form preview
+                var stationsByBaseline = form.PreviewStations
+                    .GroupBy(s => s.BaselineName)
+                    .ToDictionary(g => g.Key, g => g.Select(s => s.Station).OrderBy(s => s).ToList());
 
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
+                int addedCount = 0;
+
                 foreach (Baseline baseline in corridor.Baselines)
                 {
-                    Alignment? alignment = tr.GetObject(baseline.AlignmentId, OpenMode.ForRead) as Alignment;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    ObjectIdCollection sampleLineGroupIds = alignment.GetSampleLineGroupIds();
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    A.Ok("Số lượng nhóm cọc có trên tuyến là " + sampleLineGroupIds.Count.ToString());
-
-
-                    // lập danh sách 
-                    for (int i = 0; i < sampleLineGroupIds.Count; i++)
+                    // Lấy station cho baseline này
+                    List<double> stations;
+                    if (stationsByBaseline.ContainsKey(baseline.Name))
                     {
-                        ObjectId sampleLineGroupId1 = alignment.GetSampleLineGroupIds()[i];
-                        SampleLineGroup? sampleLineGroup1 = tr.GetObject(sampleLineGroupId1, OpenMode.ForRead) as SampleLineGroup;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                        A.Ok("Nhóm sampleline thứ " + i.ToString() + " có tên là " + sampleLineGroup1.Name + "/n");
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                        stations = stationsByBaseline[baseline.Name];
                     }
-                    if (sampleLineGroupIds.Count != 1)
+                    else
                     {
-                        soTT = UserInput.GInt("Nhập số thự nhóm cọc muốn add section");
-                    }
-                    //get station of sampleline
-                    int j = 0;
-                    ObjectId sampleLineGroupId = alignment.GetSampleLineGroupIds()[soTT];
-                    SampleLineGroup? sampleLineGroup = tr.GetObject(sampleLineGroupId, OpenMode.ForRead) as SampleLineGroup;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    foreach (ObjectId samplelineId in sampleLineGroup.GetSampleLineIds())
-                    {
-                        j++;
-                    }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    double[] station = new double[j];
-                    int k = 0;
-                    foreach (ObjectId samplelineId in sampleLineGroup.GetSampleLineIds())
-                    {
-                        SampleLine? sampleLine = tr.GetObject(samplelineId, OpenMode.ForRead) as SampleLine;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                        station[k] = sampleLine.Station;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                        k++;
+                        // Fallback: dùng tất cả station (cho trường hợp tên baseline không khớp)
+                        stations = form.PreviewStations.Select(s => s.Station).OrderBy(s => s).ToList();
                     }
 
-                    //add section to corridor
                     foreach (BaselineRegion baselineRegion in baseline.BaselineRegions)
                     {
-                        baselineRegion.ClearAdditionalStations();
-                        double[] stationRegular = baselineRegion.SortedStations();
-                        foreach (double i in station)
+                        if (form.ClearOldStations)
                         {
-                            if ((i > baselineRegion.StartStation) && i < baselineRegion.EndStation)
+                            baselineRegion.ClearAdditionalStations();
+                        }
+
+                        double[] existingStations = baselineRegion.SortedStations();
+
+                        foreach (double station in stations)
+                        {
+                            if (station > baselineRegion.StartStation && station < baselineRegion.EndStation)
                             {
-                                foreach (double stationInRegion in stationRegular)
+                                // Kiểm tra trùng station đã có
+                                bool isDuplicate = existingStations.Any(s => Math.Abs(s - station) < 0.001);
+                                if (!isDuplicate)
                                 {
-                                    if (i == stationInRegion)
-                                    {
-                                        continue;
-                                    }
-                                    else
-                                    {
-                                        baselineRegion.AddStation(i, "AddSection");
-                                    }
+                                    baselineRegion.AddStation(station, "AddSection");
+                                    addedCount++;
                                 }
                             }
                         }
                     }
                 }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
                 corridor.Rebuild();
                 tr.Commit();
-            }
 
+                A.Ed.WriteMessage($"\n✅ Đã thêm {addedCount} section vào corridor {corridor.Name}");
+            }
             catch (Autodesk.AutoCAD.Runtime.Exception e)
             {
-                A.Ed.WriteMessage(e.Message);
+                A.Ed.WriteMessage($"\n❌ Lỗi: {e.Message}");
             }
         }
         /*

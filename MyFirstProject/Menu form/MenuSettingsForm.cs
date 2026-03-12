@@ -28,6 +28,7 @@ namespace MyFirstProject
         public string Command { get; set; } = "";
         public string Label { get; set; } = "";
         public string SubIcon { get; set; } = "ADD";
+        public bool IsEnabled { get; set; } = true;
 
         public override string ToString() => $"{Label}  [{Command}]";
     }
@@ -72,7 +73,7 @@ namespace MyFirstProject
 
         // Civil tab
         private ListBox lstGroups = null!;
-        private ListBox lstCommands = null!;
+        private CheckedListBox lstCommands = null!;
         private ListBox lstAllCommands = null!;
 
         // Buttons
@@ -83,6 +84,9 @@ namespace MyFirstProject
         private Button btnSave = null!, btnCancel = null!, btnReset = null!;
         private Button btnExport = null!, btnImport = null!;
         private ComboBox cmbCmdIcon = null!;
+        private PictureBox picCmdIconPreview = null!;
+        private PictureBox picGroupIconPreview = null!;
+        private bool _suppressItemCheck = false;
 
         // ─── Constructor ───
         public MenuSettingsForm()
@@ -148,17 +152,34 @@ namespace MyFirstProject
 
             // Col2: Lệnh trong nhóm
             var pnlCmds = CreateSection("📋 LỆNH TRONG NHÓM", 270, 10, 270, 480, mainPanel);
-            lstCommands = CreateListBox(pnlCmds, 5, 30, 260, 340);
+            lstCommands = new CheckedListBox
+            {
+                Location = new Point(5, 30),
+                Size = new Size(260, 320),
+                BackColor = Color.FromArgb(50, 50, 55),
+                ForeColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Font = new Font("Segoe UI", 9),
+                IntegralHeight = false,
+                CheckOnClick = true
+            };
+            lstCommands.SelectedIndexChanged += (s, e) => UpdateCmdIconCombo();
+            lstCommands.ItemCheck += LstCommands_ItemCheck;
+            pnlCmds.Controls.Add(lstCommands);
 
-            btnCmdUp = CreateButton("▲", 5, 380, 40, 32, pnlCmds, BtnCmdUp_Click);
-            btnCmdDown = CreateButton("▼", 50, 380, 40, 32, pnlCmds, BtnCmdDown_Click);
-            btnRemoveCmd = CreateButton("◀ Xóa khỏi nhóm", 95, 380, 165, 32, pnlCmds, BtnRemoveCmd_Click);
+            // Nút Chọn tất cả / Bỏ chọn tất cả
+            var btnCheckAll = CreateButton("☑ Tất cả", 5, 355, 128, 28, pnlCmds, BtnCheckAll_Click);
+            var btnUncheckAll = CreateButton("☐ Bỏ tất cả", 137, 355, 128, 28, pnlCmds, BtnUncheckAll_Click);
 
-            // Icon lệnh
+            btnCmdUp = CreateButton("▲", 5, 390, 40, 32, pnlCmds, BtnCmdUp_Click);
+            btnCmdDown = CreateButton("▼", 50, 390, 40, 32, pnlCmds, BtnCmdDown_Click);
+            btnRemoveCmd = CreateButton("◀ Xóa khỏi nhóm", 95, 390, 165, 32, pnlCmds, BtnRemoveCmd_Click);
+
+            // ───── ICON LỆNH (với preview) ─────
             var lblCmdIcon = new Label
             {
                 Text = "🎨 Icon lệnh:",
-                Location = new Point(5, 420),
+                Location = new Point(5, 432),
                 AutoSize = true,
                 ForeColor = Color.FromArgb(0, 93, 160),
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Bold)
@@ -167,8 +188,8 @@ namespace MyFirstProject
 
             cmbCmdIcon = new ComboBox
             {
-                Location = new Point(85, 418),
-                Size = new Size(180, 26),
+                Location = new Point(85, 430),
+                Size = new Size(140, 26),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = Color.FromArgb(60, 60, 67),
                 ForeColor = Color.White
@@ -195,9 +216,21 @@ namespace MyFirstProject
                             group.Commands[cmdIdx].SubIcon = icon;
                         }
                     }
+                    UpdateIconPreview(picCmdIconPreview, icon);
                 }
             };
             pnlCmds.Controls.Add(cmbCmdIcon);
+
+            // Preview icon lệnh
+            picCmdIconPreview = new PictureBox
+            {
+                Location = new Point(230, 427),
+                Size = new Size(32, 32),
+                BackColor = Color.FromArgb(50, 50, 55),
+                SizeMode = PictureBoxSizeMode.CenterImage,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            pnlCmds.Controls.Add(picCmdIconPreview);
 
             // Col3: Tất cả lệnh (để thêm vào nhóm)
             var pnlAll = CreateSection("📦 TẤT CẢ LỆNH CÓ SẴN", 550, 10, 270, 480, mainPanel);
@@ -230,12 +263,12 @@ namespace MyFirstProject
             };
             pnlSep.Controls.Add(lblHint);
 
-            // Icon combo for group
-            var pnlIcon = CreateSection("🎨 ICON NHÓM", 830, 220, 190, 100, mainPanel);
+            // ───── ICON NHÓM (với preview) ─────
+            var pnlIcon = CreateSection("🎨 ICON NHÓM", 830, 220, 190, 140, mainPanel);
             var cmbIcon = new ComboBox
             {
                 Location = new Point(5, 30),
-                Size = new Size(180, 26),
+                Size = new Size(135, 26),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = Color.FromArgb(60, 60, 67),
                 ForeColor = Color.White
@@ -251,9 +284,32 @@ namespace MyFirstProject
                     var groups = GetCurrentGroupList();
                     if (lstGroups.SelectedIndex < groups.Count)
                         groups[lstGroups.SelectedIndex].IconType = icon;
+                    UpdateIconPreview(picGroupIconPreview, icon);
                 }
             };
             pnlIcon.Controls.Add(cmbIcon);
+
+            // Preview icon nhóm
+            picGroupIconPreview = new PictureBox
+            {
+                Location = new Point(145, 27),
+                Size = new Size(32, 32),
+                BackColor = Color.FromArgb(50, 50, 55),
+                SizeMode = PictureBoxSizeMode.CenterImage,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            pnlIcon.Controls.Add(picGroupIconPreview);
+
+            // Label gợi ý
+            var lblIconHint = new Label
+            {
+                Text = "Chọn icon type để xem\npreview icon trước khi lưu.",
+                Location = new Point(5, 70),
+                Size = new Size(180, 40),
+                ForeColor = Color.FromArgb(150, 150, 160),
+                Font = new Font("Segoe UI", 8f)
+            };
+            pnlIcon.Controls.Add(lblIconHint);
 
             // ─── BOTTOM buttons ───
             var pnlBottom = new Panel
@@ -347,6 +403,33 @@ namespace MyFirstProject
             btn.Click += onClick;
             parent.Controls.Add(btn);
             return btn;
+        }
+
+        /// <summary>
+        /// Render icon preview vào PictureBox
+        /// Dùng CivilRibbonTaskbar.CreateCivilIcon để tạo icon WPF rồi convert sang WinForms Image
+        /// </summary>
+        private void UpdateIconPreview(PictureBox pic, string iconType)
+        {
+            try
+            {
+                if (pic == null || string.IsNullOrEmpty(iconType)) return;
+
+                // Gọi CreateCivilIcon (public static) để lấy icon WPF
+                var wpfIcon = CivilRibbonTaskbar.CreateCivilIcon(iconType, 32);
+                if (wpfIcon is System.Windows.Media.Imaging.BitmapSource bitmapSource)
+                {
+                    // Convert WPF BitmapSource → WinForms Bitmap
+                    using var stream = new System.IO.MemoryStream();
+                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmapSource));
+                    encoder.Save(stream);
+                    stream.Position = 0;
+                    pic.Image?.Dispose();
+                    pic.Image = System.Drawing.Image.FromStream(stream);
+                }
+            }
+            catch { /* Bỏ qua lỗi render */ }
         }
 
         #endregion
@@ -636,13 +719,19 @@ namespace MyFirstProject
             if (lstGroups.SelectedIndex >= groups.Count) return;
 
             var group = groups[lstGroups.SelectedIndex];
+            _suppressItemCheck = true;
             foreach (var cmd in group.Commands)
             {
                 if (cmd.Command == "---")
-                    lstCommands.Items.Add("─── ngăn cách ───");
+                {
+                    lstCommands.Items.Add("─── ngăn cách ───", false);
+                }
                 else
-                    lstCommands.Items.Add(cmd);
+                {
+                    lstCommands.Items.Add(cmd, cmd.IsEnabled);
+                }
             }
+            _suppressItemCheck = false;
 
             // Cập nhật combo icon lệnh
             UpdateCmdIconCombo();
@@ -838,6 +927,41 @@ namespace MyFirstProject
 
             int insertAt = lstCommands.SelectedIndex >= 0 ? lstCommands.SelectedIndex + 1 : group.Commands.Count;
             group.Commands.Insert(insertAt, new MenuCommandItem { Command = "---", Label = "", SubIcon = "" });
+            RefreshCommandList();
+        }
+
+        private void LstCommands_ItemCheck(object? sender, ItemCheckEventArgs e)
+        {
+            if (_suppressItemCheck) return;
+            if (lstGroups.SelectedIndex < 0) return;
+            var groups = GetCurrentGroupList();
+            if (lstGroups.SelectedIndex >= groups.Count) return;
+            var group = groups[lstGroups.SelectedIndex];
+            if (e.Index < group.Commands.Count && group.Commands[e.Index].Command != "---")
+            {
+                group.Commands[e.Index].IsEnabled = (e.NewValue == CheckState.Checked);
+            }
+        }
+
+        private void BtnCheckAll_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0) return;
+            var groups = GetCurrentGroupList();
+            if (lstGroups.SelectedIndex >= groups.Count) return;
+            var group = groups[lstGroups.SelectedIndex];
+            foreach (var cmd in group.Commands)
+                cmd.IsEnabled = true;
+            RefreshCommandList();
+        }
+
+        private void BtnUncheckAll_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0) return;
+            var groups = GetCurrentGroupList();
+            if (lstGroups.SelectedIndex >= groups.Count) return;
+            var group = groups[lstGroups.SelectedIndex];
+            foreach (var cmd in group.Commands)
+                cmd.IsEnabled = false;
             RefreshCommandList();
         }
 
