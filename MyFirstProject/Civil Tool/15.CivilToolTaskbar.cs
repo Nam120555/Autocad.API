@@ -337,7 +337,6 @@ namespace MyFirstProject
                 ("Profile", "CTP_Fix_DuongTuNhien_TheoCoc", "Fix đường TN theo cọc"),
                 ("Profile", "CTP_GanNhanNutGiao_LenTracDoc", "Gán nhãn nút giao lên trắc dọc"),
                 ("Profile", "CTP_TaoCogoPointTuPVI", "Tạo CogoPoint từ PVI"),
-                ("Profile", "CTP_TaoBangThongKeParcel", "Tạo bảng thống kê parcel"),
                 
                 // Sample Line / Cọc  
                 ("Cọc", "CTS_DoiTenCoc", "Đổi tên cọc"),

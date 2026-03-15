@@ -867,7 +867,6 @@ namespace MyFirstProject
                 ("CTP_Fix_DuongTuNhien_TheoCoc", "Fix TN theo cọc", "SETTINGS"),
                 ("CTP_GanNhanNutGiao_LenTracDoc", "Nhãn nút giao", "ADD"),
                 ("CTP_TaoCogoPointTuPVI", "CogoPoint từ PVI", "POINT"),
-                ("CTP_TaoBangThongKeParcel", "TK Parcel", "TABLE"),
             };
         }
 

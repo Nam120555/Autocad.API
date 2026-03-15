@@ -109,8 +109,8 @@ namespace MyFirstProject
             this.Size = new Size(1050, 680);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = new Font("Segoe UI", 9.5f);
-            this.BackColor = Color.FromArgb(255, 255, 255);
-            this.ForeColor = Color.FromArgb(61, 61, 61);
+            this.BackColor = Color.FromArgb(30, 30, 40);
+            this.ForeColor = Color.White;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
 
@@ -156,8 +156,8 @@ namespace MyFirstProject
             {
                 Location = new Point(5, 30),
                 Size = new Size(260, 320),
-                BackColor = Color.FromArgb(245, 247, 250),
-                ForeColor = Color.FromArgb(61, 61, 61),
+                BackColor = Color.FromArgb(40, 40, 55),
+                ForeColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Segoe UI", 9),
                 IntegralHeight = false,
@@ -181,7 +181,7 @@ namespace MyFirstProject
                 Text = "🎨 Icon lệnh:",
                 Location = new Point(5, 432),
                 AutoSize = true,
-                ForeColor = Color.FromArgb(27, 42, 74),
+                ForeColor = Color.White,
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Bold)
             };
             pnlCmds.Controls.Add(lblCmdIcon);
@@ -191,8 +191,8 @@ namespace MyFirstProject
                 Location = new Point(85, 430),
                 Size = new Size(140, 26),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(245, 247, 250),
-                ForeColor = Color.FromArgb(61, 61, 61)
+                BackColor = Color.FromArgb(40, 40, 55),
+                ForeColor = Color.White
             };
             var cmdIconTypes = new[] { "SURFACE", "STATION", "ALIGN", "CORRIDOR", "SECTION",
                 "GRADING", "PIPE", "POINT", "UTILITY", "ACCOUNT", "PROFILE",
@@ -226,7 +226,7 @@ namespace MyFirstProject
             {
                 Location = new Point(230, 427),
                 Size = new Size(32, 32),
-                BackColor = Color.FromArgb(245, 247, 250),
+                BackColor = Color.FromArgb(40, 40, 55),
                 SizeMode = PictureBoxSizeMode.CenterImage,
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -243,8 +243,8 @@ namespace MyFirstProject
             {
                 Location = new Point(5, 418),
                 Size = new Size(260, 26),
-                BackColor = Color.FromArgb(245, 247, 250),
-                ForeColor = Color.FromArgb(61, 61, 61),
+                BackColor = Color.FromArgb(40, 40, 55),
+                ForeColor = Color.White,
                 PlaceholderText = "🔍 Tìm lệnh...",
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -259,7 +259,7 @@ namespace MyFirstProject
                 Text = "Vạch ngăn cách (---) giúp\nphân chia lệnh trong 1 nhóm\nthành các phần nhỏ hơn.",
                 Location = new Point(5, 70),
                 Size = new Size(180, 60),
-                ForeColor = Color.FromArgb(122, 122, 122)
+                ForeColor = Color.FromArgb(180, 180, 180)
             };
             pnlSep.Controls.Add(lblHint);
 
@@ -270,8 +270,8 @@ namespace MyFirstProject
                 Location = new Point(5, 30),
                 Size = new Size(135, 26),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(245, 247, 250),
-                ForeColor = Color.FromArgb(61, 61, 61)
+                BackColor = Color.FromArgb(40, 40, 55),
+                ForeColor = Color.White
             };
             var iconTypes = new[] { "SURFACE", "STATION", "ALIGN", "CORRIDOR", "SECTION",
                 "GRADING", "PIPE", "POINT", "UTILITY", "ACCOUNT", "PROFILE",
@@ -294,7 +294,7 @@ namespace MyFirstProject
             {
                 Location = new Point(145, 27),
                 Size = new Size(32, 32),
-                BackColor = Color.FromArgb(245, 247, 250),
+                BackColor = Color.FromArgb(40, 40, 55),
                 SizeMode = PictureBoxSizeMode.CenterImage,
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -306,7 +306,7 @@ namespace MyFirstProject
                 Text = "Chọn icon type để xem\npreview icon trước khi lưu.",
                 Location = new Point(5, 70),
                 Size = new Size(180, 40),
-                ForeColor = Color.FromArgb(122, 122, 122),
+                ForeColor = Color.FromArgb(180, 180, 180),
                 Font = new Font("Segoe UI", 8f)
             };
             pnlIcon.Controls.Add(lblIconHint);
@@ -316,7 +316,7 @@ namespace MyFirstProject
             {
                 Dock = DockStyle.Bottom,
                 Height = 55,
-                BackColor = Color.FromArgb(245, 247, 250),
+                BackColor = Color.FromArgb(22, 22, 32),
                 Padding = new Padding(12, 8, 12, 8)
             };
             this.Controls.Add(pnlBottom);
@@ -351,14 +351,14 @@ namespace MyFirstProject
             {
                 Location = new Point(x, y + 35), // offset for tab
                 Size = new Size(w, h),
-                BackColor = Color.FromArgb(245, 247, 250),
+                BackColor = Color.FromArgb(38, 38, 50),
                 BorderStyle = BorderStyle.FixedSingle
             };
             var lbl = new Label
             {
                 Text = title,
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                ForeColor = Color.FromArgb(27, 42, 74),
+                ForeColor = Color.White,
                 Location = new Point(5, 5),
                 AutoSize = true
             };
@@ -373,8 +373,8 @@ namespace MyFirstProject
             {
                 Location = new Point(x, y),
                 Size = new Size(w, h),
-                BackColor = Color.FromArgb(255, 255, 255),
-                ForeColor = Color.FromArgb(61, 61, 61),
+                BackColor = Color.FromArgb(40, 40, 55),
+                ForeColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Segoe UI", 9),
                 IntegralHeight = false,
@@ -392,13 +392,13 @@ namespace MyFirstProject
                 Location = new Point(x, y),
                 Size = new Size(w, h),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(245, 247, 250),
-                ForeColor = Color.FromArgb(61, 61, 61),
+                BackColor = Color.FromArgb(50, 50, 65),
+                ForeColor = Color.White,
                 Font = new Font("Segoe UI", 8.5f),
                 Cursor = Cursors.Hand,
                 TextAlign = ContentAlignment.MiddleCenter
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(208, 213, 221);
+            btn.FlatAppearance.BorderColor = Color.FromArgb(70, 70, 90);
             btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(46, 74, 122);
             btn.Click += onClick;
             parent.Controls.Add(btn);
@@ -459,6 +459,7 @@ namespace MyFirstProject
             {
                 _config = GetDefaultConfig();
             }
+            CleanupInvalidCommands(_config);
         }
 
         private void SaveConfig()
@@ -480,16 +481,80 @@ namespace MyFirstProject
 
         public static MenuConfig LoadSavedConfig()
         {
+            MenuConfig config;
             try
             {
                 if (File.Exists(ConfigPath))
                 {
                     string json = File.ReadAllText(ConfigPath);
-                    return JsonSerializer.Deserialize<MenuConfig>(json) ?? GetDefaultConfig();
+                    config = JsonSerializer.Deserialize<MenuConfig>(json) ?? GetDefaultConfig();
+                }
+                else
+                {
+                    config = GetDefaultConfig();
                 }
             }
-            catch { }
-            return GetDefaultConfig();
+            catch { config = GetDefaultConfig(); }
+
+            // Tự động xóa lệnh không tồn tại khỏi config đã lưu
+            CleanupInvalidCommands(config);
+            return config;
+        }
+
+        /// <summary>
+        /// Xóa các lệnh không có [CommandMethod] thực tế khỏi config,
+        /// tránh lỗi "Unknown command" khi người dùng click.
+        /// </summary>
+        private static void CleanupInvalidCommands(MenuConfig config)
+        {
+            try
+            {
+                // Dùng reflection lấy tất cả [CommandMethod] đã đăng ký
+                var validCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    try
+                    {
+                        foreach (var type in asm.GetTypes())
+                        {
+                            foreach (var method in type.GetMethods(
+                                System.Reflection.BindingFlags.Public |
+                                System.Reflection.BindingFlags.NonPublic |
+                                System.Reflection.BindingFlags.Static |
+                                System.Reflection.BindingFlags.Instance))
+                            {
+                                var attr = method.GetCustomAttributes(typeof(CommandMethodAttribute), false);
+                                foreach (CommandMethodAttribute cmdAttr in attr)
+                                {
+                                    validCommands.Add(cmdAttr.GlobalName);
+                                }
+                            }
+                        }
+                    }
+                    catch { /* Bỏ qua assembly không load được */ }
+                }
+
+                if (validCommands.Count == 0) return; // Không tìm được → không xóa
+
+                // Xóa lệnh không hợp lệ khỏi mỗi group
+                void CleanGroups(List<MenuGroupItem> groups)
+                {
+                    foreach (var group in groups)
+                    {
+                        group.Commands.RemoveAll(c =>
+                            !string.IsNullOrEmpty(c.Command) &&
+                            c.Command != "---" &&
+                            !validCommands.Contains(c.Command));
+                    }
+                    // Xóa group trống
+                    groups.RemoveAll(g => g.Commands.Count == 0 ||
+                        g.Commands.All(c => string.IsNullOrEmpty(c.Command) || c.Command == "---"));
+                }
+
+                CleanGroups(config.CivilGroups);
+                CleanGroups(config.AcadGroups);
+            }
+            catch { /* Bỏ qua lỗi reflection */ }
         }
 
         public static MenuConfig GetDefaultConfig()
