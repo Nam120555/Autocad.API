@@ -286,11 +286,13 @@ namespace MyFirstProject
                 g.DrawString(arrow, arrowFont, arrowBrush, indent - 14, e.Bounds.Y + 4);
             }
 
-            // Icon
             if (e.Node.ImageKey != null && imageList.Images.ContainsKey(e.Node.ImageKey))
             {
                 var icon = imageList.Images[e.Node.ImageKey];
-                g.DrawImage(icon, indent, e.Bounds.Y + 3, 14, 14);
+                if (icon != null)
+                {
+                    g.DrawImage(icon, indent, e.Bounds.Y + 3, 14, 14);
+                }
             }
 
             // Text
@@ -601,7 +603,7 @@ namespace MyFirstProject
         private void TreeView_NodeMouseClick(object? sender, TreeNodeMouseClickEventArgs e)
         {
             // Toggle expand/collapse on category click
-            if (e.Node?.Parent == null && e.Button == MouseButtons.Left)
+            if (e.Node != null && e.Node.Parent == null && e.Button == MouseButtons.Left)
             {
                 if (e.Node.IsExpanded)
                     e.Node.Collapse();

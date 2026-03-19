@@ -874,7 +874,7 @@ namespace MyFirstProject
         {
             return new List<(string, string, string)>
             {
-                ("CTS_DoiTenCoc", "Đổi tên cọc", "RENAME"),
+                ("CTPO_CocTuyenDuong", "Đổi tên cọc", "RENAME"),
                 ("CTS_DoiTenCoc2", "Đổi tên đoạn", "RENAME"),
                 ("CTS_DoiTenCoc3", "Đổi tên Km", "RENAME"),
                 ("---", "", ""),

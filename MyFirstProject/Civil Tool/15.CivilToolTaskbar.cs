@@ -339,7 +339,7 @@ namespace MyFirstProject
                 ("Profile", "CTP_TaoCogoPointTuPVI", "Tạo CogoPoint từ PVI"),
                 
                 // Sample Line / Cọc  
-                ("Cọc", "CTS_DoiTenCoc", "Đổi tên cọc"),
+                ("Cọc", "CTPO_CocTuyenDuong", "Đổi tên cọc"),
                 ("Cọc", "CTS_DoiTenCoc2", "Đổi tên cọc theo đoạn"),
                 ("Cọc", "CTS_DoiTenCoc3", "Đổi tên cọc theo Km"),
                 ("Cọc", "CTS_TaoBang_ToaDoCoc", "Tạo bảng tọa độ cọc (X,Y)"),

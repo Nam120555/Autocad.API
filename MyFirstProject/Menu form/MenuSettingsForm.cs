@@ -52,6 +52,8 @@ namespace MyFirstProject
     {
         public List<MenuGroupItem> CivilGroups { get; set; } = new();
         public List<MenuGroupItem> AcadGroups { get; set; } = new();
+        public Dictionary<string, string> CommandAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, string> CommandDescriptions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public DateTime LastModified { get; set; } = DateTime.Now;
     }
 
@@ -68,7 +70,10 @@ namespace MyFirstProject
             "CivilTool");
         private static readonly string ConfigPath = Path.Combine(ConfigFolder, "menu_config.json");
 
-        // ─── Controls ───
+        // ─── Controls ───        // ==========================================
+        //         CÁC BIẾN UI & DỮ LIỆU
+        // ==========================================
+        private Panel pnlGroups = null!, pnlCmds = null!, pnlAll = null!, pnlSep = null!, pnlIcon = null!, pnlAliasTab = null!;
         private TabControl tabMain = null!;
 
         // Civil tab
@@ -86,6 +91,7 @@ namespace MyFirstProject
         private ComboBox cmbCmdIcon = null!;
         private PictureBox picCmdIconPreview = null!;
         private PictureBox picGroupIconPreview = null!;
+        private DataGridView _dgvAliases = null!;
         private bool _suppressItemCheck = false;
 
         // ─── Constructor ───
@@ -140,7 +146,7 @@ namespace MyFirstProject
 
             // 3-column layout
             // Col1: Nhóm lệnh (Groups)
-            var pnlGroups = CreateSection("📁 NHÓM LỆNH", 10, 10, 250, 480, mainPanel);
+            pnlGroups = CreateSection("📁 NHÓM LỆNH", 10, 10, 250, 480, mainPanel);
             lstGroups = CreateListBox(pnlGroups, 5, 30, 240, 340);
             lstGroups.SelectedIndexChanged += (s, e) => RefreshCommandList();
 
@@ -151,7 +157,7 @@ namespace MyFirstProject
             btnMoveDown = CreateButton("▼ Xuống", 185, 418, 55, 32, pnlGroups, BtnGroupDown_Click);
 
             // Col2: Lệnh trong nhóm
-            var pnlCmds = CreateSection("📋 LỆNH TRONG NHÓM", 270, 10, 270, 480, mainPanel);
+            pnlCmds = CreateSection("📋 LỆNH TRONG NHÓM", 270, 10, 270, 480, mainPanel);
             lstCommands = new CheckedListBox
             {
                 Location = new Point(5, 30),
@@ -233,7 +239,7 @@ namespace MyFirstProject
             pnlCmds.Controls.Add(picCmdIconPreview);
 
             // Col3: Tất cả lệnh (để thêm vào nhóm)
-            var pnlAll = CreateSection("📦 TẤT CẢ LỆNH CÓ SẴN", 550, 10, 270, 480, mainPanel);
+            pnlAll = CreateSection("📦 TẤT CẢ LỆNH CÓ SẴN", 550, 10, 270, 480, mainPanel);
             lstAllCommands = CreateListBox(pnlAll, 5, 30, 260, 340);
 
             btnAddCmd = CreateButton("▶ Thêm vào nhóm", 5, 380, 165, 32, pnlAll, BtnAddCmd_Click);
@@ -251,8 +257,8 @@ namespace MyFirstProject
             txtSearch.TextChanged += (s, e) => FilterAllCommands(txtSearch.Text);
             pnlAll.Controls.Add(txtSearch);
 
-            // Col4: Separator + Add separator button
-            var pnlSep = CreateSection("➖ NGĂN CÁCH", 830, 10, 190, 200, mainPanel);
+            // Col4: Separator + Add separator button (Khôi phục vị trí X=830)
+            pnlSep = CreateSection("➖ NGĂN CÁCH", 830, 10, 190, 200, mainPanel);
             var btnAddSep = CreateButton("Thêm vạch ngăn cách", 5, 30, 180, 32, pnlSep, BtnAddSeparator_Click);
             var lblHint = new Label
             {
@@ -264,7 +270,7 @@ namespace MyFirstProject
             pnlSep.Controls.Add(lblHint);
 
             // ───── ICON NHÓM (với preview) ─────
-            var pnlIcon = CreateSection("🎨 ICON NHÓM", 830, 220, 190, 140, mainPanel);
+            pnlIcon = CreateSection("🎨 ICON NHÓM", 830, 220, 190, 140, mainPanel);
             var cmbIcon = new ComboBox
             {
                 Location = new Point(5, 30),
@@ -311,6 +317,32 @@ namespace MyFirstProject
             };
             pnlIcon.Controls.Add(lblIconHint);
 
+            // Tab thứ 3: Quản lý lệnh tắt (Alias) full form width
+            pnlAliasTab = CreateSection("⌨ LỆNH TẮT TOÀN DỰ ÁN", 10, 10, 1010, 480, mainPanel);
+            pnlAliasTab.Visible = false; // Hide on default tab
+            
+            var dgvAliases = new DataGridView
+            {
+                Location = new Point(10, 35),
+                Size = new Size(990, 430),
+                BackgroundColor = Color.FromArgb(40, 40, 55),
+                ForeColor = Color.Black,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                RowHeadersVisible = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.CellSelect,
+                MultiSelect = false
+            };
+            
+            dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColLabel", HeaderText = "Danh sách lệnh", ReadOnly = true, FillWeight = 30 });
+            dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColCmd", HeaderText = "Cú pháp triển khai gốc", ReadOnly = true, FillWeight = 25 });
+            dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColAlias", HeaderText = "Thay đổi cú pháp triển khai (Lệnh tắt)", ReadOnly = false, FillWeight = 20 });
+            dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColDesc", HeaderText = "Giải thích công dụng của lệnh", ReadOnly = false, FillWeight = 40 });
+            
+            pnlAliasTab.Controls.Add(dgvAliases);
+            _dgvAliases = dgvAliases;
+
             // ─── BOTTOM buttons ───
             var pnlBottom = new Panel
             {
@@ -330,17 +362,34 @@ namespace MyFirstProject
             btnSave.BackColor = Color.FromArgb(27, 42, 74);
             btnSave.FlatAppearance.BorderColor = Color.FromArgb(16, 28, 52);
 
-            // Tab for Civil/Acad
+            // Tab for Civil/Acad/Alias
             tabMain = new TabControl
             {
                 Location = new Point(12, 5),
-                Size = new Size(200, 28),
+                Size = new Size(300, 28),
                 Appearance = TabAppearance.Buttons,
                 ItemSize = new Size(95, 24)
             };
             tabMain.TabPages.Add("civil", "Civil Tool");
             tabMain.TabPages.Add("acad", "ACAD Tool");
-            tabMain.SelectedIndexChanged += (s, e) => { RefreshGroupList(); RefreshAllCommandsList(); };
+            tabMain.TabPages.Add("alias", "Lệnh Tắt (Alias)");
+
+            tabMain.SelectedIndexChanged += (s, e) => 
+            {
+                bool isAliasTab = tabMain.SelectedIndex == 2;
+                pnlGroups.Visible = !isAliasTab;
+                pnlCmds.Visible = !isAliasTab;
+                pnlAll.Visible = !isAliasTab;
+                pnlSep.Visible = !isAliasTab;
+                pnlIcon.Visible = !isAliasTab;
+                pnlAliasTab.Visible = isAliasTab;
+
+                if (!isAliasTab)
+                {
+                    RefreshGroupList(); 
+                    RefreshAllCommandsList();
+                }
+            };
             mainPanel.Controls.Add(tabMain);
             tabMain.BringToFront();
         }
@@ -571,7 +620,7 @@ namespace MyFirstProject
 
                 new() { GroupName = "📍 Lưới Cọc", IconType = "STATION", Commands = ConvertCmds(new[]
                 {
-                    ("CTS_DoiTenCoc", "Đổi Tên Cọc", "RENAME"),
+                    ("CTPO_CocTuyenDuong", "Đổi Tên Cọc", "RENAME"),
                     ("CTS_DoiTenCoc2", "Đổi Tên Cọc Đoạn", "RENAME"),
                     ("CTS_DoiTenCoc3", "Đổi Tên Cọc Km", "RENAME"),
                     ("CTS_DoiTenCoc_fromCogoPoint", "Đổi Tên Từ CogoPoint", "RENAME"),
@@ -801,12 +850,70 @@ namespace MyFirstProject
 
         private List<MenuCommandItem> _allCommandsCache = new();
 
+        /// <summary>
+        /// Tạo danh sách chú thích mặc định mô tả công dụng của các lệnh phổ biến.
+        /// </summary>
+        private Dictionary<string, string> GetDefaultCommandDescriptions()
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "CTPO_CocTuyenDuong", "Phát sinh cọc tự động hàng loạt trên tuyến Alignment." },
+                { "CTS_DoiTenCoc", "Đổi tên cục bộ hàng loạt cọc trên tuyến." },
+                { "CTS_DoiTenCoc2", "Đổi tên cọc theo từng đoạn tự chọn." },
+                { "CTS_DoiTenCoc3", "Đổi tên cọc theo lý trình KM (ví dụ KM1, KM2)." },
+                { "CTS_DoiTenCoc_H", "Thêm các hậu tố (như ký hiệu) vào tên cọc A, B, C... hiện tại." },
+                { "CTS_TaoBang_ToaDoCocXY", "Xuất toạ độ X,Y của cọc ra bảng AutoCAD Table." },
+                { "CTS_TaoBang_ToaDoCocLyTrinh", "Xuất lý trình của cọc ra bảng AutoCAD." },
+                { "CTS_TaoBang_ToaDoCocCaoDo", "Xuất cao độ cọc tại các vị trí ra bảng." },
+                { "AT_Update2Table", "Cập nhật dữ liệu động từ file / model trực tiếp vào bảng ACAD." },
+                { "CTS_Chennai_TrenTracNgang", "Chèn cọc (SampleLine) bổ sung trên trắc ngang." },
+                { "CTS_Chennai_TrenTracDoc", "Chèn cọc bổ sung trực tiếp trên trắc dọc." },
+                { "CTS_PhatSinhCoc", "Phát sinh cọc tự động (mặc định)." },
+                { "CTS_PhatSinhCoc_ChiTiet", "Phát sinh cọc chi tiết hơn (theo khoảng cách nhập)." },
+                { "CTS_PhatSinhCoc_theoKhoangCach", "Phát sinh khoảng cách đều Delta." },
+                { "CTS_DichCoc_TinhTien", "Dịch cọc sang trái/phải dọc theo tuyến." },
+                { "CTSV_ThayDoi_KhungIn", "Dàn khung in hàng loạt tự động." },
+                { "CTSV_DanhCap", "Đánh cấp (Vát mái taluy) - VHC." },
+                { "CTSN_NhapCaoDo", "Điền cao độ Text tự động từ lưới điểm." },
+                { "CTSV_ThemVatLieu_TrenTracNgang", "Điền khối lượng / vật liệu tự động lên trắc ngang." },
+                { "CTC_TaoCooridor_DuongDoi", "Tạo Corridor tự động cho đường rẽ phải/trái." },
+                { "CTSV_An_DuongDiaChat", "Ẩn hiện đường địa chất tự động." },
+                { "CTSV_CaiDatBang", "Cài đặt hiển thị cho bảng khối lượng." },
+                { "CTSV_DanhCap_CapNhatKLRaBang", "Cập nhật lại Text Khối Lượng vào bảng sau khi đánh cấp." },
+                { "AT_TongDienTich_Replace_CongThem", "Tính tổng diện tích nhiều đối tượng và thay thế chữ." },
+                { "AT_TongDoDai_Replace_CongThem", "Cộng chiều dài nhiều đường Line/Polyline." },
+                { "AT_XoaDoiTuong_CungLayer", "Chọn 1 đối tượng, xoá toàn bộ nét cùng Layer đó." },
+                { "AT_XoayDoiTuong_TheoViewport", "Xoay mọi đối tượng (Text/Block) thẳng theo Viewport Layout." }
+            };
+        }
+
         private void RefreshAllCommandsList()
         {
             _allCommandsCache = GetAllAvailableCommands();
             lstAllCommands.Items.Clear();
+            _dgvAliases?.Rows.Clear();
+
+            var defaultDescriptions = GetDefaultCommandDescriptions();
             foreach (var cmd in _allCommandsCache)
+            {
                 lstAllCommands.Items.Add(cmd);
+                
+                // Add to DataGridView
+                if (_dgvAliases != null)
+                {
+                    string alias = "";
+                    if (_config.CommandAliases != null && _config.CommandAliases.TryGetValue(cmd.Command, out string existingAlias))
+                        alias = existingAlias;
+
+                    string desc = "";
+                    if (_config.CommandDescriptions != null && _config.CommandDescriptions.TryGetValue(cmd.Command, out string existingDesc))
+                        desc = existingDesc;
+                    else if (defaultDescriptions.TryGetValue(cmd.Command, out string defDesc))
+                        desc = defDesc; // Fallback to predefined descriptions
+
+                    _dgvAliases.Rows.Add(cmd.Label, cmd.Command, alias, desc);
+                }
+            }
         }
 
         private void FilterAllCommands(string filter)
@@ -823,19 +930,59 @@ namespace MyFirstProject
         }
 
         /// <summary>
-        /// Trả về tất cả lệnh có sẵn (gộp từ default config)
+        /// Trả về tất cả lệnh có sẵn (gộp từ cấu hình mặc định và tất cả lệnh tìm được bằng Reflection)
         /// </summary>
         private List<MenuCommandItem> GetAllAvailableCommands()
         {
             var defaultConfig = GetDefaultConfig();
-            var allGroups = tabMain.SelectedIndex == 0 ? defaultConfig.CivilGroups : defaultConfig.AcadGroups;
-            return allGroups
+            
+            // 1. Lấy tất cả lệnh từ cấu hình mặc định để lấy Label thân thiện
+            var knownCommands = defaultConfig.CivilGroups.Concat(defaultConfig.AcadGroups)
                 .SelectMany(g => g.Commands)
                 .Where(c => !string.IsNullOrEmpty(c.Command) && c.Command != "---")
                 .GroupBy(c => c.Command)
-                .Select(g => g.First())
-                .OrderBy(c => c.Label)
-                .ToList();
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            var allCommands = new List<MenuCommandItem>();
+
+            // 2. Quét toàn bộ project để tìm các [CommandMethod]
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                try
+                {
+                    foreach (var type in asm.GetTypes())
+                    {
+                        foreach (var method in type.GetMethods(
+                            System.Reflection.BindingFlags.Public |
+                            System.Reflection.BindingFlags.NonPublic |
+                            System.Reflection.BindingFlags.Static |
+                            System.Reflection.BindingFlags.Instance))
+                        {
+                            var attr = method.GetCustomAttributes(typeof(CommandMethodAttribute), false);
+                            foreach (CommandMethodAttribute cmdAttr in attr)
+                            {
+                                string globalName = cmdAttr.GlobalName;
+                                // Tránh thêm trùng lặp
+                                if (!allCommands.Any(c => c.Command.Equals(globalName, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    if (knownCommands.TryGetValue(globalName, out var known))
+                                    {
+                                        allCommands.Add(new MenuCommandItem { Command = known.Command, Label = known.Label, SubIcon = known.SubIcon });
+                                    }
+                                    else
+                                    {
+                                        // Nếu lệnh chưa từng có trong menu, lấy tên lệnh làm Label
+                                        allCommands.Add(new MenuCommandItem { Command = globalName, Label = globalName, SubIcon = "UTILITY" });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { /* Bỏ qua assembly không load được */ }
+            }
+
+            return allCommands.OrderBy(c => c.Label).ToList();
         }
 
         #endregion
@@ -1006,7 +1153,41 @@ namespace MyFirstProject
 
         private void BtnSave_Click(object? sender, EventArgs e)
         {
+            // Update aliases and descriptions from DGV
+            if (_config.CommandAliases == null) _config.CommandAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (_config.CommandDescriptions == null) _config.CommandDescriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            
+            _config.CommandAliases.Clear();
+            _config.CommandDescriptions.Clear();
+
+            if (_dgvAliases != null)
+            {
+                foreach (DataGridViewRow row in _dgvAliases.Rows)
+                {
+                    if (row.Cells["ColCmd"].Value is string cmdName)
+                    {
+                        if (row.Cells["ColAlias"].Value is string alias)
+                        {
+                            alias = alias.Trim();
+                            if (!string.IsNullOrEmpty(alias))
+                                _config.CommandAliases[cmdName] = alias;
+                        }
+
+                        if (row.Cells["ColDesc"].Value is string desc)
+                        {
+                            desc = desc.Trim();
+                            if (!string.IsNullOrEmpty(desc))
+                                _config.CommandDescriptions[cmdName] = desc;
+                        }
+                    }
+                }
+            }
+
             SaveConfig();
+            
+            // Reload aliases in AutoCad
+            CivilToolAutoLoader.ApplyAliases(_config.CommandAliases);
+            
             this.DialogResult = DialogResult.OK;
             this.Close();
         }

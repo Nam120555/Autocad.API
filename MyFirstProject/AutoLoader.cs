@@ -54,10 +54,50 @@ namespace MyFirstProject
                 try
                 {
                     MyFirstProject.Autocad.ShowMenu();
+                    
+                    // ── 4. Load Lệnh tắt (Aliases) ──
+                    var config = MenuSettingsForm.LoadSavedConfig();
+                    if (config != null && config.CommandAliases != null)
+                    {
+                        ApplyAliases(config.CommandAliases);
+                    }
                 }
                 catch { }
             }
             catch { }
+        }
+
+        /// <summary>
+        /// Tạo file Lisp cấu hình lệnh tắt và tải vào AutoCAD
+        /// </summary>
+        public static void ApplyAliases(System.Collections.Generic.Dictionary<string, string> aliases)
+        {
+            try
+            {
+                if (aliases == null || aliases.Count == 0) return;
+                
+                string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CivilTool");
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                
+                string lspPath = Path.Combine(folder, "aliases.lsp");
+                
+                using (var writer = new StreamWriter(lspPath, false, System.Text.Encoding.UTF8))
+                {
+                    foreach (var kvp in aliases)
+                    {
+                        if (string.IsNullOrWhiteSpace(kvp.Key) || string.IsNullOrWhiteSpace(kvp.Value)) continue;
+                        writer.WriteLine($"(defun c:{kvp.Value} () (command \"{kvp.Key}\"))");
+                    }
+                }
+
+                var doc = AcadApp.DocumentManager.MdiActiveDocument;
+                if (doc != null)
+                {
+                    string escapedPath = lspPath.Replace("\\", "/");
+                    doc.SendStringToExecute($"(load \"{escapedPath}\")\n", true, false, false);
+                }
+            }
+            catch { /* Skip errors */ }
         }
 
         /// <summary>

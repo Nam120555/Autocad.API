@@ -1,4 +1,4 @@
-﻿// IconCustomizationForm.cs - Form đổi icon cho từng lệnh trong Ribbon
+// IconCustomizationForm.cs - Form đổi icon cho từng lệnh trong Ribbon
 // Cho phép user chọn emoji/ký hiệu để thay đổi icon của từng lệnh
 
 using System;
@@ -260,7 +260,7 @@ namespace MyFirstProject
                 ("CTS_TaoSpotElevation_OnSurface_TaiTim", "◎ Spot Elevation Tại Tim"),
                 
                 // SampleLine - Đổi tên cọc
-                ("CTS_DoiTenCoc", "▸ Đổi tên cọc"),
+                ("CTPO_CocTuyenDuong", "▸ Đổi tên cọc"),
                 ("CTS_DoiTenCoc2", "▸ Đổi tên cọc đoạn"),
                 ("CTS_DoiTenCoc3", "▸ Đổi tên cọc Km"),
                 ("CTS_DoiTenCoc_fromCogoPoint", "▸ Đổi tên từ CogoPoint"),
@@ -478,7 +478,7 @@ namespace MyFirstProject
             return
             [
                 ("CTS_TaoSpotElevation_OnSurface_TaiTim", "◎ Spot Elevation Tại Tim"),
-                ("CTS_DoiTenCoc", "▸ Đổi tên cọc"),
+                ("CTPO_CocTuyenDuong", "▸ Đổi tên cọc"),
                 ("CTS_DoiTenCoc2", "▸ Đổi tên cọc đoạn"),
                 ("CTS_DoiTenCoc3", "▸ Đổi tên cọc Km"),
                 ("CTS_DoiTenCoc_fromCogoPoint", "▸ Đổi tên từ CogoPoint"),

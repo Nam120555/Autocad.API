@@ -56,13 +56,18 @@ namespace MyFirstProject
 
         // Phát sinh controls
         private Panel pnlPhatSinh = null!;
-        private NumericUpDown numKhoangCach = null!;
-        private NumericUpDown numBeRong = null!;
+        private NumericUpDown numKhoangCach = null!; // Straight
+        private NumericUpDown numKhoangCachCong = null!; // Curve
+        private NumericUpDown numBeRongTrai = null!; // Left width
+        private NumericUpDown numBeRongPhai = null!; // Right width
 
         // Naming options
         private CheckBox chkDT_CT = null!;
         private CheckBox chkH = null!;
         private CheckBox chkKM = null!;
+        private CheckBox chkCurve = null!;
+        private CheckBox chkPrefix = null!;
+        private TextBox txtPrefix = null!;
 
         // Preview
         private DataGridView dgvPreview = null!;
@@ -76,9 +81,14 @@ namespace MyFirstProject
         public bool UseDT_CT => chkDT_CT.Checked;
         public bool UseH => chkH.Checked;
         public bool UseKM => chkKM.Checked;
+        public bool UseCurve => chkCurve == null ? true : chkCurve.Checked;
+        public bool UsePrefix => chkPrefix == null ? false : chkPrefix.Checked;
+        public string PrefixValue => txtPrefix == null ? "" : txtPrefix.Text.Trim();
         public ObjectId SelectedAlignmentId { get; private set; } = ObjectId.Null;
         public double KhoangCach => (double)numKhoangCach.Value;
-        public double BeRong => (double)numBeRong.Value;
+        public double KhoangCachCong => (double)numKhoangCachCong.Value;
+        public double BeRongTrai => (double)numBeRongTrai.Value;
+        public double BeRongPhai => (double)numBeRongPhai.Value;
 
         private class AlignmentInfo
         {
@@ -265,10 +275,11 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 3: THÔNG SỐ PHÁT SINH (chỉ hiện khi PhatSinh)
             // ═══════════════════════════════════════════════════
-            pnlPhatSinh = CreateGroupBox("📏  Thông số phát sinh cọc", 0, y, 730, 80);
+            pnlPhatSinh = CreateGroupBox("📏  Thông số phát sinh cọc", 0, y, 730, 140);
             mainPanel.Controls.Add(pnlPhatSinh);
 
-            pnlPhatSinh.Controls.Add(CreateLabel("Khoảng cách cọc (m):", 12, 32));
+            // Row 1: Khoảng cách
+            pnlPhatSinh.Controls.Add(CreateLabel("K/cách cọc (Đ.Thẳng):", 12, 32));
             numKhoangCach = new NumericUpDown
             {
                 Location = new Point(180, 28),
@@ -283,32 +294,61 @@ namespace MyFirstProject
             };
             pnlPhatSinh.Controls.Add(numKhoangCach);
 
-            pnlPhatSinh.Controls.Add(CreateLabel("Bề rộng mỗi bên (m):", 330, 32));
-            numBeRong = new NumericUpDown
+            pnlPhatSinh.Controls.Add(CreateLabel("K/cách cọc (Đ.Cong):", 330, 32));
+            numKhoangCachCong = new NumericUpDown
             {
-                Location = new Point(510, 28),
+                Location = new Point(480, 28),
                 Size = new Size(90, 28),
-                Minimum = 5,
+                Minimum = 1,
                 Maximum = 200,
-                Value = 30,
+                Value = 10,
                 DecimalPlaces = 1,
-                Increment = 5,
+                Increment = 1,
                 BackColor = BgInput,
                 ForeColor = TextWhite
             };
-            pnlPhatSinh.Controls.Add(numBeRong);
+            pnlPhatSinh.Controls.Add(numKhoangCachCong);
 
-            var lblDim = CreateLabel("(Từ tim tuyến sang 2 bên)", 610, 32);
-            lblDim.ForeColor = TextDim;
-            lblDim.Font = new Font("Segoe UI", 8f, FontStyle.Italic);
-            pnlPhatSinh.Controls.Add(lblDim);
+            // Row 2: Bề rộng
+            pnlPhatSinh.Controls.Add(CreateLabel("Bề rộng cọc (Trái):", 12, 70));
+            numBeRongTrai = new NumericUpDown
+            {
+                Location = new Point(160, 66),
+                Size = new Size(90, 28),
+                Minimum = 1,
+                Maximum = 200,
+                Value = 30,
+                DecimalPlaces = 1,
+                Increment = 1,
+                BackColor = BgInput,
+                ForeColor = TextWhite
+            };
+            pnlPhatSinh.Controls.Add(numBeRongTrai);
 
-            y += 88;
+            pnlPhatSinh.Controls.Add(CreateLabel("Bề rộng cọc (Phải):", 330, 70));
+            numBeRongPhai = new NumericUpDown
+            {
+                Location = new Point(480, 66),
+                Size = new Size(90, 28),
+                Minimum = 1,
+                Maximum = 200,
+                Value = 30,
+                DecimalPlaces = 1,
+                Increment = 1,
+                BackColor = BgInput,
+                ForeColor = TextWhite
+            };
+            pnlPhatSinh.Controls.Add(numBeRongPhai);
+            chkCurve = CreateCheckBox("Phát sinh cọc trong đường cong (TĐ, P, TC)", 15, 105, true);
+            chkCurve.CheckedChanged += (s, e) => GeneratePreview();
+            pnlPhatSinh.Controls.Add(chkCurve);
+
+            y += 148;
 
             // ═══════════════════════════════════════════════════
             // SECTION 3B: QUY CÁCH ĐẶT TÊN CỌC
             // ═══════════════════════════════════════════════════
-            var grpNaming = CreateGroupBox("🏷  Quy cách đặt tên cọc", 0, y, 730, 65);
+            var grpNaming = CreateGroupBox("🏷  Quy cách đặt tên cọc", 0, y, 730, 95);
             mainPanel.Controls.Add(grpNaming);
 
             chkDT_CT = CreateCheckBox("DT / CT (Đầu Tuyến / Cuối Tuyến)", 15, 28, true);
@@ -323,7 +363,28 @@ namespace MyFirstProject
             chkKM.CheckedChanged += (s, e) => GeneratePreview();
             grpNaming.Controls.Add(chkKM);
 
-            y += 72;
+            chkPrefix = CreateCheckBox("Tiền tố cọc thường:", 15, 58, false);
+            chkPrefix.CheckedChanged += (s, e) =>
+            {
+                txtPrefix.Enabled = chkPrefix.Checked;
+                GeneratePreview();
+            };
+            grpNaming.Controls.Add(chkPrefix);
+
+            txtPrefix = new TextBox
+            {
+                Location = new Point(195, 56),
+                Size = new Size(100, 28),
+                BackColor = BgInput,
+                ForeColor = TextWhite,
+                Font = new Font("Segoe UI", 9.5f),
+                Enabled = false,
+                Text = "C"
+            };
+            txtPrefix.TextChanged += (s, e) => GeneratePreview();
+            grpNaming.Controls.Add(txtPrefix);
+
+            y += 105;
 
             // ═══════════════════════════════════════════════════
             // SECTION 4: PREVIEW
@@ -524,25 +585,52 @@ namespace MyFirstProject
         /// </summary>
         private void GeneratePreviewPhatSinh(AlignmentInfo alInfo)
         {
-            double khoangCach = (double)numKhoangCach.Value;
+            double khoangCachThang = (double)numKhoangCach.Value;
+            double khoangCachCong = (double)numKhoangCachCong.Value;
+            
             double startSta = alInfo.StartStation;
             double endSta = alInfo.EndStation;
 
-            // Tạo danh sách station
             List<double> stations = new() { startSta };
+            var curveSegments = GetCurveSegments(alInfo.Id);
 
-            double firstMultiple = Math.Ceiling(startSta / khoangCach) * khoangCach;
-            if (firstMultiple <= startSta) firstMultiple += khoangCach;
-            for (double sta = firstMultiple; sta < endSta; sta += khoangCach)
-                stations.Add(sta);
+            // Iterate through alignment by steps
+            double currentSta = startSta;
+            while (currentSta < endSta)
+            {
+                bool isInCurve = curveSegments.Any(c => currentSta >= c.StartStation && currentSta <= c.EndStation);
+                double step = isInCurve ? khoangCachCong : khoangCachThang;
+
+                // Căn chỉnh step theo bội số để tròn số học giống Civil
+                double nextSta = Math.Ceiling((currentSta + 0.01) / step) * step;
+                if (nextSta > endSta) nextSta = endSta;
+
+                if (!stations.Contains(nextSta))
+                    stations.Add(nextSta);
+
+                currentSta = nextSta;
+            }
 
             if (Math.Abs(stations.Last() - endSta) > 0.01)
                 stations.Add(endSta);
 
+            var specialCurveStations = GetSpecialCurveStations(alInfo.Id);
+            if (UseCurve)
+            {
+                foreach (var kvp in specialCurveStations)
+                {
+                    if (kvp.Key >= startSta && kvp.Key <= endSta)
+                    {
+                        if (!stations.Any(s => Math.Abs(s - kvp.Key) < 0.01))
+                            stations.Add(kvp.Key);
+                    }
+                }
+            }
+
             stations = stations.Distinct().OrderBy(s => s).ToList();
 
             // Đặt tên
-            ApplyNamingConvention(stations);
+            ApplyNamingConvention(stations, specialCurveStations);
         }
 
         /// <summary>
@@ -568,16 +656,82 @@ namespace MyFirstProject
                 }
                 stations = stations.Distinct().OrderBy(s => s).ToList();
 
-                ApplyNamingConvention(stations);
+                var specialCurveStations = GetSpecialCurveStations(alInfo.Id);
+                ApplyNamingConvention(stations, specialCurveStations);
                 tr.Commit();
             }
             catch { }
         }
 
         /// <summary>
-        /// Đặt tên cọc theo quy cách: DT, CT, KM, H, 1~N
+        /// Lấy danh sách các đoạn cong (StartStation, EndStation)
         /// </summary>
-        private void ApplyNamingConvention(List<double> stations)
+        private List<(double StartStation, double EndStation)> GetCurveSegments(ObjectId alignmentId)
+        {
+            List<(double, double)> curves = new();
+            try
+            {
+                using Transaction tr = A.Db.TransactionManager.StartTransaction();
+                Alignment? al = tr.GetObject(alignmentId, OpenMode.ForRead) as Alignment;
+                if (al != null)
+                {
+                    foreach (AlignmentEntity entity in al.Entities)
+                    {
+                        if (entity is AlignmentArc arc)
+                        {
+                            curves.Add((arc.StartStation, arc.EndStation));
+                        }
+                        else if (entity is AlignmentSpiral spiral)
+                        {
+                            curves.Add((spiral.StartStation, spiral.EndStation));
+                        }
+                    }
+                }
+                tr.Commit();
+            }
+            catch { }
+            return curves;
+        }
+
+        /// <summary>
+        /// Lấy danh sách các Station đặc biệt trong đường cong (TĐ, P, TC)
+        /// </summary>
+        private Dictionary<double, string> GetSpecialCurveStations(ObjectId alignmentId)
+        {
+            Dictionary<double, string> dict = new();
+            if (!UseCurve) return dict;
+
+            try
+            {
+                using Transaction tr = A.Db.TransactionManager.StartTransaction();
+                Alignment? al = tr.GetObject(alignmentId, OpenMode.ForRead) as Alignment;
+                if (al != null)
+                {
+                    foreach (AlignmentEntity entity in al.Entities)
+                    {
+                        if (entity is AlignmentArc arc)
+                        {
+                            double td = arc.StartStation;
+                            double tc = arc.EndStation;
+                            double p = (td + tc) / 2.0;
+                            
+                            // Giữ lại tên nếu có sai số rất nhỏ
+                            dict[td] = "TĐ";
+                            dict[p] = "P";
+                            dict[tc] = "TC";
+                        }
+                    }
+                }
+                tr.Commit();
+            }
+            catch { }
+            return dict;
+        }
+
+        /// <summary>
+        /// Đặt tên cọc theo quy cách: DT, CT, KM, H, TĐ, P, TC, 1~N
+        /// </summary>
+        private void ApplyNamingConvention(List<double> stations, Dictionary<double, string> specialStations)
         {
             if (stations.Count == 0) return;
 
@@ -595,13 +749,18 @@ namespace MyFirstProject
                     name = "DT";
                 else if (useDtCt && i == stations.Count - 1)
                     name = "CT";
+                else if (specialStations.Any(kvp => Math.Abs(kvp.Key - sta) < 0.01))
+                    name = specialStations.First(kvp => Math.Abs(kvp.Key - sta) < 0.01).Value;
                 else if (useKm && IsMultipleOf(sta, 1000))
                     name = $"KM{(int)Math.Round(sta / 1000)}";
                 else if (useH && IsMultipleOf(sta, 100))
-                    name = $"H{(int)Math.Round(sta / 100)}";
+                {
+                    int hVal = (int)Math.Round(sta / 100);
+                    name = $"H{(useKm ? hVal % 10 : hVal)}";
+                }
                 else
                 {
-                    name = normalIndex.ToString();
+                    name = (UsePrefix ? PrefixValue : "") + normalIndex.ToString();
                     normalIndex++;
                 }
 
@@ -724,6 +883,12 @@ namespace MyFirstProject
                 ExecuteDoiTen(form);
         }
 
+        [CommandMethod("CTS_DoiTenCoc")]
+        public static void CTSDoiTenCocAlias()
+        {
+            CTPOCocTuyenDuong();
+        }
+
         /// <summary>
         /// Phát sinh cọc mới dọc tuyến
         /// </summary>
@@ -744,14 +909,12 @@ namespace MyFirstProject
 
                 // Tạo SampleLine từ preview
                 int created = 0;
-                int tempIndex = 5000;
                 foreach (var item in form.PreviewItems)
                 {
                     try
                     {
-                        string tempName = "z" + tempIndex;
-                        tempIndex++;
-                        CreateSamplelineWithWidth(tempName, slgId, alignment, item.Station, form.BeRong);
+                        string tempName = "z_" + Guid.NewGuid().ToString("N").Substring(0, 10);
+                        ObjectId newId = CreateSamplelineWithWidth(tr, tempName, slgId, alignment, item.Station, form.BeRongTrai, form.BeRongPhai);
                         created++;
                     }
                     catch { /* Bỏ qua cọc trùng vị trí */ }
@@ -760,7 +923,7 @@ namespace MyFirstProject
                 // Đổi tên tất cả cọc trong group theo quy cách
                 SampleLineGroup? slGroup = tr.GetObject(slgId, OpenMode.ForWrite) as SampleLineGroup;
                 if (slGroup != null)
-                    RenameSampleLines(tr, slGroup, form.UseDT_CT, form.UseH, form.UseKM);
+                    RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue);
 
                 A.Ed.WriteMessage($"\n✅ Đã phát sinh {created}/{form.PreviewItems.Count} cọc trên tuyến {alignment.Name}");
                 tr.Commit();
@@ -793,7 +956,7 @@ namespace MyFirstProject
                 SampleLineGroup? slGroup = tr.GetObject(slgIds[0], OpenMode.ForWrite) as SampleLineGroup;
                 if (slGroup == null) { tr.Commit(); return; }
 
-                int count = RenameSampleLines(tr, slGroup, form.UseDT_CT, form.UseH, form.UseKM);
+                int count = RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue);
                 A.Ed.WriteMessage($"\n✅ Đã đổi tên {count} cọc trên tuyến {alignment.Name}");
                 tr.Commit();
             }
@@ -807,11 +970,28 @@ namespace MyFirstProject
 
         /// <summary>
         /// Đổi tên tất cả cọc trong SampleLineGroup theo quy cách:
-        /// DT (đầu), CT (cuối), KM (1000m), H (100m), 1~N (còn lại)
+        /// DT (đầu), CT (cuối), KM (1000m), H (100m), TĐ, P, TC, 1~N (còn lại)
         /// </summary>
-        private static int RenameSampleLines(Transaction tr, SampleLineGroup slGroup,
-            bool useDtCt = true, bool useH = true, bool useKm = true)
+        private static int RenameSampleLines(Transaction tr, Alignment al, SampleLineGroup slGroup,
+            bool useDtCt = true, bool useH = true, bool useKm = true, bool useCurve = true, bool usePrefix = false, string prefixValue = "")
         {
+            Dictionary<double, string> specialStations = new();
+            if (useCurve)
+            {
+                if (al != null)
+                {
+                    foreach (AlignmentEntity entity in al.Entities)
+                    {
+                        if (entity is AlignmentArc arc)
+                        {
+                            specialStations[arc.StartStation] = "TĐ";
+                            specialStations[(arc.StartStation + arc.EndStation) / 2.0] = "P";
+                            specialStations[arc.EndStation] = "TC";
+                        }
+                    }
+                }
+            }
+
             // Thu thập và sắp xếp theo station
             List<SampleLine> sorted = new();
             foreach (ObjectId slId in slGroup.GetSampleLineIds())
@@ -825,7 +1005,7 @@ namespace MyFirstProject
 
             // Bước 1: Reset tên tạm (tránh trùng khi rename)
             for (int i = 0; i < sorted.Count; i++)
-                sorted[i].Name = $"__tmp_{i:D5}";
+                sorted[i].Name = "z_" + Guid.NewGuid().ToString("N").Substring(0, 10);
 
             // Bước 2: Đặt tên theo quy cách
             int normalIndex = 1;
@@ -838,17 +1018,38 @@ namespace MyFirstProject
                     newName = "DT";
                 else if (useDtCt && i == sorted.Count - 1)
                     newName = "CT";
+                else if (specialStations.Any(kvp => Math.Abs(kvp.Key - station) < 0.01))
+                    newName = specialStations.First(kvp => Math.Abs(kvp.Key - station) < 0.01).Value;
                 else if (useKm && IsMultipleOf(station, 1000))
                     newName = $"KM{(int)Math.Round(station / 1000)}";
                 else if (useH && IsMultipleOf(station, 100))
-                    newName = $"H{(int)Math.Round(station / 100)}";
+                {
+                    int hVal = (int)Math.Round(station / 100);
+                    newName = $"H{(useKm ? hVal % 10 : hVal)}";
+                }
                 else
                 {
-                    newName = normalIndex.ToString();
+                    newName = (usePrefix ? prefixValue : "") + normalIndex.ToString();
                     normalIndex++;
                 }
 
-                sorted[i].Name = newName;
+                bool nameSet = false;
+                string finalName = newName;
+                int retryCount = 0;
+                while (!nameSet)
+                {
+                    try
+                    {
+                        sorted[i].Name = finalName;
+                        nameSet = true;
+                    }
+                    catch
+                    {
+                        retryCount++;
+                        finalName = $"{newName}_{retryCount}";
+                        if (retryCount > 100) break; // Fallback an toàn
+                    }
+                }
             }
 
             return sorted.Count;
@@ -861,25 +1062,23 @@ namespace MyFirstProject
         }
 
         /// <summary>
-        /// Tạo SampleLine với bề rộng tùy chỉnh
+        /// Tạo SampleLine với bề rộng trái/phải tùy chỉnh
         /// </summary>
-        private static ObjectId CreateSamplelineWithWidth(string name, ObjectId slgId, Alignment alignment, double station, double width)
+        private static ObjectId CreateSamplelineWithWidth(Transaction tr, string name, ObjectId slgId, Alignment alignment, double station, double widthLeft, double widthRight)
         {
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            {
-                Autodesk.AutoCAD.Geometry.Point2dCollection points = new();
-                double easting = 0, northing = 0;
+            Autodesk.AutoCAD.Geometry.Point2dCollection points = new();
+            double easting = 0, northing = 0;
 
-                alignment.PointLocation(station, -width, ref easting, ref northing);
-                points.Add(new Autodesk.AutoCAD.Geometry.Point2d(easting, northing));
+            // Bên trái (giá trị âm)
+            alignment.PointLocation(station, -widthLeft, ref easting, ref northing);
+            points.Add(new Autodesk.AutoCAD.Geometry.Point2d(easting, northing));
 
-                alignment.PointLocation(station, width, ref easting, ref northing);
-                points.Add(new Autodesk.AutoCAD.Geometry.Point2d(easting, northing));
+            // Bên phải (giá trị dương)
+            alignment.PointLocation(station, widthRight, ref easting, ref northing);
+            points.Add(new Autodesk.AutoCAD.Geometry.Point2d(easting, northing));
 
-                ObjectId slId = SampleLine.Create(name, slgId, points);
-                tr.Commit();
-                return slId;
-            }
+            ObjectId slId = SampleLine.Create(name, slgId, points);
+            return slId;
         }
 
         #endregion

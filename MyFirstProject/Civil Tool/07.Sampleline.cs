@@ -1,4 +1,4 @@
-﻿// (C) Copyright 2015 by  
+// (C) Copyright 2015 by  
 //
 using System;
 using System.Collections.Generic;
@@ -35,68 +35,7 @@ namespace MyFirstProject
     public class Sampleline
     {
         
-        [CommandMethod("CTS_DoiTenCoc")]
-        public static void CTSDoiTenCoc()
-        {
-            // start transantion
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            try
-            {
-                UserInput uI = new();
 
-                //start here
-                // choose an alignment
-                ObjectId alignmentId = UserInput.GAlignmentId("\n Chọn tim đường " + "để đổi tên cọc: \n");
-
-                //get alignment for read
-                Alignment? alignment = tr.GetObject(alignmentId, OpenMode.ForRead) as Alignment;
-                //get first sampleline group
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                ObjectId samplelineGroup = alignment.GetSampleLineGroupIds()[0];
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                SampleLineGroup? sampleLineGroup = tr.GetObject(samplelineGroup, OpenMode.ForRead) as SampleLineGroup;
-
-                //reset name sampleline
-                int i = 0;
-                int j = 1000;
-                int value;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                foreach (ObjectId sampleLineId in sampleLineGroup.GetSampleLineIds())
-                {
-                    SampleLine? sampleline = tr.GetObject(sampleLineId, OpenMode.ForWrite) as SampleLine;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    if (int.TryParse(sampleline.Name, out value))
-                    {
-                        sampleline.Name = Convert.ToString(j);
-                        j++;
-                    }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    i++;
-                }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-                //rename sampleline
-
-                j = 1;
-                foreach (ObjectId sampleLineId in sampleLineGroup.GetSampleLineIds())
-                {
-                    SampleLine? sampleline = tr.GetObject(sampleLineId, OpenMode.ForWrite) as SampleLine;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    if (int.TryParse(sampleline.Name, out value))
-                    {
-                        sampleline.Name = Convert.ToString(j);
-                        j++;
-                    }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    i++;
-                }
-                tr.Commit();
-            }
-            catch (Autodesk.AutoCAD.Runtime.Exception e)
-            {
-                A.Ed.WriteMessage(e.Message);
-            }
-        }
 
         [CommandMethod("CTS_DoiTenCoc3")]
         public static void CTSDoiTenCoc3()
