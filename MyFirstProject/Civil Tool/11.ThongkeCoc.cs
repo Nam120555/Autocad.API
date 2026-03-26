@@ -1,4 +1,4 @@
-﻿// (C) Copyright 2024
+// (C) Copyright 2024
 // Thống kê cọc từ SampleLine và xuất ra Excel
 //
 using System;
@@ -852,17 +852,26 @@ namespace MyFirstProject
                 }
 
                 // 2. Hiển thị form chọn
-                AlignmentSelectionForm form = new AlignmentSelectionForm(configs);
-                Autodesk.AutoCAD.ApplicationServices.Application.ShowModalDialog(form);
+                List<AlignmentExportConfig> selectedConfigs;
+                int decimalPlaces;
+                bool includeCaoDoTuNhien;
+                bool includeCaoDoThietKe;
 
-                if (!form.IsConfirmed)
+                using (AlignmentSelectionForm form = new AlignmentSelectionForm(configs))
                 {
-                    A.Ed.WriteMessage("\n⚠️ Đã hủy thao tác.");
-                    return;
-                }
+                    Autodesk.AutoCAD.ApplicationServices.Application.ShowModalDialog(form);
 
-                // 3. Lấy các tuyến được chọn
-                var selectedConfigs = form.Configs.Where(c => c.IsSelected).ToList();
+                    if (!form.IsConfirmed)
+                    {
+                        A.Ed.WriteMessage("\n⚠️ Đã hủy thao tác.");
+                        return;
+                    }
+
+                    selectedConfigs = form.Configs.Where(c => c.IsSelected).ToList();
+                    decimalPlaces = form.DecimalPlaces;
+                    includeCaoDoTuNhien = form.IncludeCaoDoTuNhien;
+                    includeCaoDoThietKe = form.IncludeCaoDoThietKe;
+                }
 
                 if (selectedConfigs.Count == 0)
                 {
@@ -891,7 +900,7 @@ namespace MyFirstProject
 
                 foreach (var config in selectedConfigs)
                 {
-                    var cocInfos = ExtractCocInfoWithElevation(tr, config, form.DecimalPlaces);
+                    var cocInfos = ExtractCocInfoWithElevation(tr, config, decimalPlaces);
                     if (cocInfos.Count > 0)
                     {
                         alignmentData.Add((config.AlignmentName, cocInfos));
@@ -902,7 +911,7 @@ namespace MyFirstProject
 
                 // 6. Xuất Excel
                 ExportToExcelWithOptions(saveDialog.FileName, alignmentData, 
-                    form.IncludeCaoDoTuNhien, form.IncludeCaoDoThietKe, form.DecimalPlaces);
+                    includeCaoDoTuNhien, includeCaoDoThietKe, decimalPlaces);
 
                 A.Ed.WriteMessage($"\n\n📊 Tổng: {selectedConfigs.Count} tuyến, {totalCoc} cọc");
                 A.Ed.WriteMessage($"\n✅ Đã xuất file: {saveDialog.FileName}");

@@ -636,7 +636,7 @@ namespace MyFirstProject
         public static void CTSPhatSinhCoc()
         {
             // Mở Form phát sinh cọc kiểu Civil 3D
-            PhatSinhCocForm form = new();
+            using PhatSinhCocForm form = new();
             var result = Application.ShowModalDialog(form);
 
             if (result != DialogResult.OK || !form.IsConfirmed) return;
@@ -1199,71 +1199,6 @@ namespace MyFirstProject
             }
         }
 
-        [CommandMethod("CTS_DichCoc_TinhTien40")]
-        public static void CTSDichCocTinhTien40()
-        {
-            // start transantion
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            try
-            {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
-                //start here
-
-                ObjectId sampleLineId_S = UserInput.GSampleLineId("\n Chọn sampleLine cọc mốc: \n");
-                SampleLine? sampleLine_S = tr.GetObject(sampleLineId_S, OpenMode.ForWrite) as SampleLine;
-                ObjectId sampleLineId_D = UserInput.GSampleLineId("\n Chọn sampleLine cọc cần dịch: \n");
-                SampleLine? sampleLine_D = tr.GetObject(sampleLineId_D, OpenMode.ForWrite) as SampleLine;
-                Double khoangDich = 40;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                sampleLine_D.Station = sampleLine_S.Station + khoangDich;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-
-
-                tr.Commit();
-            }
-            catch (Autodesk.AutoCAD.Runtime.Exception e)
-            {
-                A.Ed.WriteMessage(e.Message);
-            }
-        }
-
-        [CommandMethod("CTS_DichCoc_TinhTien_20")]
-        public static void CTSDichCocTinhTien20()
-        {
-            // start transantion
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            try
-            {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
-                //start here
-
-                ObjectId sampleLineId_S = UserInput.GSampleLineId("\n Chọn sampleLine cọc mốc: \n");
-                SampleLine? sampleLine_S = tr.GetObject(sampleLineId_S, OpenMode.ForWrite) as SampleLine;
-                ObjectId sampleLineId_D = UserInput.GSampleLineId("\n Chọn sampleLine cọc cần dịch: \n");
-                SampleLine? sampleLine_D = tr.GetObject(sampleLineId_D, OpenMode.ForWrite) as SampleLine;
-                Double khoangDich = 20;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                sampleLine_D.Station = sampleLine_S.Station + khoangDich;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-
-
-                tr.Commit();
-            }
-            catch (Autodesk.AutoCAD.Runtime.Exception e)
-            {
-                A.Ed.WriteMessage(e.Message);
-            }
-        }
 
         [CommandMethod("CTS_DoiTenCoc_H")]
         public static void CTSDoiTenCocH()

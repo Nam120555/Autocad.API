@@ -53,16 +53,28 @@ namespace MyFirstProject
                 doc.SendStringToExecute("._-PURGE\nZ\n", true, false, false);
                 doc.SendStringToExecute("._-PURGE\nE\n", true, false, false); // Empty text
 
-                // 6. Reset (Xóa) danh sách tỷ lệ kích cỡ chú thích không dùng tới
+                // 6. Xóa Orphaned Data (DGN Linetypes - thủ phạm gây mập file lên hàng chục MB không rõ nguyên nhân)
+                doc.SendStringToExecute("._-PURGE\nO\n", true, false, false);
+
+                // 7. Reset (Xóa) danh sách tỷ lệ kích cỡ chú thích không dùng tới
                 doc.SendStringToExecute("._-SCALELISTEDIT\nR\nY\nE\n", true, false, false);
                 
-                // 7. AECPURGESTYLES - (Riêng phần mềm Civil 3D/Architecture)
+                // 8. AECPURGESTYLES - (Riêng phần mềm Civil 3D/Architecture)
                 // Giúp xóa toàn bộ Styles (Alignment style, Profile style, Label style...) chưa dùng.
                 // Ở Civil 3D khi khởi tạo từ template trống, có thể chứa hàng trăm AEC styles làm file bị nặng ngầm
                 doc.SendStringToExecute("._AECPURGESTYLES\n", true, false, false);
 
+                // 9. Tối ưu hóa biến hệ thống trước khi save
+                // ISAVEPERCENT = 0: Ép AutoCAD lưu lại toàn bộ cấu trúc file thay vì lưu nối tiếp (incremental save), giúp giảm dung lượng đáng kể
+                AcadApp.SetSystemVariable("ISAVEPERCENT", 0);
+                // PROXYGRAPHICS = 0: Không lưu hình ảnh hiển thị 3D của các đối tượng Proxy (object của phần mềm khác ném sang)
+                AcadApp.SetSystemVariable("PROXYGRAPHICS", 0);
+
                 // Lưu ý
-                doc.SendStringToExecute("(print \"Hoàn tất làm nhẹ file. Mời bạn lưu file (Ctrl+S) lại để thấy dung lượng giảm đáng kể!\")(princ)\n", true, false, false);
+                doc.SendStringToExecute("(print \"==================================================\")(princ)\n", true, false, false);
+                doc.SendStringToExecute("(print \"Hoàn tất làm nhẹ file toàn diện!\")(princ)\n", true, false, false);
+                doc.SendStringToExecute("(print \"Mời bạn LƯU FILE (Ctrl+S) để thấy dung lượng giảm đáng kể! ISAVEPERCENT đã được gán về 0.\")(princ)\n", true, false, false);
+                doc.SendStringToExecute("(print \"==================================================\")(princ)\n", true, false, false);
             }
             catch (System.Exception ex)
             {

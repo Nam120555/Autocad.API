@@ -498,18 +498,25 @@ namespace MyFirstProject
             Database db = doc.Database;
 
             // Hiển thị Form
-            FormImportExcelPoint form = new();
-            if (AcadApp.ShowModalDialog(form) != DialogResult.OK)
-            {
-                ed.WriteMessage("\n❌ Đã hủy lệnh Import Excel.");
-                return;
-            }
+            List<ExcelPointData> pointList;
+            string blockName;
+            string layerName;
+            double scale;
+            bool createCogo;
 
-            var pointList = form.PointDataList;
-            string blockName = form.SelectedBlockName;
-            string layerName = form.LayerName;
-            double scale = form.BlockScale;
-            bool createCogo = form.CreateCogoPoint;
+            using (var form = new FormImportExcelPoint())
+            {
+                if (AcadApp.ShowModalDialog(form) != DialogResult.OK)
+                {
+                    ed.WriteMessage("\n❌ Đã hủy lệnh Import Excel.");
+                    return;
+                }
+                pointList = form.PointDataList;
+                blockName = form.SelectedBlockName;
+                layerName = form.LayerName;
+                scale = form.BlockScale;
+                createCogo = form.CreateCogoPoint;
+            }
 
             if (pointList.Count == 0)
             {

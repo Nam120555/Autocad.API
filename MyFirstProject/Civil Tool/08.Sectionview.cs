@@ -1,4 +1,4 @@
-﻿// (C) Copyright 2015 by  
+// (C) Copyright 2015 by  
 //
 using System;
 using System.Collections.Generic;
@@ -983,33 +983,24 @@ namespace MyFirstProject
         [CommandMethod("CTSV_DanhCap_VeThem")]
         public static void CTSVDanhCapVeThem()
         {
-            // start transantion
+            // start transantion — Gộp từ VeThem, VeThem1, VeThem2
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
-                //start here
-                ObjectId sectionViewId = UserInput.GSectionView("\n Chọn 1 bảng cắt ngang " + " trong nhóm cần tính đánh cấp bổ sung: \n");
-                SectionView? sectionView = tr.GetObject(sectionViewId, OpenMode.ForWrite) as SectionView;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                ObjectId sampleLineId = sectionView.SampleLineId;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                SampleLine? sampleLine = tr.GetObject(sampleLineId, OpenMode.ForWrite) as SampleLine;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                ObjectId sampleLineGroupId = sampleLine.GroupId; ;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                SampleLineGroup? sampleLineGroup = tr.GetObject(sampleLineGroupId, OpenMode.ForWrite) as SampleLineGroup;
+                // Hỏi bề rộng đánh cấp (trước đây hardcode 1 hoặc 2)
+                var pio = new PromptIntegerOptions("\nNhập bề rộng đánh cấp [1/2]: ");
+                pio.DefaultValue = 2;
+                pio.UseDefaultValue = true;
+                pio.LowerLimit = 1;
+                pio.UpperLimit = 5;
+                var pir = A.Ed.GetInteger(pio);
+                if (pir.Status != PromptStatus.OK) return;
+                int bacCap = pir.Value;
+                double docDanhCap = 0.2;
 
-                ObjectId alignmentId = sampleLine.GetParentAlignmentId();
-                Alignment? alignment = tr.GetObject(alignmentId, OpenMode.ForWrite) as Alignment;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                String alignmentName = alignment.Name + "_danhCap";
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                Point3d point1 = UserInput.GPoint("\n Chọn vị trí điểm" + "\n Chọn vị trí điểm" + "để xác định điểm ĐẦU đánh cấp bổ sung: \n");
-                Point3d point2 = UserInput.GPoint("\n Chọn vị trí điểm" + "\n Chọn vị trí điểm" + "để xác định điểm CUỐI đánh cấp bổ sung: \n");
-                UtilitiesCAD.CreatePolylineDanhCap(point1.X, point2.X, point1.Y, point2.Y, 2, 0.2);
+                Point3d point1 = UserInput.GPoint("\n Chọn vị trí điểm ĐẦU đánh cấp bổ sung: \n");
+                Point3d point2 = UserInput.GPoint("\n Chọn vị trí điểm CUỐI đánh cấp bổ sung: \n");
+                UtilitiesCAD.CreatePolylineDanhCap(point1.X, point2.X, point1.Y, point2.Y, bacCap, docDanhCap);
 
                 tr.Commit();
             }
@@ -1019,49 +1010,6 @@ namespace MyFirstProject
             }
         }
 
-        [CommandMethod("CTSV_DanhCap_VeThem2")]
-        public static void CTSVDanhCapVeThem2()
-        {
-            // start transantion
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            try
-            {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
-                Point3d point1 = UserInput.GPoint("\n Chọn vị trí điểm" + "\n Chọn vị trí điểm" + "để xác định điểm ĐẦU đánh cấp bổ sung: \n");
-                Point3d point2 = UserInput.GPoint("\n Chọn vị trí điểm" + "\n Chọn vị trí điểm" + "để xác định điểm CUỐI đánh cấp bổ sung: \n");
-                UtilitiesCAD.CreatePolylineDanhCap(point1.X, point2.X, point1.Y, point2.Y, 2, 0.2);
-
-                tr.Commit();
-            }
-            catch (Autodesk.AutoCAD.Runtime.Exception e)
-            {
-                A.Ed.WriteMessage(e.Message);
-            }
-        }
-
-        [CommandMethod("CTSV_DanhCap_VeThem1")]
-        public static void CTSVDanhCapVeThem1()
-        {
-            // start transantion
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            try
-            {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
-                Point3d point1 = UserInput.GPoint("\n Chọn vị trí điểm" + "\n Chọn vị trí điểm" + "để xác định điểm ĐẦU đánh cấp bổ sung: \n");
-                Point3d point2 = UserInput.GPoint("\n Chọn vị trí điểm" + "\n Chọn vị trí điểm" + "để xác định điểm CUỐI đánh cấp bổ sung: \n");
-                UtilitiesCAD.CreatePolylineDanhCap(point1.X, point2.X, point1.Y, point2.Y, 1, 0.2);
-
-                tr.Commit();
-            }
-            catch (Autodesk.AutoCAD.Runtime.Exception e)
-            {
-                A.Ed.WriteMessage(e.Message);
-            }
-        }
 
         [CommandMethod("CTSV_DanhCap_CapNhat")]
         public static void CTSVDanhCapCapNhat()
@@ -1644,266 +1592,7 @@ namespace MyFirstProject
                     //get min max
                     ymin = Math.Round(section.MinmumElevation - moRongKhungDungDuoi, 0);
                     xmin = Math.Round(section.LeftOffset - moRongKhungNgangTrai, 0);
-                    ymax = Math.Round(section.MaximumElevation + moRongKhungDungTren, 0);
-                    xmax = Math.Round(section.RightOffset + moRongKhungNgangPhai, 0);
-
-                    //set sectionview
-
-                    sectionView1.IsElevationRangeAutomatic = false;
-                    sectionView1.IsOffsetRangeAutomatic = false;
-                    sectionView1.OffsetLeft = xmin;
-                    sectionView1.OffsetRight = xmax;
-                    sectionView1.ElevationMin = ymin;
-                    sectionView1.ElevationMax = ymax;
-
-                }
-
-
-
-
-
-
-
-
-
-                tr.Commit();
-            }
-            catch (Autodesk.AutoCAD.Runtime.Exception e)
-            {
-                A.Ed.WriteMessage(e.Message);
-            }
-        }
-
-        [CommandMethod("CTSV_fit_KhungIn_5_5_top")]
-        public static void CTSVFitKhungIn55Top()
-        {
-            // start transantion CTSV_DanhCap
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            try
-            {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
-
-                //start here
-                ObjectIdCollection sectionViewIdColl = UserInput.GSelectionSetWithType("Chọn các sectionview cần fit khung in: \n", "AECC_GRAPH_SECTION_VIEW");
-                double moRongKhungDung = 5;
-                double moRongKhungNgang = 5;
-                String codeSection = "top";
-                SectionView? sectionView = tr.GetObject(sectionViewIdColl[0], OpenMode.ForWrite) as SectionView;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                ObjectId sampleLineId = sectionView.SampleLineId;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                SampleLine? sampleLine = tr.GetObject(sampleLineId, OpenMode.ForWrite) as SampleLine;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                ObjectId sampleLineGroupId = sampleLine.GroupId; ;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                SampleLineGroup? sampleLineGroup = tr.GetObject(sampleLineGroupId, OpenMode.ForWrite) as SampleLineGroup;
-
-
-                //lấy sectionsource TOP
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                SectionSourceCollection sectionSources = sampleLineGroup.GetSectionSources();
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-                ObjectId sectionSource_TOP_Id = new();
-                foreach (SectionSource sectionsource in sectionSources)
-                {
-                    if ((sectionsource.SourceType == SectionSourceType.CorridorSurface) & (sectionsource.IsSampled == true))
-                    {
-                        TinSurface? type = tr.GetObject(sectionsource.SourceId, OpenMode.ForRead) as TinSurface;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                        if (type.Name.Contains(codeSection, StringComparison.CurrentCultureIgnoreCase))
-                        {
-                            sectionSource_TOP_Id = sectionsource.SourceId;
-                        }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    }
-                }
-                // get sectionViewIdColl
-                //SectionViewGroup sectionViewGroup = sectionView.SectionViewGroupObject();
-                /*
-                SectionViewGroupCollection sectionViewGroupCollection = sampleLineGroup.SectionViewGroups;
-                SectionViewGroup sectionViewGroup = sectionViewGroupCollection[0];
-                if (sectionViewGroupCollection.Count > 1)
-                {
-                    int num = 0;
-                    a.ed.WriteMessage("Danh sách nhóm cắt ngang:\n");
-                    foreach (var item in sectionViewGroupCollection)
-                    {
-                        a.ed.WriteMessage(num.ToString() + " " + sectionViewGroupCollection[num].Name.ToString() + "\n");
-                        num++;
-                    }
-                    int numPass = UI.G_int("Nhập thứ tự nhóm cắt ngang cần fit khung in:");
-                    sectionViewGroup = sectionViewGroupCollection[numPass];
-                }
-                */
-
-                // add section TOP
-                Double xmin = new();
-                Double xmax = new();
-                double ymin = new();
-                double ymax = new();
-                foreach (ObjectId sectionviewId in sectionViewIdColl)
-                {
-                    SectionView? sectionView1 = tr.GetObject(sectionviewId, OpenMode.ForWrite) as SectionView;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    ObjectId sampleLine1Id = sectionView1.SampleLineId;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    SampleLine? sampleLine1 = tr.GetObject(sampleLine1Id, OpenMode.ForWrite) as SampleLine;
-
-                    sectionView1.IsElevationRangeAutomatic = true;
-                    sectionView1.IsOffsetRangeAutomatic = true;
-
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    ObjectId sectionTnId = sampleLine1.GetSectionId(sectionSource_TOP_Id);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    Section? section = tr.GetObject(sectionTnId, OpenMode.ForWrite) as Section;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    SectionPointCollection sectionPoints = section.SectionPoints;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    /*
-                    //get sectionview location
-                    double X = sectionView1.Location.X;
-                    double Y = sectionView1.Location.Y;
-                    sectionView1.IsElevationRangeAutomatic = false;
-                    double Z = sectionView1.ElevationMin;
-                    double Z1 = sectionView1.ElevationMax;
-                    sectionView1.IsElevationRangeAutomatic = true;
-                    */
-                    //get min max
-                    ymin = Math.Round(section.MinmumElevation - moRongKhungDung, 0);
-                    xmin = Math.Round(section.LeftOffset - moRongKhungNgang, 0);
-                    ymax = Math.Round(section.MaximumElevation + moRongKhungDung, 0);
-                    xmax = Math.Round(section.RightOffset + moRongKhungNgang, 0);
-
-                    //set sectionview
-
-                    sectionView1.IsElevationRangeAutomatic = false;
-                    sectionView1.IsOffsetRangeAutomatic = false;
-                    sectionView1.OffsetLeft = xmin;
-                    sectionView1.OffsetRight = xmax;
-                    sectionView1.ElevationMin = ymin;
-                    sectionView1.ElevationMax = ymax;
-
-                }
-
-
-
-
-
-
-
-
-
-                tr.Commit();
-            }
-            catch (Autodesk.AutoCAD.Runtime.Exception e)
-            {
-                A.Ed.WriteMessage(e.Message);
-            }
-        }
-
-        [CommandMethod("CTSV_fit_KhungIn_5_10_top")]
-        public static void CTSVFitKhungIn510Top()
-        {
-            // start transantion CTSV_DanhCap
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            try
-            {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
-
-                //start here
-                ObjectIdCollection sectionViewIdColl = UserInput.GSelectionSetWithType("Chọn các sectionview cần fit khung in: \n", "AECC_GRAPH_SECTION_VIEW");
-                double moRongKhungDung = 5;
-                double moRongKhungNgang = 10;
-                String codeSection = "top";
-                SectionView? sectionView = tr.GetObject(sectionViewIdColl[0], OpenMode.ForWrite) as SectionView;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                ObjectId sampleLineId = sectionView.SampleLineId;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                SampleLine? sampleLine = tr.GetObject(sampleLineId, OpenMode.ForWrite) as SampleLine;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                ObjectId sampleLineGroupId = sampleLine.GroupId; ;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                SampleLineGroup? sampleLineGroup = tr.GetObject(sampleLineGroupId, OpenMode.ForWrite) as SampleLineGroup;
-
-
-                //lấy sectionsource TOP
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                SectionSourceCollection sectionSources = sampleLineGroup.GetSectionSources();
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-                ObjectId sectionSource_TOP_Id = new();
-                foreach (SectionSource sectionsource in sectionSources)
-                {
-                    if ((sectionsource.SourceType == SectionSourceType.CorridorSurface) & (sectionsource.IsSampled == true))
-                    {
-                        TinSurface? type = tr.GetObject(sectionsource.SourceId, OpenMode.ForRead) as TinSurface;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                        if (type.Name.Contains(codeSection, StringComparison.CurrentCultureIgnoreCase))
-                        {
-                            sectionSource_TOP_Id = sectionsource.SourceId;
-                        }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    }
-                }
-                // get sectionViewIdColl
-                //SectionViewGroup sectionViewGroup = sectionView.SectionViewGroupObject();
-                /*
-                SectionViewGroupCollection sectionViewGroupCollection = sampleLineGroup.SectionViewGroups;
-                SectionViewGroup sectionViewGroup = sectionViewGroupCollection[0];
-                if (sectionViewGroupCollection.Count > 1)
-                {
-                    int num = 0;
-                    a.ed.WriteMessage("Danh sách nhóm cắt ngang:\n");
-                    foreach (var item in sectionViewGroupCollection)
-                    {
-                        a.ed.WriteMessage(num.ToString() + " " + sectionViewGroupCollection[num].Name.ToString() + "\n");
-                        num++;
-                    }
-                    int numPass = UI.G_int("Nhập thứ tự nhóm cắt ngang cần fit khung in:");
-                    sectionViewGroup = sectionViewGroupCollection[numPass];
-                }
-                */
-
-                // add section TOP
-                Double xmin = new();
-                Double xmax = new();
-                double ymin = new();
-                double ymax = new();
-                foreach (ObjectId sectionviewId in sectionViewIdColl)
-                {
-                    SectionView? sectionView1 = tr.GetObject(sectionviewId, OpenMode.ForWrite) as SectionView;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    ObjectId sampleLine1Id = sectionView1.SampleLineId;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    SampleLine? sampleLine1 = tr.GetObject(sampleLine1Id, OpenMode.ForWrite) as SampleLine;
-
-                    sectionView1.IsElevationRangeAutomatic = true;
-                    sectionView1.IsOffsetRangeAutomatic = true;
-
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    ObjectId sectionTnId = sampleLine1.GetSectionId(sectionSource_TOP_Id);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    Section? section = tr.GetObject(sectionTnId, OpenMode.ForWrite) as Section;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    SectionPointCollection sectionPoints = section.SectionPoints;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                    /*
-                    //get sectionview location
-                    double X = sectionView1.Location.X;
-                    double Y = sectionView1.Location.Y;
-                    sectionView1.IsElevationRangeAutomatic = false;
-                    double Z = sectionView1.ElevationMin;
-                    double Z1 = sectionView1.ElevationMax;
-                    sectionView1.IsElevationRangeAutomatic = true;
-                    */
-                    //get min max
-                    ymin = Math.Round(section.MinmumElevation - moRongKhungDung, 0);
-                    xmin = Math.Round(section.LeftOffset - moRongKhungNgang, 0);
+h.Round(section.LeftOffset - moRongKhungNgang, 0);
                     ymax = Math.Round(section.MaximumElevation + moRongKhungDung, 0);
                     xmax = Math.Round(section.RightOffset + moRongKhungNgang, 0);
 

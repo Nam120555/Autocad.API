@@ -437,7 +437,7 @@ namespace MyFirstProject
         {
             try
             {
-                var form = new IconCustomizationForm();
+                using var form = new IconCustomizationForm();
                 // Sử dụng ShowModalDialog thay vì ShowModelessDialog để tránh crash
                 AcadApp.ShowModalDialog(form);
             }

@@ -306,24 +306,30 @@ namespace MyFirstProject
                 return;
             }
 
-            var form = new AlignmentBatchForm(selResult.Value.Count);
-            var result = AcadApp.ShowModalDialog(form);
+            string prefix;
+            int startIndex;
+            ObjectId alignStyleId, labelSetId, siteId;
+            string layerName;
 
-            if (result != DialogResult.OK || !form.IsConfirmed)
+            using (var form = new AlignmentBatchForm(selResult.Value.Count))
             {
-                ed.WriteMessage("\n⚠️ Đã hủy lệnh.");
-                return;
+                var result = AcadApp.ShowModalDialog(form);
+                if (result != DialogResult.OK || !form.IsConfirmed)
+                {
+                    ed.WriteMessage("\n⚠️ Đã hủy lệnh.");
+                    return;
+                }
+                prefix = form.Prefix;
+                startIndex = form.StartIndex;
+                alignStyleId = form.GetSelectedStyleId();
+                labelSetId = form.GetSelectedLabelSetId();
+                siteId = form.GetSelectedSiteId();
+                layerName = form.LayerName;
             }
 
             using Transaction tr = db.TransactionManager.StartTransaction();
             try
             {
-                string prefix = form.Prefix;
-                int startIndex = form.StartIndex;
-                ObjectId alignStyleId = form.GetSelectedStyleId();
-                ObjectId labelSetId = form.GetSelectedLabelSetId();
-                ObjectId siteId = form.GetSelectedSiteId();
-                string layerName = form.LayerName;
 
                 EnsureLayerExists(db, tr, layerName);
 
@@ -389,31 +395,43 @@ namespace MyFirstProject
                 return;
             }
 
-            var form = new AlignmentBatchForm(selResult.Value.Count);
-            var result = AcadApp.ShowModalDialog(form);
-            if (result != DialogResult.OK || !form.IsConfirmed) return;
+            string batchPrefix;
+            int batchStartIndex;
+            ObjectId batchStyleId, batchLabelSetId;
+            string batchLayerName;
+
+            using (var form = new AlignmentBatchForm(selResult.Value.Count))
+            {
+                var result = AcadApp.ShowModalDialog(form);
+                if (result != DialogResult.OK || !form.IsConfirmed) return;
+                batchPrefix = form.Prefix;
+                batchStartIndex = form.StartIndex;
+                batchStyleId = form.GetSelectedStyleId();
+                batchLabelSetId = form.GetSelectedLabelSetId();
+                batchLayerName = form.LayerName;
+            }
 
             using Transaction tr = db.TransactionManager.StartTransaction();
             try
             {
-                EnsureLayerExists(db, tr, form.LayerName);
+                EnsureLayerExists(db, tr, batchLayerName);
 
                 List<ObjectId> sortedPolyIds = SortPolylinesByPosition(selResult.Value, tr);
-                int successCount = 0, index = form.StartIndex;
+                int successCount = 0, index = batchStartIndex;
 
                 foreach (ObjectId plId in sortedPolyIds)
                 {
                     try
                     {
-                        string alignName = GetUniqueAlignmentName(cdoc, tr, $"{form.Prefix}-{index:D3}");
+                        string alignName = GetUniqueAlignmentName(cdoc, tr, $"{batchPrefix}-{index:D3}");
                         ObjectId newAlignId = Alignment.Create(
                             cdoc, alignName, plId, ObjectId.Null,
-                            form.GetSelectedStyleId(), form.GetSelectedLabelSetId());
+                            batchStyleId, batchLabelSetId);
 
                         if (newAlignId != ObjectId.Null)
                         {
                             Alignment? newAlign = tr.GetObject(newAlignId, OpenMode.ForWrite) as Alignment;
-                            if (newAlign != null) newAlign.Layer = form.LayerName;
+                            if (newAlign != null) newAlign.Layer = batchLayerName;
                             successCount++;
                             ed.WriteMessage($"\n  ✅ Tạo tuyến: {alignName}");
                         }
@@ -458,9 +476,13 @@ namespace MyFirstProject
                     if (algn != null) alignList.Add((aId, algn.Name));
                 }
 
-                var form = new RenameBatchForm(alignList);
-                var result = AcadApp.ShowModalDialog(form);
-                if (result != DialogResult.OK || !form.IsConfirmed) return;
+                string newPrefix;
+                using (var form = new RenameBatchForm(alignList))
+                {
+                    var result = AcadApp.ShowModalDialog(form);
+                    if (result != DialogResult.OK || !form.IsConfirmed) return;
+                    newPrefix = form.NewPrefix;
+                }
 
                 int count = 0;
                 foreach (var (id, _) in alignList)
@@ -470,7 +492,7 @@ namespace MyFirstProject
                     {
                         count++;
                         string oldName = algn.Name;
-                        algn.Name = $"{form.NewPrefix}-{count:D3}";
+                        algn.Name = $"{newPrefix}-{count:D3}";
                         ed.WriteMessage($"\n  ✅ {oldName} → {algn.Name}");
                     }
                 }

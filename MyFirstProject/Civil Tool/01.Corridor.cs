@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.Runtime;
+using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,23 +31,31 @@ namespace MyFirstProject
         public static void CVC_AddAllSection()
         {
             // Mở form tùy chọn
-            AddSectionForm form = new();
-            var dialogResult = Autodesk.AutoCAD.ApplicationServices.Application.ShowModalDialog(form);
+            ObjectId selectedCorridorId;
+            bool clearOldStations;
+            Dictionary<string, List<double>> stationsByBaseline;
+            List<double> allStations;
 
-            if (dialogResult != DialogResult.OK || !form.IsConfirmed) return;
-            if (form.SelectedCorridorId == ObjectId.Null) return;
+            using (var form = new AddSectionForm())
+            {
+                var dialogResult = Autodesk.AutoCAD.ApplicationServices.Application.ShowModalDialog(form);
+                if (dialogResult != DialogResult.OK || !form.IsConfirmed) return;
+                if (form.SelectedCorridorId == ObjectId.Null) return;
+
+                selectedCorridorId = form.SelectedCorridorId;
+                clearOldStations = form.ClearOldStations;
+                stationsByBaseline = form.PreviewStations
+                    .GroupBy(s => s.BaselineName)
+                    .ToDictionary(g => g.Key, g => g.Select(s => s.Station).OrderBy(s => s).ToList());
+                allStations = form.PreviewStations.Select(s => s.Station).OrderBy(s => s).ToList();
+            }
 
             // Thực hiện add section
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                Corridor? corridor = tr.GetObject(form.SelectedCorridorId, OpenMode.ForWrite) as Corridor;
+                Corridor? corridor = tr.GetObject(selectedCorridorId, OpenMode.ForWrite) as Corridor;
                 if (corridor == null) { tr.Commit(); return; }
-
-                // Lấy danh sách station từ form preview
-                var stationsByBaseline = form.PreviewStations
-                    .GroupBy(s => s.BaselineName)
-                    .ToDictionary(g => g.Key, g => g.Select(s => s.Station).OrderBy(s => s).ToList());
 
                 int addedCount = 0;
 
@@ -62,12 +70,12 @@ namespace MyFirstProject
                     else
                     {
                         // Fallback: dùng tất cả station (cho trường hợp tên baseline không khớp)
-                        stations = form.PreviewStations.Select(s => s.Station).OrderBy(s => s).ToList();
+                        stations = allStations;
                     }
 
                     foreach (BaselineRegion baselineRegion in baseline.BaselineRegions)
                     {
-                        if (form.ClearOldStations)
+                        if (clearOldStations)
                         {
                             baselineRegion.ClearAdditionalStations();
                         }

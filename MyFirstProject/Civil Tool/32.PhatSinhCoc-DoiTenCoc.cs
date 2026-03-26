@@ -871,7 +871,7 @@ namespace MyFirstProject
         [CommandMethod("CTPO_CocTuyenDuong")]
         public static void CTPOCocTuyenDuong()
         {
-            CocTuyenDuongForm form = new();
+            using CocTuyenDuongForm form = new();
             var result = AcadApp.ShowModalDialog(form);
 
             if (result != DialogResult.OK || !form.IsConfirmed) return;

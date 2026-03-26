@@ -979,7 +979,7 @@ namespace MyFirstProject
             var ed = A.Ed;
 
             // Mở form cấu hình - vòng lặp để xử lý pick station trên tuyến
-            TaoMViewForm form = new();
+            using TaoMViewForm form = new();
             while (true)
             {
                 var dialogResult = AcadApp.ShowModalDialog(form);

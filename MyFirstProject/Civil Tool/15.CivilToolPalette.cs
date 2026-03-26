@@ -686,6 +686,22 @@ namespace MyFirstProject
         [CommandMethod("CT_Palette")]
         public static void ShowPalette()
         {
+            // Kiểm tra nếu PaletteSet cũ vẫn tồn tại nhưng static ref bị mất (NetReload)
+            if (_ps != null)
+            {
+                try
+                {
+                    // Kiểm tra PaletteSet còn hợp lệ không
+                    _ = _ps.Visible;
+                }
+                catch
+                {
+                    // PaletteSet cũ đã bị dispose hoặc invalid sau NetReload
+                    _ps = null;
+                    _control = null;
+                }
+            }
+
             if (_ps == null)
             {
                 _ps = new PaletteSet("Civil Tool", new Guid("AA9A60C8-5807-4C04-B473-45B13D5D7260"));
