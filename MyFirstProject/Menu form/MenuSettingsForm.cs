@@ -610,21 +610,83 @@ namespace MyFirstProject
         {
             var config = new MenuConfig();
 
-            // ── CIVIL TOOL panels ──
+            // ════════════════════════════════════════════════════════
+            // CIVIL TOOL — Sắp xếp theo WORKFLOW Civil 3D chuyên nghiệp
+            // Thứ tự: Thiết lập → Bề mặt → Tuyến → Trắc dọc → Corridor
+            //       → Cọc → Trắc ngang → Khối lượng → Điểm → Cống
+            //       → San nền → In ấn → Layer → Tiện ích
+            // ════════════════════════════════════════════════════════
             config.CivilGroups = new List<MenuGroupItem>
             {
+                // ─── 1. THIẾT LẬP & BẢN VẼ ───
+                new() { GroupName = "⚙ Thiết Lập", IconType = "SETTINGS", Commands = ConvertCmds(new[]
+                {
+                    ("CTDS_ThietLap", "Thiết Lập Bản Vẽ", "SETTINGS"),
+                    ("CTDS_SaveClean", "Lưu & Dọn File", "UTILITY"),
+                    ("CT_StyleSettings", "Quản Lý Style", "SETTINGS"),
+                    ("CT_StyleInfo", "Thông Tin Style", "INFO"),
+                    ("---", "", ""),
+                    ("CTDS_ConvertMM2M", "Chuyển MM → M", "CALCULATE"),
+                    ("CTDS_ConvertCM2M", "Chuyển CM → M", "CALCULATE"),
+                    ("---", "", ""),
+                    ("CTL_Hub", "Layer Hub", "VIEW"),
+                }) },
+
+                // ─── 2. BỀ MẶT (SURFACE) ───
                 new() { GroupName = "🗺 Bề Mặt", IconType = "SURFACE", Commands = ConvertCmds(new[]
                 {
                     ("CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation Tại Tim", "ADD"),
+                    ("CTS_RebuildSurface", "Rebuild Surface", "SYNC"),
+                    ("---", "", ""),
+                    ("CTSV_DaoDap", "Đào Đắp Surface", "VOLUME"),
+                    ("CTSV_HienThiMaterialList", "Hiển Thị Material List", "INFO"),
+                    ("CTSV_ChiTietMaterialSection", "Chi Tiết Material Section", "INFO"),
+                    ("CTSV_PhanTichArea", "Phân Tích Area", "CALCULATE"),
+                    ("CTSV_KiemTraKhoiLuong", "Kiểm Tra Khối Lượng", "CALCULATE"),
                 }) },
 
+                // ─── 3. TUYẾN (ALIGNMENT) ───
+                new() { GroupName = "📏 Tuyến", IconType = "ALIGN", Commands = ConvertCmds(new[]
+                {
+                    ("CTC_ThongSoDuongCong_4054", "Đường Cong TCVN 4054", "CALCULATE"),
+                    ("CTC_ThongSoDuongCong_13592", "Đường Cong TCVN 13592", "CALCULATE"),
+                    ("CTC_KiemTraDuongCong_4054", "Kiểm Tra DC 4054", "INFO"),
+                    ("CTC_KiemTraDuongCong_13592", "Kiểm Tra DC 13592", "INFO"),
+                    ("CTC_TraCuuDuongCong", "Tra Cứu Đường Cong", "INFO"),
+                    ("CTC_ThietLapDuongCong", "Thiết Lập Đường Cong", "SETTINGS"),
+                }) },
+
+                // ─── 4. TRẮC DỌC (PROFILE) ───
+                new() { GroupName = "📈 Trắc Dọc", IconType = "PROFILE", Commands = ConvertCmds(new[]
+                {
+                    ("CTP_VeTracDoc_TuNhien", "Vẽ Trắc Dọc TN", "DRAW"),
+                    ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ TN Tất Cả Tuyến", "DRAW"),
+                    ("CTP_Fix_DuongTuNhien_TheoCoc", "Fix Đường TN Theo Cọc", "SYNC"),
+                    ("---", "", ""),
+                    ("CTP_GanNhanNutGiao_LenTracDoc", "Nhãn Nút Giao → Trắc Dọc", "ADD"),
+                    ("CTP_TaoCogoPointTuPVI", "Tạo Point Từ PVI", "POINT"),
+                    ("CTP_XuatBangCivil", "Xuất Bảng Civil", "EXPORT"),
+                    ("CTP_AddParcelLabels", "Thêm Parcel Labels", "ADD"),
+                }) },
+
+                // ─── 5. CORRIDOR ───
+                new() { GroupName = "🛤 Corridor", IconType = "CORRIDOR", Commands = ConvertCmds(new[]
+                {
+                    ("CTC_AddAllSection", "Thêm Tất Cả Section", "ADD"),
+                    ("CTC_TaoCooridor_DuongDoThi_RePhai", "Corridor Rẽ Phải", "DRAW"),
+                    ("CTC_TaoMViewTheoTuyen", "Tạo MView Theo Tuyến", "LAYOUT"),
+                }) },
+
+                // ─── 6. CỌC (SAMPLE LINE) ───
                 new() { GroupName = "📍 Lưới Cọc", IconType = "STATION", Commands = ConvertCmds(new[]
                 {
-                    ("CTS_PhatSinhCoc", "Phát Sinh Cọc", "ADD"),
+                    ("CTS_PhatSinhCoc", "⭐ Phát Sinh Cọc", "ADD"),
+                    ("CTS_DoiTenCoc", "Đổi Tên Cọc", "RENAME"),
                     ("---", "", ""),
                     ("CTS_DichCoc_TinhTien", "Dịch Cọc Tịnh Tiến", "MOVE"),
                     ("CTS_DichCoc_TinhTien40", "Dịch Cọc 40m", "MOVE"),
                     ("CTS_DichCoc_TinhTien_20", "Dịch Cọc 20m", "MOVE"),
+                    ("---", "", ""),
                     ("CTS_Copy_NhomCoc", "Sao Chép Nhóm Cọc", "COPY"),
                     ("CTS_DongBo_2_NhomCoc", "Đồng Bộ Nhóm Cọc", "SYNC"),
                     ("CTS_DongBo_2_NhomCoc_TheoDoan", "Đồng Bộ Theo Đoạn", "SYNC"),
@@ -636,46 +698,82 @@ namespace MyFirstProject
                     ("CTSV_ThongKeCoc", "Thống Kê Cọc (Excel)", "EXPORT"),
                 }) },
 
-
-                new() { GroupName = "🛤 Corridor", IconType = "CORRIDOR", Commands = ConvertCmds(new[]
-                {
-                    ("CTC_AddAllSection", "Thêm Tất Cả Section", "ADD"),
-                    ("CTC_TaoCooridor_DuongDoThi_RePhai", "Corridor Rẽ Phải", "DRAW"),
-                }) },
-
+                // ─── 7. TRẮC NGANG (SECTION VIEW) ───
                 new() { GroupName = "📐 Trắc Ngang", IconType = "SECTION", Commands = ConvertCmds(new[]
                 {
-                    ("CTSV_VeTracNgangThietKe", "Tạo Trắc Ngang", "DRAW"),
+                    ("CTSV_VeTracNgangThietKe", "Tạo Trắc Ngang TK", "DRAW"),
                     ("CVSV_VeTatCa_TracNgangThietKe", "Vẽ Tất Cả TN", "DRAW"),
-                    ("CTSV_ChuyenDoi_TNTK_TNTN", "Chuyển TK Sang TN", "SYNC"),
+                    ("CTSV_ChuyenDoi_TNTK_TNTN", "Chuyển TK → TN", "SYNC"),
                     ("---", "", ""),
-                    ("CTSV_DanhCap", "Đánh Cấp - VHC", "SLOPE"),
+                    ("CTSV_DanhCap", "Đánh Cấp VHC", "SLOPE"),
                     ("CTSV_DanhCap_XoaBo", "Xóa Đánh Cấp", "DELETE"),
                     ("CTSV_DanhCap_VeThem", "Vẽ Thêm Đánh Cấp", "SLOPE"),
                     ("CTSV_DanhCap_VeThem1", "Vẽ Thêm 1m", "ADD"),
                     ("CTSV_DanhCap_VeThem2", "Vẽ Thêm 2m", "ADD"),
-                    ("CTSV_DanhCap_CapNhat", "Cập Nhật KL Đánh Cấp", "SYNC"),
+                    ("CTSV_DanhCap_CapNhat", "Cập Nhật Đánh Cấp", "SYNC"),
                     ("---", "", ""),
-                    ("CTSV_ThemVatLieu_TrenCatNgang", "Điền KL Trắc Ngang", "VOLUME"),
+                    ("CTSV_ThemVatLieu_TrenCatNgang", "Điền Vật Liệu TN", "VOLUME"),
                     ("CTSV_ThayDoi_MSS_Min_Max", "Hiệu Chỉnh MSS", "SETTINGS"),
-                    ("CTSV_ThayDoi_GioiHan_traiPhai", "Thay Giới Hạn T/P", "SETTINGS"),
-                    ("CTSV_ThayDoi_KhungIn", "Dàn Khung In", "VIEW"),
+                    ("CTSV_ThayDoi_GioiHan_traiPhai", "Giới Hạn T/P", "SETTINGS"),
                     ("CTSV_KhoaCatNgang_AddPoint", "Khóa TN + Add Point", "ADD"),
                     ("---", "", ""),
+                    ("CTSV_ThayDoi_KhungIn", "Dàn Khung In", "VIEW"),
                     ("CTSV_fit_KhungIn", "Fit Khung In", "VIEW"),
-                    ("CTSV_fit_KhungIn_5_5_top", "Fit Khung 5x5", "VIEW"),
-                    ("CTSV_fit_KhungIn_5_10_top", "Fit Khung 5x10", "VIEW"),
+                    ("CTSV_fit_KhungIn_5_5_top", "Fit 5×5", "VIEW"),
+                    ("CTSV_fit_KhungIn_5_10_top", "Fit 5×10", "VIEW"),
                     ("---", "", ""),
                     ("CTSV_An_DuongDiaChat", "Ẩn Đường Địa Chất", "VIEW"),
                     ("CTSV_HieuChinh_Section", "Hiệu Chỉnh (Static)", "SETTINGS"),
                     ("CTSV_HieuChinh_Section_Dynamic", "Hiệu Chỉnh (Dynamic)", "SETTINGS"),
-                    ("---", "", ""),
-                    ("CTSV_Taskbar", "Taskbar Khối Lượng", "VOLUME"),
-                    ("CTSV_XuatKhoiLuong", "Xuất KL Excel", "EXCEL"),
-                    ("CTSV_XuatCad", "Xuất KL CAD", "CAD"),
-                    ("CTSV_CaiDatBang", "Cài Đặt Bảng KL", "SETTINGS"),
                 }) },
 
+                // ─── 8. KHỐI LƯỢNG (VOLUME) ─── ⭐ ĐÃ GỘP
+                new() { GroupName = "📊 Khối Lượng", IconType = "VOLUME", Commands = ConvertCmds(new[]
+                {
+                    ("CTSV_TinhKhoiLuongTracNgang", "⭐ Tính KL Trắc Ngang", "CALCULATE"),
+                    ("---", "", ""),
+                    ("CTSV_Taskbar", "Taskbar Khối Lượng", "VOLUME"),
+                    ("CTSV_CaiDatBang", "Cài Đặt Bảng KL", "SETTINGS"),
+                    ("CTSV_XuatCad", "Xuất KL → CAD", "CAD"),
+                    ("---", "", ""),
+                    ("CTSV_SoSanhSurface", "So Sánh Bề Mặt", "CALCULATE"),
+                    ("CTSV_PolyArea", "KL Từ Polyline", "CALCULATE"),
+                    ("CTSV_TinhDienTichPoly", "Tính DT Polyline", "CALCULATE"),
+                    ("CTSV_TinhKhoiLuongPoly", "Tính KL Polyline", "CALCULATE"),
+                    ("CTSV_TinhDienTichPolyExcel", "DT Poly → Excel", "EXCEL"),
+                    ("CTSV_GhiDienTichPoly", "Ghi DT Poly Lên Bản Vẽ", "DRAW"),
+                }) },
+
+                // ─── 9. ĐIỂM (POINT) ───
+                new() { GroupName = "📌 Điểm", IconType = "POINT", Commands = ConvertCmds(new[]
+                {
+                    ("CTPO_NhapToaDoTrucTiep", "⭐ Nhập Tọa Độ Trực Tiếp", "ADD"),
+                    ("CTPO_TaoPointTheoBang", "Tạo Point Từ Bảng Excel", "EXCEL"),
+                    ("---", "", ""),
+                    ("CTPO_TaoCogoPoint_CaoDo_FromSurface", "Point Từ Surface", "SURFACE"),
+                    ("CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Point Từ Spot Elevation", "ADD"),
+                    ("CTPO_CreateCogopointFromText", "Point Từ Text", "ADD"),
+                    ("CTU_MakePointFromText", "Utility: Point Từ Text", "ADD"),
+                    ("---", "", ""),
+                    ("CTPO_An_CogoPoint", "Ẩn CogoPoint", "VIEW"),
+                    ("CTPO_UpdateAllPointGroup", "Cập Nhật Point Group", "SYNC"),
+                    ("CTPO_CPTT", "Chuyển Point → Text", "EXPORT"),
+                    ("CTPo_ReorderPoints", "Sắp Xếp Lại Points", "SYNC"),
+                }) },
+
+                // ─── 10. CỐNG (PIPE & STRUCTURES) ───
+                new() { GroupName = "🔧 Cống", IconType = "PIPE", Commands = ConvertCmds(new[]
+                {
+                    ("CTPI_ThayDoi_DuongKinhCong", "Thay Đổi ĐK Cống", "SETTINGS"),
+                    ("CTPI_ThayDoi_MatPhangRef_Cong", "Mặt Phẳng Ref Cống", "SETTINGS"),
+                    ("CTPI_ThayDoi_DoanDocCong", "Thay Đổi Dốc Cống", "SETTINGS"),
+                    ("---", "", ""),
+                    ("CTPI_BangCaoDo_TuNhienHoThu", "Bảng CĐ Tự Nhiên Hố Thu", "TABLE"),
+                    ("CTPI_XoayHoThu_Theo2diem", "Xoay Hố Thu", "SYNC"),
+                    ("CT_VTOADOHG", "Tọa Độ Hố Ga (DLL)", "POINT"),
+                }) },
+
+                // ─── 11. SAN NỀN (GRADING) ───
                 new() { GroupName = "▦ San Nền", IconType = "GRADING", Commands = ConvertCmds(new[]
                 {
                     ("CTSN_Taskbar", "Mở Taskbar SN", "VOLUME"),
@@ -683,30 +781,47 @@ namespace MyFirstProject
                     ("CTSN_TaoLuoi", "Quản Lý Lưới", "GRADING"),
                     ("CTSN_NhapCaoDo", "Điền Cao Độ Lưới", "ADD"),
                     ("CTSN_Surface", "Lấy CĐ Surface", "SURFACE"),
-                    ("CTSN_TinhKL", "Tính Khối Lượng SN", "VOLUME"),
-                    ("CTSN_XuatBang", "Xuất Bảng KL CAD", "CAD"),
+                    ("CTSN_TinhKL", "Tính KL San Nền", "VOLUME"),
+                    ("CTSN_XuatBang", "Xuất Bảng KL → CAD", "CAD"),
                 }) },
 
-
-                new() { GroupName = "📌 Điểm", IconType = "POINT", Commands = ConvertCmds(new[]
+                // ─── 12. IN ẤN & LAYOUT ───
+                new() { GroupName = "🖨 In Ấn", IconType = "LAYOUT", Commands = ConvertCmds(new[]
                 {
-                    ("CTPo_TaoPointTheoBang", "Tạo Point Từ Bảng", "ADD"),
+                    ("CT_PrintCenter", "In Trung Tâm", "DRAW"),
+                    ("CTSV_TaoTrangInTD", "Tạo Trang In Trắc Dọc", "LAYOUT"),
+                    ("---", "", ""),
+                    ("CTDS_PrintAllLayouts", "In Tất Cả Layout", "EXPORT"),
+                    ("CTDS_PrintCurrentLayout", "In Layout Hiện Tại", "EXPORT"),
+                    ("CTDS_ExportPDF", "Xuất PDF", "EXPORT"),
                 }) },
 
-                new() { GroupName = "⚙ Tiện Ích", IconType = "UTILITY", Commands = ConvertCmds(new[]
+                // ─── 13. TIỆN ÍCH ───
+                new() { GroupName = "🔧 Tiện Ích", IconType = "UTILITY", Commands = ConvertCmds(new[]
                 {
+                    ("CTU_ExportCAD2007", "Export CAD 2007", "EXPORT"),
+                    ("CTU_ExplodeAEC", "Explode AEC Object", "DELETE"),
+                    ("CTU_TextToMText", "Text → MText", "SYNC"),
+                    ("CTU_TotalLength", "Tổng Chiều Dài", "CALCULATE"),
+                    ("CTU_ExportTextCoords", "Export Tọa Độ Text", "EXPORT"),
+                    ("CTU_FindIntersections", "Tìm Giao Điểm", "CALCULATE"),
+                    ("CTU_AddPolylineVertices", "Thêm Đỉnh Polyline", "ADD"),
+                    ("CTU_DrawTaluy", "Vẽ Ta-luy", "DRAW"),
+                    ("---", "", ""),
+                    ("CTU_StyleAutoOff", "Style Auto Off", "SETTINGS"),
+                    ("CTU_StyleAutoOn", "Style Auto On", "SETTINGS"),
+                    ("CTU_DumpObject", "Dump Object Info", "INFO"),
+                    ("---", "", ""),
                     ("AT_Solid_Set_PropertySet", "Gán Property Set", "ADD"),
                     ("AT_Solid_Show_Info", "Thông Tin Solid", "INFO"),
-                    ("CT_VTOADOHG", "Tọa Độ Hố Ga", "POINT"),
                     ("---", "", ""),
+                    ("CT_DoiIcon", "Đổi Icon Lệnh", "SETTINGS"),
                     ("CIVIL_RIBBON", "Reload Menu", "RELOAD"),
                     ("CT_MENU_SETTINGS", "Cài Đặt Menu", "SETTINGS"),
                 }) },
-
-
             };
 
-            // ── ACAD TOOL panels ──
+            // ══ ACAD TOOL panels ══
             config.AcadGroups = new List<MenuGroupItem>
             {
                 new() { GroupName = "📏 Đo Lường", IconType = "MEASURE", Commands = ConvertCmds(new[]
@@ -714,22 +829,22 @@ namespace MyFirstProject
                     ("AT_TongDoDai_Full", "Tổng Độ Dài (Full)", "CALCULATE"),
                     ("AT_TongDoDai_Replace", "Tổng Độ Dài (Replace)", "CALCULATE"),
                     ("AT_TongDoDai_Replace2", "Tổng Độ Dài (Replace2)", "CALCULATE"),
-                    ("AT_TongDoDai_Replace_CongThem", "Tổng Độ Dài (Cộng Thêm)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace_CongThem", "Tổng Độ Dài (Cộng)", "CALCULATE"),
                     ("---", "", ""),
                     ("AT_TongDienTich_Full", "Tổng Diện Tích (Full)", "CALCULATE"),
                     ("AT_TongDienTich_Replace", "Tổng Diện Tích (Replace)", "CALCULATE"),
                     ("AT_TongDienTich_Replace2", "Tổng Diện Tích (Replace2)", "CALCULATE"),
-                    ("AT_TongDienTich_Replace_CongThem", "Tổng Diện Tích (Cộng Thêm)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace_CongThem", "Tổng Diện Tích (Cộng)", "CALCULATE"),
                 }) },
 
                 new() { GroupName = "✏ Chỉnh Sửa", IconType = "EDIT", Commands = ConvertCmds(new[]
                 {
                     ("AT_TextLink", "Text Link", "ADD"),
                     ("AT_DanhSoThuTu", "Đánh Số Thứ Tự", "ADD"),
-                    ("AT_XoaDoiTuong_CungLayer", "Xóa Đối Tượng Cùng Layer", "DELETE"),
+                    ("AT_XoaDoiTuong_CungLayer", "Xóa Cùng Layer", "DELETE"),
                     ("AT_XoaDoiTuong_3DSolid_Body", "Xóa 3DSolid/Body", "DELETE"),
                     ("AT_Offset_2Ben", "Offset 2 Bên", "COPY"),
-                    ("AT_annotive_scale_currentOnly", "Annotative Scale Current Only", "SETTINGS"),
+                    ("AT_annotive_scale_currentOnly", "Annotative Scale", "SETTINGS"),
                     ("---", "", ""),
                     ("AT_XoayDoiTuong_TheoViewport", "Xoay Theo Viewport", "SYNC"),
                     ("AT_XoayDoiTuong_Theo2Diem", "Xoay Theo 2 Điểm", "SYNC"),

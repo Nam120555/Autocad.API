@@ -1,4 +1,4 @@
-﻿// (C) Copyright 2024
+// (C) Copyright 2024
 // Tính khối lượng vật liệu từ Material Section và xuất ra Excel
 //
 using System;
@@ -748,7 +748,7 @@ namespace MyFirstProject
                 Cursor = Cursors.Hand
             };
             btnExportExcel.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(0, 100, 180);
-            btnExportExcel.Click += (s, e) => { this.Hide(); TinhKhoiLuongExcel.CTSVXuatKhoiLuong(); this.Show(); };
+            btnExportExcel.Click += (s, e) => { this.Hide(); TinhKhoiLuongExcel._REMOVED_CTSVXuatKhoiLuong(); this.Show(); };
             this.Controls.Add(btnExportExcel);
             y += btnHeight + 5;
 
@@ -1366,11 +1366,8 @@ namespace MyFirstProject
             }
         }
 
-        /// <summary>
-        /// Lệnh lấy dữ liệu từ Volume Tables trong Section Views
-        /// </summary>
-        [CommandMethod("CTSV_LayKhoiLuongTracNgang")]
-        public static void CTSVLayKhoiLuongTracNgang()
+        // [ĐÃ GỘP] CTSV_LayKhoiLuongTracNgang → Dùng CTSV_TinhKhoiLuongTracNgang (file 39)
+        private static void _REMOVED_CTSVLayKhoiLuongTracNgang()
         {
             try
             {
@@ -1762,11 +1759,8 @@ namespace MyFirstProject
             public List<SectionDetailData> Details { get; set; } = new();
         }
 
-        /// <summary>
-        /// Lệnh xuất toàn bộ Section Area ra Excel
-        /// </summary>
-        [CommandMethod("CTSV_XuatSectionArea")]
-        public static void CTSVXuatSectionArea()
+        // [ĐÃ GỘP] CTSV_XuatSectionArea → Dùng CTSV_TinhKhoiLuongTracNgang (file 39)
+        private static void _REMOVED_CTSVXuatSectionArea()
         {
             try
             {
@@ -2139,11 +2133,8 @@ namespace MyFirstProject
             workbook.SaveAs(filePath);
         }
 
-        /// <summary>
-        /// Tính khối lượng kết hợp: So sánh Surface + Diện tích từ Section
-        /// </summary>
-        [CommandMethod("CTSV_TinhKLKetHop")]
-        public static void CTSVTinhKLKetHop()
+        // [ĐÃ GỘP] CTSV_TinhKLKetHop → Dùng CTSV_TinhKhoiLuongTracNgang (file 39)
+        private static void _REMOVED_CTSVTinhKLKetHop()
         {
             try
             {
@@ -2639,8 +2630,8 @@ namespace MyFirstProject
 
         #region Commands
 
-        [CommandMethod("CTSV_XuatKhoiLuong")]
-        public static void CTSVXuatKhoiLuong()
+        // [ĐÃ GỘP] CTSV_XuatKhoiLuong → Dùng CTSV_TinhKhoiLuongTracNgang (file 39)
+        internal static void _REMOVED_CTSVXuatKhoiLuong()
         {
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
@@ -4134,11 +4125,8 @@ namespace MyFirstProject
             tr.AddNewlyCreatedDBObject(table, true);
         }
 
-        /// <summary>
-        /// Command: Thống kê Material theo trắc ngang - Xuất bảng chi tiết
-        /// </summary>
-        [CommandMethod("CTSV_ThongKeMaterialTracNgang")]
-        public static void CTSVThongKeMaterialTracNgang()
+        // [ĐÃ GỘP] CTSV_ThongKeMaterialTracNgang → Dùng CTSV_TinhKhoiLuongTracNgang (file 39)
+        private static void _REMOVED_CTSVThongKeMaterialTracNgang()
         {
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try

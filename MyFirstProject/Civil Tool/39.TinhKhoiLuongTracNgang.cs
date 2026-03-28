@@ -1,6 +1,9 @@
 // 39.TinhKhoiLuongTracNgang.cs - Lệnh CTSV_TinhKhoiLuongTracNgang
 // Tổng hợp: Tính diện tích Shape (đào/đắp/vật liệu) từ Material Section
-//            rồi tính khối lượng theo phương pháp trung bình 2 mặt cắt
+//            rồi tính khối lượng theo 2 phương pháp:
+//            - Average End Area: V = (S₁ + S₂) / 2 × L
+//            - Prismoidal:       V = (S₁ + 4Sm + S₂) / 6 × L
+// Nguồn diện tích: section.Area (API) hoặc Shoelace (SectionPoints)
 // Xuất ra: Command Line + Clipboard + CSV (tùy chọn)
 
 using System;
@@ -9,6 +12,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using ClosedXML.Excel;
 using System.Windows.Forms;
 
 using Autodesk.AutoCAD.Runtime;
@@ -36,6 +40,34 @@ using Section = Autodesk.Civil.DatabaseServices.Section;
 namespace MyFirstProject
 {
     // ══════════════════════════════════════════════════════════════
+    // ENUM: Phương pháp tính
+    // ══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Phương pháp tính khối lượng giữa 2 mặt cắt
+    /// </summary>
+    public enum VolumeMethod
+    {
+        /// <summary>V = (S₁ + S₂) / 2 × L — Mặc định Civil 3D</summary>
+        AverageEndArea,
+        /// <summary>V = (S₁ + 4Sm + S₂) / 6 × L — Chính xác hơn</summary>
+        Prismoidal
+    }
+
+    /// <summary>
+    /// Nguồn dữ liệu diện tích mặt cắt
+    /// </summary>
+    public enum AreaSource
+    {
+        /// <summary>Dùng section.Area từ Civil 3D API (chính xác nhất)</summary>
+        API,
+        /// <summary>Tự tính từ SectionPoints bằng Shoelace Formula</summary>
+        Shoelace,
+        /// <summary>Ưu tiên API, nếu = 0 thì fallback sang Shoelace</summary>
+        APIWithFallback
+    }
+
+    // ══════════════════════════════════════════════════════════════
     // DATA CLASS: Kết quả tại mỗi trắc ngang
     // ══════════════════════════════════════════════════════════════
 
@@ -48,11 +80,20 @@ namespace MyFirstProject
         // Diện tích tại mặt cắt (m²)
         public Dictionary<string, double> MaterialAreas { get; set; } = new();
 
-        // Khối lượng trung bình giữa 2 mặt cắt (m³) — tính sau
-        public Dictionary<string, double> MaterialVolumes { get; set; } = new();
+        // Khối lượng Average End Area (m³)
+        public Dictionary<string, double> MaterialVolumes_AEA { get; set; } = new();
 
-        // Khoảng cách đến trắc ngang tiếp theo (m)
-        public double DistanceToNext { get; set; }
+        // Khối lượng Prismoidal (m³)
+        public Dictionary<string, double> MaterialVolumes_Prismoidal { get; set; } = new();
+
+        // Khoảng cách đến trắc ngang trước (m)
+        public double DistanceToPrev { get; set; }
+
+        // Khối lượng tích lũy AEA
+        public Dictionary<string, double> CumulativeVolumes_AEA { get; set; } = new();
+
+        // Khối lượng tích lũy Prismoidal
+        public Dictionary<string, double> CumulativeVolumes_Prismoidal { get; set; } = new();
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -68,7 +109,14 @@ namespace MyFirstProject
         // Controls
         private ComboBox cboAlignment = null!;
         private CheckedListBox chkMaterials = null!;
+        private RadioButton rdoArea_API = null!;
+        private RadioButton rdoArea_Shoelace = null!;
+        private RadioButton rdoArea_Fallback = null!;
+        private RadioButton rdoVol_AEA = null!;
+        private RadioButton rdoVol_Prismoidal = null!;
+        private CheckBox chkCompare = null!;
         private CheckBox chkExportCSV = null!;
+        private CheckBox chkExportExcel = null!;
         private CheckBox chkWriteToDrawing = null!;
 
         // Kết quả
@@ -90,7 +138,15 @@ namespace MyFirstProject
                 return result;
             }
         }
+        public AreaSource SelectedAreaSource =>
+            rdoArea_API.Checked ? AreaSource.API :
+            rdoArea_Shoelace.Checked ? AreaSource.Shoelace :
+            AreaSource.APIWithFallback;
+        public VolumeMethod SelectedVolumeMethod =>
+            rdoVol_Prismoidal.Checked ? VolumeMethod.Prismoidal : VolumeMethod.AverageEndArea;
+        public bool CompareMethods => chkCompare.Checked;
         public bool ExportCSV => chkExportCSV.Checked;
+        public bool ExportExcel => chkExportExcel.Checked;
         public bool WriteToDrawing => chkWriteToDrawing.Checked;
 
         public TinhKhoiLuongForm()
@@ -146,8 +202,11 @@ namespace MyFirstProject
                     foreach (QTOMaterial mat in matList)
                     {
                         string type = mat.QuantityType == MaterialQuantityType.Cut ? "🔻 Đào" :
-                                      mat.QuantityType == MaterialQuantityType.Fill ? "🔺 Đắp" : "📦 Khác";
-                        materialList.Add((mat.Name, matList.Name, matList.Guid, mat.Guid));
+                                      mat.QuantityType == MaterialQuantityType.Fill ? "🔺 Đắp" :
+                                      mat.QuantityType == MaterialQuantityType.CutFill ? "🔄 Đào+Đắp" :
+                                      mat.QuantityType == MaterialQuantityType.Earthwork ? "🏔️ Earthwork" :
+                                      mat.QuantityType == MaterialQuantityType.Structure ? "🏗️ Kết cấu" : "📦 Khác";
+                        materialList.Add((mat.Name, matList.Name ?? "Unnamed", matList.Guid, mat.Guid));
                         int idx = chkMaterials.Items.Add($"{type}: {mat.Name} ({matList.Name})");
                         chkMaterials.SetItemChecked(idx, true);
                     }
@@ -158,26 +217,30 @@ namespace MyFirstProject
 
             if (materialList.Count == 0)
             {
-                chkMaterials.Items.Add("⚠️ Chưa có Material List. Hãy chạy CTSV_VeTracNgangThietKe trước.");
+                chkMaterials.Items.Add("⚠️ Chưa có Material List. Hãy chạy Compute Materials trước.");
             }
         }
 
         private void InitializeComponent()
         {
-            InitBaseTheme("📐  TÍNH KHỐI LƯỢNG TRẮC NGANG", 480, 490);
+            InitBaseTheme("📐  TÍNH KHỐI LƯỢNG TRẮC NGANG", 500, 750);
+
+            int y = 0;
 
             // ═══ HEADER ═══
             var header = CreateHeader("TÍNH KHỐI LƯỢNG TRẮC NGANG");
             this.Controls.Add(header);
 
-            var subtitle = CreateSubtitle("Lấy diện tích Shape Material → Tính KL đào đắp (trung bình 2 MC)");
+            var subtitle = CreateSubtitle("Lấy diện tích Material Section → Tính KL theo Average End Area / Prismoidal");
             this.Controls.Add(subtitle);
 
+            y = 82;
+
             // ═══ CHỌN ALIGNMENT ═══
-            var grpAlign = CreateGroupBox("📏 Chọn Alignment + SampleLine Group", 16, 82, 440, 64);
+            var grpAlign = CreateGroupBox("📏 Chọn Alignment + SampleLine Group", 16, y, 460, 64);
             this.Controls.Add(grpAlign);
 
-            cboAlignment = CreateComboBox(12, 26, 416);
+            cboAlignment = CreateComboBox(12, 26, 436);
             foreach (var (name, _, _) in alignmentList)
                 cboAlignment.Items.Add(name);
             if (cboAlignment.Items.Count > 0)
@@ -185,14 +248,16 @@ namespace MyFirstProject
             cboAlignment.SelectedIndexChanged += (s, e) => LoadMaterials();
             grpAlign.Controls.Add(cboAlignment);
 
+            y += 72;
+
             // ═══ CHỌN MATERIAL ═══
-            var grpMat = CreateGroupBox("📦 Chọn Material cần tính", 16, 154, 440, 170);
+            var grpMat = CreateGroupBox("📦 Chọn Material cần tính", 16, y, 460, 140);
             this.Controls.Add(grpMat);
 
             chkMaterials = new CheckedListBox
             {
                 Location = new Point(12, 26),
-                Size = new Size(416, 130),
+                Size = new Size(436, 100),
                 CheckOnClick = true,
                 Font = new Font("Segoe UI", 9.5f),
                 BackColor = BgWhite,
@@ -201,13 +266,90 @@ namespace MyFirstProject
             };
             grpMat.Controls.Add(chkMaterials);
 
+            y += 148;
+
+            // ═══ PHƯƠNG PHÁP TÍNH DIỆN TÍCH ═══
+            var grpArea = CreateGroupBox("📐 Nguồn diện tích mặt cắt", 16, y, 460, 90);
+            this.Controls.Add(grpArea);
+
+            rdoArea_Fallback = new RadioButton
+            {
+                Text = "⭐ section.Area (API) — fallback Shoelace",
+                Location = new Point(12, 26),
+                AutoSize = true,
+                Checked = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpArea.Controls.Add(rdoArea_Fallback);
+
+            rdoArea_API = new RadioButton
+            {
+                Text = "section.Area (API) — chỉ dùng API",
+                Location = new Point(12, 48),
+                AutoSize = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpArea.Controls.Add(rdoArea_API);
+
+            rdoArea_Shoelace = new RadioButton
+            {
+                Text = "Shoelace (tự tính từ SectionPoints)",
+                Location = new Point(12, 68),
+                AutoSize = true,
+                ForeColor = TextHint,
+                Font = new Font("Segoe UI", 9f)
+            };
+            grpArea.Controls.Add(rdoArea_Shoelace);
+
+            y += 98;
+
+            // ═══ PHƯƠNG PHÁP TÍNH KHỐI LƯỢNG ═══
+            var grpVol = CreateGroupBox("📊 Phương pháp tính khối lượng", 16, y, 460, 108);
+            this.Controls.Add(grpVol);
+
+            rdoVol_AEA = new RadioButton
+            {
+                Text = "⭐ Average End Area:  V = (S₁ + S₂) / 2 × L",
+                Location = new Point(12, 26),
+                AutoSize = true,
+                Checked = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
+            grpVol.Controls.Add(rdoVol_AEA);
+
+            rdoVol_Prismoidal = new RadioButton
+            {
+                Text = "Prismoidal:  V = (S₁ + 4Sm + S₂) / 6 × L",
+                Location = new Point(12, 50),
+                AutoSize = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
+            grpVol.Controls.Add(rdoVol_Prismoidal);
+
+            chkCompare = new CheckBox
+            {
+                Text = "📊 So sánh cả 2 phương pháp (hiển thị chênh lệch %)",
+                Location = new Point(12, 78),
+                AutoSize = true,
+                Checked = false,
+                ForeColor = NavyDark,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            };
+            grpVol.Controls.Add(chkCompare);
+
+            y += 116;
+
             // ═══ TÙY CHỌN XUẤT ═══
-            var grpExport = CreateGroupBox("📤 Tùy chọn xuất", 16, 332, 440, 60);
+            var grpExport = CreateGroupBox("📤 Tùy chọn xuất", 16, y, 460, 85);
             this.Controls.Add(grpExport);
 
             chkExportCSV = new CheckBox
             {
-                Text = "📄 Xuất file CSV",
+                Text = "📄 Xuất CSV",
                 Location = new Point(12, 26),
                 AutoSize = true,
                 Checked = true,
@@ -216,10 +358,21 @@ namespace MyFirstProject
             };
             grpExport.Controls.Add(chkExportCSV);
 
+            chkExportExcel = new CheckBox
+            {
+                Text = "📊 Xuất Excel (.xlsx)",
+                Location = new Point(160, 26),
+                AutoSize = true,
+                Checked = false,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
+            grpExport.Controls.Add(chkExportExcel);
+
             chkWriteToDrawing = new CheckBox
             {
                 Text = "✏️ Ghi text lên trắc ngang",
-                Location = new Point(220, 26),
+                Location = new Point(12, 52),
                 AutoSize = true,
                 Checked = false,
                 ForeColor = TextDark,
@@ -227,14 +380,16 @@ namespace MyFirstProject
             };
             grpExport.Controls.Add(chkWriteToDrawing);
 
+            y += 93;
+
             // ═══ BOTTOM BAR ═══
             var bottomBar = CreateBottomBar(56);
             this.Controls.Add(bottomBar);
 
-            var btnCancel = CreateButton("✕ Hủy", 10, 10, 210, 36, bottomBar);
+            var btnCancel = CreateButton("✕ Hủy", 10, 10, 220, 36, bottomBar);
             btnCancel.Click += (s, e) => { IsConfirmed = false; this.Close(); };
 
-            var btnRun = CreateSuccessButton("📐 Tính Khối Lượng", 230, 10, 210, 36, bottomBar);
+            var btnRun = CreateSuccessButton("📐 Tính Khối Lượng", 240, 10, 220, 36, bottomBar);
             btnRun.Click += (s, e) =>
             {
                 if (cboAlignment.SelectedIndex < 0)
@@ -270,7 +425,8 @@ namespace MyFirstProject
     {
         /// <summary>
         /// Tính khối lượng trắc ngang từ Material Section
-        /// Diện tích Shape → Khối lượng (phương pháp trung bình 2 mặt cắt)
+        /// Hỗ trợ: Average End Area + Prismoidal + So sánh
+        /// Nguồn diện tích: section.Area (API) / Shoelace / Fallback
         /// </summary>
         [CommandMethod("CTSV_TinhKhoiLuongTracNgang")]
         public static void CTSV_TinhKhoiLuongTracNgang()
@@ -288,7 +444,11 @@ namespace MyFirstProject
             var alignmentId = form.SelectedAlignmentId;
             var slgId = form.SelectedSLGId;
             var selectedMaterials = form.SelectedMaterials;
+            var areaSource = form.SelectedAreaSource;
+            var volumeMethod = form.SelectedVolumeMethod;
+            bool compareMethods = form.CompareMethods;
             bool exportCSV = form.ExportCSV;
+            bool exportExcel = form.ExportExcel;
             bool writeToDrawing = form.WriteToDrawing;
 
             if (alignmentId.IsNull || slgId.IsNull)
@@ -325,8 +485,8 @@ namespace MyFirstProject
                     // Tính diện tích cho mỗi Material
                     foreach (var (matName, listName, listGuid, matGuid) in selectedMaterials)
                     {
-                        double area = GetMaterialArea(tr, sl, listGuid, matGuid);
-                        result.MaterialAreas[matName] = area;
+                        double area = GetMaterialArea(tr, sl, listGuid, matGuid, areaSource);
+                        result.MaterialAreas[matName] = Math.Round(area, 4);
                     }
 
                     results.Add(result);
@@ -335,44 +495,31 @@ namespace MyFirstProject
                 // Sắp xếp theo station
                 results = results.OrderBy(r => r.Station).ToList();
 
-                // 3. Tính khối lượng (phương pháp trung bình 2 mặt cắt)
-                for (int i = 0; i < results.Count; i++)
-                {
-                    if (i < results.Count - 1)
-                    {
-                        double dist = results[i + 1].Station - results[i].Station;
-                        results[i].DistanceToNext = dist;
-
-                        foreach (var matName in results[i].MaterialAreas.Keys)
-                        {
-                            double area1 = results[i].MaterialAreas[matName];
-                            double area2 = results[i + 1].MaterialAreas.ContainsKey(matName)
-                                ? results[i + 1].MaterialAreas[matName] : 0;
-                            // V = (S1 + S2) / 2 × L
-                            results[i].MaterialVolumes[matName] = (area1 + area2) / 2.0 * dist;
-                        }
-                    }
-                    else
-                    {
-                        results[i].DistanceToNext = 0;
-                        foreach (var matName in results[i].MaterialAreas.Keys)
-                            results[i].MaterialVolumes[matName] = 0;
-                    }
-                }
+                // 3. Tính khối lượng
+                CalculateVolumes(results, selectedMaterials);
 
                 // 4. Hiển thị kết quả
-                DisplayResults(ed, alignment.Name, results, selectedMaterials);
+                DisplayResults(ed, alignment.Name, results, selectedMaterials,
+                    volumeMethod, compareMethods, areaSource);
 
                 // 5. Copy vào clipboard
-                CopyToClipboard(alignment.Name, results, selectedMaterials);
+                CopyToClipboard(alignment.Name, results, selectedMaterials,
+                    volumeMethod, compareMethods);
 
                 // 6. Xuất CSV nếu được chọn
                 if (exportCSV)
-                    ExportToCSV(ed, alignment.Name, results, selectedMaterials);
+                    ExportToCSV(ed, alignment.Name, results, selectedMaterials,
+                        volumeMethod, compareMethods);
+
+                // 6b. Xuất Excel nếu được chọn
+                if (exportExcel)
+                    ExportToExcel(ed, alignment.Name, results, selectedMaterials,
+                        volumeMethod, compareMethods);
 
                 // 7. Ghi text lên bản vẽ nếu được chọn
                 if (writeToDrawing)
-                    WriteToDrawing(tr, ed, slg, results, selectedMaterials, alignment.Name);
+                    WriteToDrawing(tr, ed, slg, results, selectedMaterials,
+                        alignment.Name, volumeMethod);
 
                 tr.Commit();
 
@@ -384,27 +531,56 @@ namespace MyFirstProject
             }
         }
 
-        // ═══ LẤY DIỆN TÍCH MATERIAL SECTION ═══
+        // ═══════════════════════════════════════════════════════════
+        // LẤY DIỆN TÍCH MATERIAL SECTION
+        // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Lấy diện tích Material Section bằng Shoelace Formula
-        /// Đọc SectionPoints từ Material Section (closed polygon) → tính diện tích
+        /// Lấy diện tích Material Section theo nguồn đã chọn
         /// </summary>
-        private static double GetMaterialArea(Transaction tr, SampleLine sampleLine, Guid listGuid, Guid matGuid)
+        private static double GetMaterialArea(Transaction tr, SampleLine sampleLine,
+            Guid listGuid, Guid matGuid, AreaSource areaSource)
         {
             try
             {
                 ObjectId materialSectionId = sampleLine.GetMaterialSectionId(listGuid, matGuid);
                 if (materialSectionId.IsNull || !materialSectionId.IsValid) return 0;
 
-                var section = tr.GetObject(materialSectionId, OpenMode.ForRead) as Section;
+                var section = tr.GetObject(materialSectionId, OpenMode.ForRead, false, true) as Section;
                 if (section == null) return 0;
 
+                switch (areaSource)
+                {
+                    case AreaSource.API:
+                        return section.Area;
+
+                    case AreaSource.Shoelace:
+                        return CalculateShoelaceArea(section);
+
+                    case AreaSource.APIWithFallback:
+                    default:
+                        double apiArea = section.Area;
+                        if (apiArea > 0) return apiArea;
+                        // Fallback: tự tính bằng Shoelace
+                        return CalculateShoelaceArea(section);
+                }
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Tính diện tích bằng Shoelace Formula từ SectionPoints
+        /// </summary>
+        private static double CalculateShoelaceArea(Section section)
+        {
+            try
+            {
                 SectionPointCollection sectionPoints = section.SectionPoints;
                 if (sectionPoints.Count < 3) return 0;
 
-                // Tính diện tích bằng công thức Shoelace (Gauss)
-                // |A| = 0.5 × |Σ(x_i × y_{i+1} - x_{i+1} × y_i)|
                 double area = 0;
                 int n = sectionPoints.Count;
 
@@ -427,73 +603,236 @@ namespace MyFirstProject
             }
         }
 
-        // ═══ HIỂN THỊ KẾT QUẢ ═══
+        // ═══════════════════════════════════════════════════════════
+        // TÍNH KHỐI LƯỢNG — 2 PHƯƠNG PHÁP
+        // ═══════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Tính khối lượng cho tất cả trắc ngang theo cả 2 phương pháp
+        /// </summary>
+        private static void CalculateVolumes(List<SectionVolumeResult> results,
+            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials)
+        {
+            // Khởi tạo tích lũy
+            var cumAEA = new Dictionary<string, double>();
+            var cumPrismoidal = new Dictionary<string, double>();
+            foreach (var mat in materials)
+            {
+                cumAEA[mat.MaterialName] = 0;
+                cumPrismoidal[mat.MaterialName] = 0;
+            }
+
+            for (int i = 0; i < results.Count; i++)
+            {
+                if (i == 0)
+                {
+                    // Trắc ngang đầu tiên: chưa có volume
+                    results[i].DistanceToPrev = 0;
+                    foreach (var mat in materials)
+                    {
+                        results[i].MaterialVolumes_AEA[mat.MaterialName] = 0;
+                        results[i].MaterialVolumes_Prismoidal[mat.MaterialName] = 0;
+                        results[i].CumulativeVolumes_AEA[mat.MaterialName] = 0;
+                        results[i].CumulativeVolumes_Prismoidal[mat.MaterialName] = 0;
+                    }
+                }
+                else
+                {
+                    double dist = results[i].Station - results[i - 1].Station;
+                    results[i].DistanceToPrev = dist;
+
+                    foreach (var mat in materials)
+                    {
+                        double s1 = results[i - 1].MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+                        double s2 = results[i].MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+
+                        // Average End Area: V = (S₁ + S₂) / 2 × L
+                        double volAEA = VolumeAverageEndArea(s1, s2, dist);
+                        results[i].MaterialVolumes_AEA[mat.MaterialName] = Math.Round(volAEA, 3);
+
+                        // Prismoidal: V = (S₁ + 4Sm + S₂) / 6 × L
+                        double volPrismoidal = VolumePrismoidal(s1, s2, dist);
+                        results[i].MaterialVolumes_Prismoidal[mat.MaterialName] = Math.Round(volPrismoidal, 3);
+
+                        // Tích lũy
+                        cumAEA[mat.MaterialName] += volAEA;
+                        cumPrismoidal[mat.MaterialName] += volPrismoidal;
+
+                        results[i].CumulativeVolumes_AEA[mat.MaterialName] = Math.Round(cumAEA[mat.MaterialName], 3);
+                        results[i].CumulativeVolumes_Prismoidal[mat.MaterialName] = Math.Round(cumPrismoidal[mat.MaterialName], 3);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Phương pháp Average End Area: V = (S₁ + S₂) / 2 × L
+        /// Mặc định Civil 3D — đơn giản, phổ biến nhất
+        /// </summary>
+        private static double VolumeAverageEndArea(double s1, double s2, double distance)
+        {
+            return (s1 + s2) / 2.0 * distance;
+        }
+
+        /// <summary>
+        /// Phương pháp Prismoidal: V = (S₁ + 4Sm + S₂) / 6 × L
+        /// Sm = √(S₁ × S₂) — trung bình hình học (mid-section)
+        /// Chính xác hơn cho địa hình phức tạp
+        /// </summary>
+        private static double VolumePrismoidal(double s1, double s2, double distance)
+        {
+            // Trường hợp đặc biệt: một trong 2 diện tích = 0
+            if (s1 <= 0 && s2 <= 0) return 0;
+            if (s1 <= 0 || s2 <= 0)
+            {
+                // Khi 1 mặt cắt = 0 → Prismoidal = V_cone = S/3 × L
+                // Nhưng để nhất quán, dùng công thức chung với Sm = 0
+                double sm = 0;
+                return (s1 + 4 * sm + s2) / 6.0 * distance;
+            }
+
+            // Sm = trung bình hình học √(S₁ × S₂)
+            double smid = Math.Sqrt(s1 * s2);
+            return (s1 + 4 * smid + s2) / 6.0 * distance;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // HIỂN THỊ KẾT QUẢ
+        // ═══════════════════════════════════════════════════════════
 
         private static void DisplayResults(Editor ed, string alignmentName,
             List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials)
+            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+            VolumeMethod method, bool compare, AreaSource areaSource)
         {
             ed.WriteMessage("\n");
-            ed.WriteMessage($"\n╔══════════════════════════════════════════════════════════════════════════╗");
-            ed.WriteMessage($"\n║  📐 BẢNG KHỐI LƯỢNG TRẮC NGANG — {alignmentName,-38} ║");
-            ed.WriteMessage($"\n╚══════════════════════════════════════════════════════════════════════════╝");
+            ed.WriteMessage($"\n╔══════════════════════════════════════════════════════════════════════════════╗");
+            ed.WriteMessage($"\n║  📐 BẢNG KHỐI LƯỢNG TRẮC NGANG — {alignmentName,-40} ║");
+            ed.WriteMessage($"\n╠══════════════════════════════════════════════════════════════════════════════╣");
+            ed.WriteMessage($"\n║  Nguồn DT: {(areaSource == AreaSource.API ? "section.Area (API)" : areaSource == AreaSource.Shoelace ? "Shoelace (SectionPoints)" : "API + Fallback Shoelace"),-20}");
+            ed.WriteMessage($"\n║  Phương pháp: {(compare ? "So sánh cả 2" : method == VolumeMethod.AverageEndArea ? "Average End Area" : "Prismoidal"),-20}");
+            ed.WriteMessage($"\n╚══════════════════════════════════════════════════════════════════════════════╝");
 
-            // Header
-            string header = $"\n{"STT",-5} {"Tên Cọc",-15} {"Lý Trình",-14} {"L(m)",-8}";
+            // ─── Header ───
+            string headerBase = $"\n{"STT",-5} {"Tên Cọc",-14} {"Lý Trình",-14} {"L(m)",-8}";
+            string headerMats = "";
+
             foreach (var mat in materials)
             {
-                string shortName = mat.MaterialName.Length > 10 ? mat.MaterialName.Substring(0, 10) : mat.MaterialName;
-                header += $" {"S_" + shortName,-12} {"V_" + shortName,-12}";
-            }
-            ed.WriteMessage(header);
-            ed.WriteMessage($"\n{new string('─', 50 + materials.Count * 24)}");
+                string shortName = mat.MaterialName.Length > 8
+                    ? mat.MaterialName.Substring(0, 8) : mat.MaterialName;
 
-            // Data
-            var totalVolumes = new Dictionary<string, double>();
+                headerMats += $" {"S_" + shortName,-10}";
+
+                if (compare)
+                {
+                    headerMats += $" {"V_AEA",-10} {"V_Pris",-10} {"Δ%",-6}";
+                }
+                else
+                {
+                    headerMats += $" {"V(m³)",-10}";
+                }
+            }
+            ed.WriteMessage(headerBase + headerMats);
+
+            int lineLen = 42 + materials.Count * (compare ? 38 : 22);
+            ed.WriteMessage($"\n{new string('─', lineLen)}");
+
+            // ─── Data ───
+            var totalAEA = new Dictionary<string, double>();
+            var totalPris = new Dictionary<string, double>();
             foreach (var mat in materials)
-                totalVolumes[mat.MaterialName] = 0;
+            {
+                totalAEA[mat.MaterialName] = 0;
+                totalPris[mat.MaterialName] = 0;
+            }
 
             int stt = 1;
             foreach (var r in results)
             {
-                string line = $"\n{stt,-5} {r.TenCoc,-15} {r.LyTrinh,-14} {r.DistanceToNext,-8:F2}";
+                string line = $"\n{stt,-5} {r.TenCoc,-14} {r.LyTrinh,-14} {r.DistanceToPrev,-8:F2}";
 
                 foreach (var mat in materials)
                 {
-                    double area = r.MaterialAreas.ContainsKey(mat.MaterialName) ? r.MaterialAreas[mat.MaterialName] : 0;
-                    double vol = r.MaterialVolumes.ContainsKey(mat.MaterialName) ? r.MaterialVolumes[mat.MaterialName] : 0;
-                    line += $" {area,-12:F3} {vol,-12:F3}";
-                    totalVolumes[mat.MaterialName] += vol;
+                    double area = r.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+                    double volAEA = r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
+                    double volPris = r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
+
+                    line += $" {area,-10:F3}";
+
+                    if (compare)
+                    {
+                        double diff = volAEA > 0 ? ((volAEA - volPris) / volAEA * 100) : 0;
+                        line += $" {volAEA,-10:F3} {volPris,-10:F3} {diff,-6:F1}";
+                    }
+                    else
+                    {
+                        double vol = method == VolumeMethod.AverageEndArea ? volAEA : volPris;
+                        line += $" {vol,-10:F3}";
+                    }
+
+                    totalAEA[mat.MaterialName] += volAEA;
+                    totalPris[mat.MaterialName] += volPris;
                 }
 
                 ed.WriteMessage(line);
                 stt++;
             }
 
-            // Tổng
-            ed.WriteMessage($"\n{new string('═', 50 + materials.Count * 24)}");
-            string totalLine = $"\n{"TỔNG",-5} {"",-15} {"",-14} {"",-8}";
+            // ─── Tổng ───
+            ed.WriteMessage($"\n{new string('═', lineLen)}");
+            string totalLine = $"\n{"TỔNG",-5} {"",-14} {"",-14} {"",-8}";
             foreach (var mat in materials)
             {
-                totalLine += $" {"",-12} {totalVolumes[mat.MaterialName],-12:F3}";
+                totalLine += $" {"",-10}";
+                if (compare)
+                {
+                    double diff = totalAEA[mat.MaterialName] > 0
+                        ? ((totalAEA[mat.MaterialName] - totalPris[mat.MaterialName]) / totalAEA[mat.MaterialName] * 100)
+                        : 0;
+                    totalLine += $" {totalAEA[mat.MaterialName],-10:F3} {totalPris[mat.MaterialName],-10:F3} {diff,-6:F1}";
+                }
+                else
+                {
+                    double vol = method == VolumeMethod.AverageEndArea
+                        ? totalAEA[mat.MaterialName] : totalPris[mat.MaterialName];
+                    totalLine += $" {vol,-10:F3}";
+                }
             }
             ed.WriteMessage(totalLine);
+            ed.WriteMessage($"\n{new string('═', lineLen)}");
 
-            ed.WriteMessage($"\n{new string('═', 50 + materials.Count * 24)}");
-
-            // Tóm tắt
+            // ─── Tóm tắt ───
             ed.WriteMessage("\n\n📊 TÓM TẮT:");
             foreach (var mat in materials)
             {
-                ed.WriteMessage($"\n   {mat.MaterialName}: {totalVolumes[mat.MaterialName]:N2} m³");
+                if (compare)
+                {
+                    double diff = totalAEA[mat.MaterialName] > 0
+                        ? ((totalAEA[mat.MaterialName] - totalPris[mat.MaterialName]) / totalAEA[mat.MaterialName] * 100) : 0;
+                    ed.WriteMessage($"\n   {mat.MaterialName}:");
+                    ed.WriteMessage($"\n      Average End Area : {totalAEA[mat.MaterialName]:N3} m³");
+                    ed.WriteMessage($"\n      Prismoidal       : {totalPris[mat.MaterialName]:N3} m³");
+                    ed.WriteMessage($"\n      Chênh lệch       : {diff:F2}% (AEA > Prismoidal)");
+                }
+                else
+                {
+                    double vol = method == VolumeMethod.AverageEndArea
+                        ? totalAEA[mat.MaterialName] : totalPris[mat.MaterialName];
+                    string methodName = method == VolumeMethod.AverageEndArea ? "AEA" : "Prismoidal";
+                    ed.WriteMessage($"\n   {mat.MaterialName} ({methodName}): {vol:N3} m³");
+                }
             }
         }
 
-        // ═══ COPY VÀO CLIPBOARD ═══
+        // ═══════════════════════════════════════════════════════════
+        // COPY VÀO CLIPBOARD
+        // ═══════════════════════════════════════════════════════════
 
         private static void CopyToClipboard(string alignmentName,
             List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials)
+            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+            VolumeMethod method, bool compare)
         {
             var sb = new StringBuilder();
             sb.AppendLine($"KHỐI LƯỢNG TRẮC NGANG — {alignmentName}");
@@ -501,19 +840,44 @@ namespace MyFirstProject
             // Header
             sb.Append("STT\tTên Cọc\tLý Trình\tKhoảng cách (m)");
             foreach (var mat in materials)
-                sb.Append($"\tDT_{mat.MaterialName} (m²)\tKL_{mat.MaterialName} (m³)");
+            {
+                sb.Append($"\tDT_{mat.MaterialName} (m²)");
+                if (compare)
+                {
+                    sb.Append($"\tKL_AEA_{mat.MaterialName} (m³)");
+                    sb.Append($"\tKL_Prismoidal_{mat.MaterialName} (m³)");
+                    sb.Append($"\tChênh lệch (%)");
+                }
+                else
+                {
+                    string methodTag = method == VolumeMethod.AverageEndArea ? "AEA" : "Prismoidal";
+                    sb.Append($"\tKL_{methodTag}_{mat.MaterialName} (m³)");
+                }
+            }
             sb.AppendLine();
 
             // Data
             int stt = 1;
             foreach (var r in results)
             {
-                sb.Append($"{stt}\t{r.TenCoc}\t{r.LyTrinh}\t{r.DistanceToNext:F2}");
+                sb.Append($"{stt}\t{r.TenCoc}\t{r.LyTrinh}\t{r.DistanceToPrev:F2}");
                 foreach (var mat in materials)
                 {
-                    double area = r.MaterialAreas.ContainsKey(mat.MaterialName) ? r.MaterialAreas[mat.MaterialName] : 0;
-                    double vol = r.MaterialVolumes.ContainsKey(mat.MaterialName) ? r.MaterialVolumes[mat.MaterialName] : 0;
-                    sb.Append($"\t{area:F3}\t{vol:F3}");
+                    double area = r.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+                    double volAEA = r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
+                    double volPris = r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
+
+                    sb.Append($"\t{area:F3}");
+                    if (compare)
+                    {
+                        double diff = volAEA > 0 ? ((volAEA - volPris) / volAEA * 100) : 0;
+                        sb.Append($"\t{volAEA:F3}\t{volPris:F3}\t{diff:F2}");
+                    }
+                    else
+                    {
+                        double vol = method == VolumeMethod.AverageEndArea ? volAEA : volPris;
+                        sb.Append($"\t{vol:F3}");
+                    }
                 }
                 sb.AppendLine();
                 stt++;
@@ -526,11 +890,14 @@ namespace MyFirstProject
             catch { }
         }
 
-        // ═══ XUẤT CSV ═══
+        // ═══════════════════════════════════════════════════════════
+        // XUẤT CSV
+        // ═══════════════════════════════════════════════════════════
 
         private static void ExportToCSV(Editor ed, string alignmentName,
             List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials)
+            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+            VolumeMethod method, bool compare)
         {
             var sfd = new SaveFileDialog
             {
@@ -542,20 +909,54 @@ namespace MyFirstProject
             if (sfd.ShowDialog() != DialogResult.OK) return;
 
             var sb = new StringBuilder();
+
+            // Header
             sb.Append("STT,TenCoc,LyTrinh,Station,KhoangCach_m");
             foreach (var mat in materials)
-                sb.Append($",DT_{mat.MaterialName}_m2,KL_{mat.MaterialName}_m3");
+            {
+                sb.Append($",DT_{mat.MaterialName}_m2");
+                if (compare)
+                {
+                    sb.Append($",KL_AEA_{mat.MaterialName}_m3");
+                    sb.Append($",KL_Pris_{mat.MaterialName}_m3");
+                    sb.Append($",TichLuy_AEA_{mat.MaterialName}_m3");
+                    sb.Append($",TichLuy_Pris_{mat.MaterialName}_m3");
+                    sb.Append($",ChenhLech_Pct");
+                }
+                else
+                {
+                    string tag = method == VolumeMethod.AverageEndArea ? "AEA" : "Pris";
+                    sb.Append($",KL_{tag}_{mat.MaterialName}_m3");
+                    sb.Append($",TichLuy_{tag}_{mat.MaterialName}_m3");
+                }
+            }
             sb.AppendLine();
 
+            // Data
             int stt = 1;
             foreach (var r in results)
             {
-                sb.Append($"{stt},{r.TenCoc},{r.LyTrinh},{r.Station:F3},{r.DistanceToNext:F3}");
+                sb.Append($"{stt},{r.TenCoc},{r.LyTrinh},{r.Station:F3},{r.DistanceToPrev:F3}");
                 foreach (var mat in materials)
                 {
-                    double area = r.MaterialAreas.ContainsKey(mat.MaterialName) ? r.MaterialAreas[mat.MaterialName] : 0;
-                    double vol = r.MaterialVolumes.ContainsKey(mat.MaterialName) ? r.MaterialVolumes[mat.MaterialName] : 0;
-                    sb.Append($",{area:F3},{vol:F3}");
+                    double area = r.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+                    double volAEA = r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
+                    double volPris = r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
+                    double cumAEA = r.CumulativeVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
+                    double cumPris = r.CumulativeVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
+
+                    sb.Append($",{area:F3}");
+                    if (compare)
+                    {
+                        double diff = volAEA > 0 ? ((volAEA - volPris) / volAEA * 100) : 0;
+                        sb.Append($",{volAEA:F3},{volPris:F3},{cumAEA:F3},{cumPris:F3},{diff:F2}");
+                    }
+                    else
+                    {
+                        double vol = method == VolumeMethod.AverageEndArea ? volAEA : volPris;
+                        double cum = method == VolumeMethod.AverageEndArea ? cumAEA : cumPris;
+                        sb.Append($",{vol:F3},{cum:F3}");
+                    }
                 }
                 sb.AppendLine();
                 stt++;
@@ -565,9 +966,20 @@ namespace MyFirstProject
             sb.Append($"TỔNG,,,,");
             foreach (var mat in materials)
             {
-                double totalVol = results.Sum(r =>
-                    r.MaterialVolumes.ContainsKey(mat.MaterialName) ? r.MaterialVolumes[mat.MaterialName] : 0);
-                sb.Append($",,{totalVol:F3}");
+                double totalAEA = results.Sum(r => r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0));
+                double totalPris = results.Sum(r => r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0));
+
+                sb.Append($",");  // Area trống
+                if (compare)
+                {
+                    double diff = totalAEA > 0 ? ((totalAEA - totalPris) / totalAEA * 100) : 0;
+                    sb.Append($",{totalAEA:F3},{totalPris:F3},,,{diff:F2}");
+                }
+                else
+                {
+                    double vol = method == VolumeMethod.AverageEndArea ? totalAEA : totalPris;
+                    sb.Append($",{vol:F3},");
+                }
             }
             sb.AppendLine();
 
@@ -575,12 +987,215 @@ namespace MyFirstProject
             ed.WriteMessage($"\n✅ Đã xuất file: {sfd.FileName}");
         }
 
-        // ═══ GHI TEXT LÊN BẢN VẼ ═══
+        // ═══════════════════════════════════════════════════════════
+        // XUẤT EXCEL (.xlsx) — ClosedXML
+        // ═══════════════════════════════════════════════════════════
+
+        private static void ExportToExcel(Editor ed, string alignmentName,
+            List<SectionVolumeResult> results,
+            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+            VolumeMethod method, bool compare)
+        {
+            var sfd = new SaveFileDialog
+            {
+                Filter = "Excel files (*.xlsx)|*.xlsx|All files (*.*)|*.*",
+                Title = "Lưu file Excel khối lượng trắc ngang",
+                FileName = $"KL_TracNgang_{alignmentName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
+            };
+
+            if (sfd.ShowDialog() != DialogResult.OK) return;
+
+            try
+            {
+                using var wb = new XLWorkbook();
+                var ws = wb.Worksheets.Add("Khối lượng");
+
+                // ─── Title ───
+                ws.Cell(1, 1).Value = $"BẢNG KHỐI LƯỢNG TRẮC NGANG — {alignmentName}";
+                ws.Range(1, 1, 1, 6).Merge();
+                ws.Cell(1, 1).Style.Font.Bold = true;
+                ws.Cell(1, 1).Style.Font.FontSize = 14;
+                ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                string methodText = compare ? "So sánh AEA + Prismoidal"
+                    : (method == VolumeMethod.AverageEndArea ? "Average End Area" : "Prismoidal");
+                ws.Cell(2, 1).Value = $"Phương pháp: {methodText}";
+                ws.Cell(2, 1).Style.Font.Italic = true;
+
+                // ─── Header ───
+                int startRow = 4;
+                int col = 1;
+                var headers = new[] { "STT", "Tên Cọc", "Lý Trình", "Station", "Khoảng cách (m)" };
+                foreach (var h in headers)
+                {
+                    ws.Cell(startRow, col).Value = h;
+                    ws.Cell(startRow, col).Style.Font.Bold = true;
+                    ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkBlue;
+                    ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
+                    ws.Cell(startRow, col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    col++;
+                }
+
+                foreach (var mat in materials)
+                {
+                    ws.Cell(startRow, col).Value = $"DT_{mat.MaterialName} (m²)";
+                    ws.Cell(startRow, col).Style.Font.Bold = true;
+                    ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkBlue;
+                    ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
+                    col++;
+
+                    if (compare)
+                    {
+                        string[] matHeaders = { $"V_AEA (m³)", $"V_Pris (m³)", $"TL_AEA (m³)", $"TL_Pris (m³)", $"Δ%" };
+                        foreach (var mh in matHeaders)
+                        {
+                            ws.Cell(startRow, col).Value = mh;
+                            ws.Cell(startRow, col).Style.Font.Bold = true;
+                            ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkSlateBlue;
+                            ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
+                            col++;
+                        }
+                    }
+                    else
+                    {
+                        string tag = method == VolumeMethod.AverageEndArea ? "AEA" : "Pris";
+                        ws.Cell(startRow, col).Value = $"V_{tag} (m³)";
+                        ws.Cell(startRow, col).Style.Font.Bold = true;
+                        ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkSlateBlue;
+                        ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
+                        col++;
+
+                        ws.Cell(startRow, col).Value = $"Tích lũy (m³)";
+                        ws.Cell(startRow, col).Style.Font.Bold = true;
+                        ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkSlateBlue;
+                        ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
+                        col++;
+                    }
+                }
+
+                // ─── Data ───
+                int row = startRow + 1;
+                int stt = 1;
+                foreach (var r in results)
+                {
+                    col = 1;
+                    ws.Cell(row, col++).Value = stt;
+                    ws.Cell(row, col++).Value = r.TenCoc;
+                    ws.Cell(row, col++).Value = r.LyTrinh;
+                    ws.Cell(row, col++).Value = Math.Round(r.Station, 3);
+                    ws.Cell(row, col++).Value = Math.Round(r.DistanceToPrev, 3);
+
+                    foreach (var mat in materials)
+                    {
+                        double area = r.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+                        double volAEA = r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
+                        double volPris = r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
+                        double cumAEA = r.CumulativeVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
+                        double cumPris = r.CumulativeVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
+
+                        ws.Cell(row, col++).Value = Math.Round(area, 3);
+
+                        if (compare)
+                        {
+                            ws.Cell(row, col++).Value = Math.Round(volAEA, 3);
+                            ws.Cell(row, col++).Value = Math.Round(volPris, 3);
+                            ws.Cell(row, col++).Value = Math.Round(cumAEA, 3);
+                            ws.Cell(row, col++).Value = Math.Round(cumPris, 3);
+                            double diff = volAEA > 0 ? ((volAEA - volPris) / volAEA * 100) : 0;
+                            ws.Cell(row, col).Value = Math.Round(diff, 2);
+                            // Tô màu chênh lệch
+                            if (Math.Abs(diff) > 5)
+                                ws.Cell(row, col).Style.Font.FontColor = XLColor.Red;
+                            else if (Math.Abs(diff) > 2)
+                                ws.Cell(row, col).Style.Font.FontColor = XLColor.Orange;
+                            col++;
+                        }
+                        else
+                        {
+                            double vol = method == VolumeMethod.AverageEndArea ? volAEA : volPris;
+                            double cum = method == VolumeMethod.AverageEndArea ? cumAEA : cumPris;
+                            ws.Cell(row, col++).Value = Math.Round(vol, 3);
+                            ws.Cell(row, col++).Value = Math.Round(cum, 3);
+                        }
+                    }
+                    row++;
+                    stt++;
+                }
+
+                // ─── Dòng tổng ───
+                col = 1;
+                ws.Cell(row, col).Value = "TỔNG";
+                ws.Cell(row, col).Style.Font.Bold = true;
+                ws.Range(row, 1, row, 5).Style.Fill.BackgroundColor = XLColor.LightGoldenrodYellow;
+                ws.Range(row, 1, row, 5).Style.Font.Bold = true;
+                col = 6;
+
+                foreach (var mat in materials)
+                {
+                    double totalAEA = results.Sum(r => r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0));
+                    double totalPris = results.Sum(r => r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0));
+
+                    ws.Cell(row, col++).Value = ""; // Area trống
+                    if (compare)
+                    {
+                        ws.Cell(row, col).Value = Math.Round(totalAEA, 3);
+                        ws.Cell(row, col).Style.Font.Bold = true;
+                        col++;
+                        ws.Cell(row, col).Value = Math.Round(totalPris, 3);
+                        ws.Cell(row, col).Style.Font.Bold = true;
+                        col++;
+                        col++; col++; // Skip cumulative
+                        double diff = totalAEA > 0 ? ((totalAEA - totalPris) / totalAEA * 100) : 0;
+                        ws.Cell(row, col).Value = Math.Round(diff, 2);
+                        ws.Cell(row, col).Style.Font.Bold = true;
+                        col++;
+                    }
+                    else
+                    {
+                        double total = method == VolumeMethod.AverageEndArea ? totalAEA : totalPris;
+                        ws.Cell(row, col).Value = Math.Round(total, 3);
+                        ws.Cell(row, col).Style.Font.Bold = true;
+                        col++;
+                        col++; // Skip cumulative
+                    }
+                }
+
+                // ─── Format ───
+                ws.Columns().AdjustToContents();
+                ws.SheetView.FreezeRows(startRow);
+
+                // Số format
+                for (int c = 5; c <= col; c++)
+                    ws.Column(c).Style.NumberFormat.Format = "#,##0.000";
+
+                wb.SaveAs(sfd.FileName);
+                ed.WriteMessage($"\n✅ Đã xuất file Excel: {sfd.FileName}");
+
+                // Hỏi mở file
+                if (MessageBox.Show("Đã xuất file Excel!\nBạn có muốn mở file?",
+                    "Hoàn thành", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = sfd.FileName,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage($"\n❌ Lỗi xuất Excel: {ex.Message}");
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // GHI TEXT LÊN BẢN VẼ
+        // ═══════════════════════════════════════════════════════════
 
         private static void WriteToDrawing(Transaction tr, Editor ed,
             SampleLineGroup slg, List<SectionVolumeResult> results,
             List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
-            string alignmentName)
+            string alignmentName, VolumeMethod method)
         {
             // Lấy Section View Group
             var svgCollection = slg.SectionViewGroups;
@@ -595,6 +1210,8 @@ namespace MyFirstProject
             // Tạo layer
             string layerName = $"KL_{alignmentName}";
             UtilitiesCAD.CCreateLayer(layerName);
+
+            string methodTag = method == VolumeMethod.AverageEndArea ? "AEA" : "Pris";
 
             int written = 0;
             foreach (ObjectId svId in sectionViewIds)
@@ -617,17 +1234,19 @@ namespace MyFirstProject
                 int matIndex = 0;
                 foreach (var mat in materials)
                 {
-                    double area = result.MaterialAreas.ContainsKey(mat.MaterialName)
-                        ? result.MaterialAreas[mat.MaterialName] : 0;
-                    double vol = result.MaterialVolumes.ContainsKey(mat.MaterialName)
-                        ? result.MaterialVolumes[mat.MaterialName] : 0;
+                    double area = result.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+                    double vol = method == VolumeMethod.AverageEndArea
+                        ? result.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0)
+                        : result.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
 
-                    double textY = y + 8 + matIndex * 1.2; // Offset trên Section View
+                    double textY = y + 8 + matIndex * 1.2;
                     Point3d labelPos = new Point3d(x - 5, textY, 0);
                     Point3d valuePos = new Point3d(x + 3, textY, 0);
 
-                    UtilitiesCAD.CCreateTextWithOutPut(labelPos, 0.35, $"{mat.MaterialName}:", layerName, "Standard");
-                    UtilitiesCAD.CCreateTextWithOutPut(valuePos, 0.35, $"S={area:F2}m² V={vol:F2}m³", layerName, "Standard");
+                    UtilitiesCAD.CCreateTextWithOutPut(labelPos, 0.35,
+                        $"{mat.MaterialName}:", layerName, "Standard");
+                    UtilitiesCAD.CCreateTextWithOutPut(valuePos, 0.35,
+                        $"S={area:F2}m² V={vol:F2}m³ ({methodTag})", layerName, "Standard");
 
                     matIndex++;
                     written++;
@@ -637,7 +1256,9 @@ namespace MyFirstProject
             ed.WriteMessage($"\n✅ Đã ghi {written} dòng text lên bản vẽ (layer: {layerName}).");
         }
 
-        // ═══ HELPER ═══
+        // ═══════════════════════════════════════════════════════════
+        // HELPER
+        // ═══════════════════════════════════════════════════════════
 
         private static string FormatStation(double station)
         {

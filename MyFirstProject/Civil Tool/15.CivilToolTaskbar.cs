@@ -308,70 +308,123 @@ namespace MyFirstProject
         {
             allCommands = new List<(string, string, string)>
             {
-                // Corridor
+                // ── 1. THIẾT LẬP ──
+                ("Thiết Lập", "CTDS_ThietLap", "Thiết lập bản vẽ Civil 3D"),
+                ("Thiết Lập", "CTDS_SaveClean", "Lưu & dọn dẹp file"),
+                ("Thiết Lập", "CT_StyleSettings", "Quản lý Style Civil 3D"),
+                ("Thiết Lập", "CT_StyleInfo", "Thông tin Style"),
+                ("Thiết Lập", "CTDS_ConvertMM2M", "Chuyển đơn vị MM → M"),
+                ("Thiết Lập", "CTDS_ConvertCM2M", "Chuyển đơn vị CM → M"),
+                ("Thiết Lập", "CTL_Hub", "Quản lý Layer Civil"),
+
+                // ── 2. BỀ MẶT ──
+                ("Bề Mặt", "CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation tại tim tuyến"),
+                ("Bề Mặt", "CTS_RebuildSurface", "Rebuild Surface"),
+                ("Bề Mặt", "CTSV_DaoDap", "Tính đào đắp Surface"),
+                ("Bề Mặt", "CTSV_HienThiMaterialList", "Hiển thị Material List"),
+                ("Bề Mặt", "CTSV_ChiTietMaterialSection", "Chi tiết Material Section"),
+                ("Bề Mặt", "CTSV_PhanTichArea", "Phân tích Area từ Section"),
+                ("Bề Mặt", "CTSV_KiemTraKhoiLuong", "Kiểm tra khối lượng"),
+
+                // ── 3. TUYẾN ──
+                ("Tuyến", "CTC_ThongSoDuongCong_4054", "Thông số đường cong TCVN 4054"),
+                ("Tuyến", "CTC_ThongSoDuongCong_13592", "Thông số đường cong TCVN 13592"),
+                ("Tuyến", "CTC_KiemTraDuongCong_4054", "Kiểm tra đường cong 4054"),
+                ("Tuyến", "CTC_KiemTraDuongCong_13592", "Kiểm tra đường cong 13592"),
+                ("Tuyến", "CTC_TraCuuDuongCong", "Tra cứu đường cong"),
+                ("Tuyến", "CTC_ThietLapDuongCong", "Thiết lập đường cong"),
+
+                // ── 4. TRẮC DỌC ──
+                ("Trắc Dọc", "CTP_VeTracDoc_TuNhien", "Vẽ trắc dọc địa hình tự nhiên"),
+                ("Trắc Dọc", "CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ trắc dọc TN tất cả tuyến"),
+                ("Trắc Dọc", "CTP_Fix_DuongTuNhien_TheoCoc", "Fix đường TN theo cọc"),
+                ("Trắc Dọc", "CTP_GanNhanNutGiao_LenTracDoc", "Gán nhãn nút giao lên trắc dọc"),
+                ("Trắc Dọc", "CTP_TaoCogoPointTuPVI", "Tạo CogoPoint từ PVI"),
+                ("Trắc Dọc", "CTP_XuatBangCivil", "Xuất bảng Civil 3D"),
+                ("Trắc Dọc", "CTP_AddParcelLabels", "Thêm Parcel Labels"),
+
+                // ── 5. CORRIDOR ──
                 ("Corridor", "CTC_AddAllSection", "Thêm tất cả section vào corridor"),
-                ("Corridor", "CTC_TaoCooridor_DuongDoThi_RePhai", "Tạo corridor đường đô thị rẽ phải"),
-                
-                // Parcel
-                ("Parcel", "CTPA_TaoParcel_CacLoaiNha", "Tạo parcel từ polyline các loại nhà"),
-                
-                // Pipe & Structures
-                ("Pipe", "CTPI_ThayDoi_DuongKinhCong", "Thay đổi đường kính ống cống"),
-                ("Pipe", "CTPI_ThayDoi_MatPhangRef_Cong", "Đặt mặt phẳng reference cho cống"),
-                ("Pipe", "CTPI_ThayDoi_DoanDocCong", "Thay đổi độ dốc ống cống"),
-                ("Pipe", "CTPI_BangCaoDo_TuNhienHoThu", "Bảng cao độ tự nhiên hố thu"),
-                ("Pipe", "CTPI_XoayHoThu_Theo2diem", "Xoay hố thu theo 2 điểm"),
-                
-                // Point
-                ("Point", "CTPO_TaoCogoPoint_CaoDo_FromSurface", "Tạo CogoPoint lấy cao độ từ Surface"),
-                ("Point", "CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Tạo CogoPoint từ Spot Elevation"),
-                ("Point", "CTPO_CreateCogopointFromText", "Tạo CogoPoint từ Text cao độ"),
-                ("Point", "CTPO_An_CogoPoint", "Ẩn các điểm CogoPoint"),
-                ("Point", "CTPO_UpdateAllPointGroup", "Cập nhật tất cả Point Group"),
-                ("Point", "CTPO_CPTT", "Chuyển Point thành Text cao độ"),
-        ("Point", "CTPO_TaoPointTheoBang", "Import tọa độ từ Excel (Block + Name)"),
-                
-                // Profile
-                ("Profile", "CTP_VeTracDoc_TuNhien", "Vẽ trắc dọc địa hình tự nhiên"),
-                ("Profile", "CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ trắc dọc TN tất cả tuyến"),
-                ("Profile", "CTP_Fix_DuongTuNhien_TheoCoc", "Fix đường TN theo cọc"),
-                ("Profile", "CTP_GanNhanNutGiao_LenTracDoc", "Gán nhãn nút giao lên trắc dọc"),
-                ("Profile", "CTP_TaoCogoPointTuPVI", "Tạo CogoPoint từ PVI"),
-                
-                // Sample Line / Cọc  
-                ("Cọc", "CTS_PhatSinhCoc", "Phát sinh / Đổi tên cọc"),
+                ("Corridor", "CTC_TaoCooridor_DuongDoThi_RePhai", "Tạo corridor rẽ phải"),
+                ("Corridor", "CTC_TaoMViewTheoTuyen", "Tạo MView theo tuyến"),
+
+                // ── 6. CỌC ──
+                ("Cọc", "CTS_PhatSinhCoc", "⭐ Phát sinh / Đổi tên cọc"),
+                ("Cọc", "CTS_DoiTenCoc", "Đổi tên cọc"),
                 ("Cọc", "CTS_DichCoc_TinhTien", "Dịch cọc tịnh tiến"),
+                ("Cọc", "CTS_DichCoc_TinhTien40", "Dịch cọc 40m"),
+                ("Cọc", "CTS_DichCoc_TinhTien_20", "Dịch cọc 20m"),
                 ("Cọc", "CTS_Copy_NhomCoc", "Sao chép nhóm cọc"),
                 ("Cọc", "CTS_DongBo_2_NhomCoc", "Đồng bộ 2 nhóm cọc"),
-                
-                // Section View
-                ("Trắc ngang", "CTSV_VeTracNgangThietKe", "Vẽ trắc ngang thiết kế"),
-                ("Trắc ngang", "CTSV_DanhCap", "Đánh cấp VHC"),
-                ("Trắc ngang", "CTSV_DanhCap_XoaBo", "Xóa bỏ đánh cấp"),
-                ("Trắc ngang", "CTSV_DanhCap_VeThem", "Vẽ thêm đánh cấp"),
-                ("Trắc ngang", "CTSV_ThemVatLieu_TrenCatNgang", "Điền vật liệu trên cắt ngang"),
-                ("Trắc ngang", "CTSV_fit_KhungIn", "Fit khung in trắc ngang"),
-                ("Trắc ngang", "CTSV_An_DuongDiaChat", "Ẩn đường địa chất"),
-                
-                // Khối lượng
-                ("Khối lượng", "CTSV_Taskbar", "Mở taskbar khối lượng"),
-                ("Khối lượng", "CTSV_XuatKhoiLuong", "Xuất khối lượng ra Excel"),
-                ("Khối lượng", "CTSV_XuatCad", "Xuất khối lượng ra CAD"),
-                ("Khối lượng", "CTSV_CaiDatBang", "Cài đặt bảng khối lượng"),
-                ("Khối lượng", "CTSV_ThongKeCoc", "Thống kê cọc ra Excel"),
-                
-                // San nền
-                ("San nền", "CTSN_Taskbar", "Mở taskbar san nền"),
-                ("San nền", "CTSN_TaoLuoi", "Tạo lưới san nền"),
-                ("San nền", "CTSN_NhapCaoDo", "Nhập cao độ lưới"),
-                ("San nền", "CTSN_Surface", "Lấy cao độ từ Surface"),
-                ("San nền", "CTSN_TinhKL", "Tính khối lượng san nền"),
-                ("San nền", "CTSN_XuatBang", "Xuất bảng khối lượng CAD"),
-                
-                // Taskbar
-                ("Tool", "CT_Taskbar", "Mở thanh công cụ Civil Tool"),
-                ("Tool", "CT", "Mở thanh công cụ (alias)"),
-                ("Tool", "CT_VTOADOHG", "Tọa độ hố ga (DLL ngoài)"),
+                ("Cọc", "CTS_DongBo_2_NhomCoc_TheoDoan", "Đồng bộ theo đoạn"),
+                ("Cọc", "CTS_Copy_BeRong_sampleLine", "Copy bề rộng SampleLine"),
+                ("Cọc", "CTS_Thaydoi_BeRong_sampleLine", "Thay đổi bề rộng SampleLine"),
+                ("Cọc", "CTS_Offset_BeRong_sampleLine", "Offset bề rộng SampleLine"),
+                ("Cọc", "CTSV_ThongKeCoc", "Thống kê cọc ra Excel"),
+
+                // ── 7. TRẮC NGANG ──
+                ("Trắc Ngang", "CTSV_VeTracNgangThietKe", "Vẽ trắc ngang thiết kế"),
+                ("Trắc Ngang", "CTSV_DanhCap", "Đánh cấp VHC"),
+                ("Trắc Ngang", "CTSV_DanhCap_XoaBo", "Xóa bỏ đánh cấp"),
+                ("Trắc Ngang", "CTSV_DanhCap_VeThem", "Vẽ thêm đánh cấp"),
+                ("Trắc Ngang", "CTSV_ThemVatLieu_TrenCatNgang", "Điền vật liệu trên cắt ngang"),
+                ("Trắc Ngang", "CTSV_fit_KhungIn", "Fit khung in trắc ngang"),
+                ("Trắc Ngang", "CTSV_An_DuongDiaChat", "Ẩn đường địa chất"),
+
+                // ── 8. KHỐI LƯỢNG ──
+                ("Khối Lượng", "CTSV_TinhKhoiLuongTracNgang", "⭐ Tính KL trắc ngang (AEA + Prismoidal + Excel)"),
+                ("Khối Lượng", "CTSV_Taskbar", "Mở taskbar khối lượng"),
+                ("Khối Lượng", "CTSV_CaiDatBang", "Cài đặt bảng khối lượng"),
+                ("Khối Lượng", "CTSV_XuatCad", "Xuất khối lượng ra CAD"),
+                ("Khối Lượng", "CTSV_SoSanhSurface", "So sánh bề mặt"),
+                ("Khối Lượng", "CTSV_PolyArea", "Tính KL từ Polyline"),
+                ("Khối Lượng", "CTSV_TinhDienTichPoly", "Tính diện tích Polyline"),
+                ("Khối Lượng", "CTSV_TinhKhoiLuongPoly", "Tính khối lượng Polyline"),
+                ("Khối Lượng", "CTSV_GhiDienTichPoly", "Ghi diện tích Poly lên bản vẽ"),
+
+                // ── 9. ĐIỂM ──
+                ("Điểm", "CTPO_NhapToaDoTrucTiep", "⭐ Nhập tọa độ trực tiếp lên Civil"),
+                ("Điểm", "CTPO_TaoPointTheoBang", "Import tọa độ từ Excel"),
+                ("Điểm", "CTPO_TaoCogoPoint_CaoDo_FromSurface", "Tạo Point lấy CĐ từ Surface"),
+                ("Điểm", "CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Tạo Point từ Spot Elevation"),
+                ("Điểm", "CTPO_CreateCogopointFromText", "Tạo Point từ Text"),
+                ("Điểm", "CTPO_An_CogoPoint", "Ẩn các điểm CogoPoint"),
+                ("Điểm", "CTPO_UpdateAllPointGroup", "Cập nhật tất cả Point Group"),
+                ("Điểm", "CTPO_CPTT", "Chuyển Point thành Text"),
+                ("Điểm", "CTPo_ReorderPoints", "Sắp xếp lại Points"),
+
+                // ── 10. CỐNG ──
+                ("Cống", "CTPI_ThayDoi_DuongKinhCong", "Thay đổi đường kính cống"),
+                ("Cống", "CTPI_ThayDoi_MatPhangRef_Cong", "Đặt mặt phẳng reference cống"),
+                ("Cống", "CTPI_ThayDoi_DoanDocCong", "Thay đổi độ dốc cống"),
+                ("Cống", "CTPI_BangCaoDo_TuNhienHoThu", "Bảng CĐ tự nhiên hố thu"),
+                ("Cống", "CTPI_XoayHoThu_Theo2diem", "Xoay hố thu theo 2 điểm"),
+                ("Cống", "CT_VTOADOHG", "Tọa độ hố ga (DLL ngoài)"),
+
+                // ── 11. SAN NỀN ──
+                ("San Nền", "CTSN_Taskbar", "Mở taskbar san nền"),
+                ("San Nền", "CTSN_TaoLuoi", "Tạo lưới san nền"),
+                ("San Nền", "CTSN_NhapCaoDo", "Nhập cao độ lưới"),
+                ("San Nền", "CTSN_Surface", "Lấy CĐ từ Surface"),
+                ("San Nền", "CTSN_TinhKL", "Tính khối lượng san nền"),
+                ("San Nền", "CTSN_XuatBang", "Xuất bảng KL CAD"),
+
+                // ── 12. IN ẤN ──
+                ("In Ấn", "CT_PrintCenter", "In trung tâm"),
+                ("In Ấn", "CTSV_TaoTrangInTD", "Tạo trang in trắc dọc"),
+                ("In Ấn", "CTDS_PrintAllLayouts", "In tất cả Layout"),
+                ("In Ấn", "CTDS_PrintCurrentLayout", "In Layout hiện tại"),
+                ("In Ấn", "CTDS_ExportPDF", "Xuất PDF"),
+
+                // ── 13. TIỆN ÍCH ──
+                ("Tiện Ích", "CTU_ExportCAD2007", "Export file CAD 2007"),
+                ("Tiện Ích", "CTU_ExplodeAEC", "Explode AEC Object"),
+                ("Tiện Ích", "CTU_TextToMText", "Chuyển Text → MText"),
+                ("Tiện Ích", "CTU_TotalLength", "Tổng chiều dài đối tượng"),
+                ("Tiện Ích", "CTU_DrawTaluy", "Vẽ ta-luy"),
+                ("Tiện Ích", "CT_DoiIcon", "Đổi icon lệnh"),
+                ("Tiện Ích", "CT_Taskbar", "Mở thanh công cụ Civil"),
+                ("Tiện Ích", "CT_MENU_SETTINGS", "Cài đặt menu"),
             };
 
             RefreshListView();
