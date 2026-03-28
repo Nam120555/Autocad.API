@@ -500,7 +500,8 @@ namespace MyFirstProject
         {
             int y = 10;
             AddStyleCombo("SampleLine Style:", "SampleLineStyle", _cdoc.Styles.SampleLineStyles, _config.SampleLineStyle, ref y);
-            AddInfoLabel("💡 Áp dụng cho: CTS_PhatSinhCoc, CTS_PhatSinhCoc_ChiTiet", ref y);
+            AddStyleCombo("Label Style:", "SampleLineLabelStyle", _cdoc.Styles.LabelStyles.SampleLineLabelStyles.LabelStyles, _config.SampleLineLabelStyle, ref y);
+            AddInfoLabel("💡 Áp dụng cho: CTS_PhatSinhCoc, CTS_DoiTenCoc", ref y);
         }
 
         // ── SECTION VIEW ──

@@ -130,6 +130,19 @@ namespace NetReload
 				{
 					Directory.CreateDirectory(netReloadDir);
 				}
+				else
+				{
+					// Xóa tất cả DLL/PDB cũ để tránh tích lũy rác (memory leak)
+					try
+					{
+						foreach (string oldFile in Directory.GetFiles(netReloadDir, "MyFirstProject_*.*"))
+						{
+							try { File.Delete(oldFile); } catch { }
+						}
+						ed.WriteMessage($"\nĐã dọn dẹp thư mục NetReload.");
+					}
+					catch { }
+				}
 
 				string destDllPath = Path.Combine(netReloadDir, sourceDll.Name);
 				string destPdbPath = Path.ChangeExtension(destDllPath, "pdb");
@@ -154,8 +167,8 @@ namespace NetReload
 				Assembly.LoadFrom(destDllPath);
 				ed.WriteMessage($"\nNETRELOAD complete. Loaded: {uniqueAssemblyName}.dll");
 
-				// 6. Auto-execute show_menu command to refresh the Ribbon
-				doc.SendStringToExecute("show_menu ", true, false, false);
+				// Lưu ý: KHÔNG gọi show_menu ở đây vì AutoLoader.Initialize() 
+				// trong assembly mới sẽ tự động gọi ShowMenu + ApplyAliases
 
 			}
 			catch (System.Exception ex)

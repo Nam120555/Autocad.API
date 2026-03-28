@@ -11,6 +11,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 
 using Autodesk.Civil.DatabaseServices;
+using Autodesk.Civil.DatabaseServices.Styles;
 using Autodesk.Civil.ApplicationServices;
 using MyFirstProject.Extensions;
 
@@ -61,6 +62,10 @@ namespace MyFirstProject
         private NumericUpDown numBeRongTrai = null!; // Left width
         private NumericUpDown numBeRongPhai = null!; // Right width
 
+        // Style controls
+        private ComboBox cboSampleLineStyle = null!;
+        private ComboBox cboLabelStyle = null!;
+
         // Naming options
         private CheckBox chkDT_CT = null!;
         private CheckBox chkH = null!;
@@ -69,6 +74,17 @@ namespace MyFirstProject
         private CheckBox chkPrefix = null!;
         private TextBox txtPrefix = null!;
 
+        // CogoPoint mode controls
+        private RadioButton rdoCogoPoint = null!;
+        private Panel pnlCogoPoint = null!;
+
+        // Table mode controls
+        private RadioButton rdoTable = null!;
+        private Panel pnlTable = null!;
+        private NumericUpDown numColTenCoc = null!;
+        private NumericUpDown numColLyTrinh = null!;
+        private NumericUpDown numRowStart = null!;
+
         // Preview
         private DataGridView dgvPreview = null!;
         private WinLabel lblTotal = null!;
@@ -76,6 +92,8 @@ namespace MyFirstProject
 
         // ─── Data ───
         private List<AlignmentInfo> alignments = new();
+        private List<string> sampleLineStyles = new();
+        private List<string> labelStyles = new();
         public bool IsConfirmed { get; private set; } = false;
         public bool IsPhatSinh => rdoPhatSinh.Checked;
         public bool UseDT_CT => chkDT_CT.Checked;
@@ -84,11 +102,20 @@ namespace MyFirstProject
         public bool UseCurve => chkCurve == null ? true : chkCurve.Checked;
         public bool UsePrefix => chkPrefix == null ? false : chkPrefix.Checked;
         public string PrefixValue => txtPrefix == null ? "" : txtPrefix.Text.Trim();
+        public bool IsCogoPointMode => rdoCogoPoint != null && rdoCogoPoint.Checked;
+        public bool IsTableMode => rdoTable != null && rdoTable.Checked;
         public ObjectId SelectedAlignmentId { get; private set; } = ObjectId.Null;
         public double KhoangCach => (double)numKhoangCach.Value;
         public double KhoangCachCong => (double)numKhoangCachCong.Value;
         public double BeRongTrai => (double)numBeRongTrai.Value;
         public double BeRongPhai => (double)numBeRongPhai.Value;
+        public int ColTenCoc => numColTenCoc != null ? (int)numColTenCoc.Value : 1;
+        public int ColLyTrinh => numColLyTrinh != null ? (int)numColLyTrinh.Value : 2;
+        public int RowStart => numRowStart != null ? (int)numRowStart.Value : 2;
+        public string SelectedSampleLineStyle => cboSampleLineStyle != null && cboSampleLineStyle.SelectedIndex > 0
+            ? cboSampleLineStyle.SelectedItem?.ToString() ?? "" : "";
+        public string SelectedLabelStyle => cboLabelStyle != null && cboLabelStyle.SelectedIndex > 0
+            ? cboLabelStyle.SelectedItem?.ToString() ?? "" : "";
 
         private class AlignmentInfo
         {
@@ -147,6 +174,29 @@ namespace MyFirstProject
                         SampleLineCount = slCount
                     });
                 }
+
+                // Load SampleLine Styles
+                try
+                {
+                    foreach (ObjectId sId in cdoc.Styles.SampleLineStyles)
+                    {
+                        var style = (StyleBase)tr.GetObject(sId, OpenMode.ForRead);
+                        sampleLineStyles.Add(style.Name);
+                    }
+                }
+                catch { }
+
+                // Load SampleLine Label Styles
+                try
+                {
+                    foreach (ObjectId lId in cdoc.Styles.LabelStyles.SampleLineLabelStyles.LabelStyles)
+                    {
+                        var style = (StyleBase)tr.GetObject(lId, OpenMode.ForRead);
+                        labelStyles.Add(style.Name);
+                    }
+                }
+                catch { }
+
                 tr.Commit();
             }
             catch { }
@@ -156,7 +206,7 @@ namespace MyFirstProject
         {
             // ── Form ──
             this.Text = "CỌC TUYẾN ĐƯỜNG — Civil Tool";
-            this.Size = new Size(780, 770);
+            this.Size = new Size(780, 930);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -227,13 +277,35 @@ namespace MyFirstProject
 
             rdoDoiTen = new RadioButton
             {
-                Text = "✏️ Đổi tên cọc hiện có",
-                Location = new Point(350, 25),
+                Text = "✏️ Đổi tên cọc",
+                Location = new Point(230, 25),
                 AutoSize = true,
                 ForeColor = OrangeWarn,
                 Font = new Font("Segoe UI", 10f, FontStyle.Bold)
             };
             grpMode.Controls.Add(rdoDoiTen);
+
+            rdoCogoPoint = new RadioButton
+            {
+                Text = "📍 Từ CogoPoint",
+                Location = new Point(400, 25),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(100, 200, 255),
+                Font = new Font("Segoe UI", 10f, FontStyle.Bold)
+            };
+            rdoCogoPoint.CheckedChanged += (s, e) => OnModeChanged();
+            grpMode.Controls.Add(rdoCogoPoint);
+
+            rdoTable = new RadioButton
+            {
+                Text = "📋 Từ Bảng",
+                Location = new Point(580, 25),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(180, 130, 255),
+                Font = new Font("Segoe UI", 10f, FontStyle.Bold)
+            };
+            rdoTable.CheckedChanged += (s, e) => OnModeChanged();
+            grpMode.Controls.Add(rdoTable);
 
             y += 62;
 
@@ -275,7 +347,7 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 3: THÔNG SỐ PHÁT SINH (chỉ hiện khi PhatSinh)
             // ═══════════════════════════════════════════════════
-            pnlPhatSinh = CreateGroupBox("📏  Thông số phát sinh cọc", 0, y, 730, 140);
+            pnlPhatSinh = CreateGroupBox("📏  Thông số phát sinh cọc", 0, y, 730, 220);
             mainPanel.Controls.Add(pnlPhatSinh);
 
             // Row 1: Khoảng cách
@@ -339,11 +411,112 @@ namespace MyFirstProject
                 ForeColor = TextWhite
             };
             pnlPhatSinh.Controls.Add(numBeRongPhai);
-            chkCurve = CreateCheckBox("Phát sinh cọc trong đường cong (TĐ, P, TC)", 15, 105, true);
+
+            // Row 3: Style dao diện cọc
+            pnlPhatSinh.Controls.Add(CreateLabel("Style cọc:", 12, 108));
+            cboSampleLineStyle = new ComboBox
+            {
+                Location = new Point(110, 104),
+                Size = new Size(230, 28),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = BgInput,
+                ForeColor = TextWhite,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9f)
+            };
+            cboSampleLineStyle.Items.Add("<< Giữ nguyên >>");
+            string defaultStyle = StyleSettings.Get().SampleLineStyle;
+            int selStyleIdx = 0;
+            for (int si = 0; si < sampleLineStyles.Count; si++)
+            {
+                cboSampleLineStyle.Items.Add(sampleLineStyles[si]);
+                if (!string.IsNullOrEmpty(defaultStyle) &&
+                    sampleLineStyles[si].Equals(defaultStyle, StringComparison.OrdinalIgnoreCase))
+                    selStyleIdx = si + 1;
+            }
+            cboSampleLineStyle.SelectedIndex = selStyleIdx;
+            pnlPhatSinh.Controls.Add(cboSampleLineStyle);
+
+            // Row 3: Label style
+            pnlPhatSinh.Controls.Add(CreateLabel("Label cọc:", 370, 108));
+            cboLabelStyle = new ComboBox
+            {
+                Location = new Point(460, 104),
+                Size = new Size(250, 28),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = BgInput,
+                ForeColor = TextWhite,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9f)
+            };
+            cboLabelStyle.Items.Add("<< Không tạo Label >>");
+            string defaultLabel = StyleSettings.Get().SampleLineLabelStyle;
+            int selLabelIdx = 0;
+            for (int li = 0; li < labelStyles.Count; li++)
+            {
+                cboLabelStyle.Items.Add(labelStyles[li]);
+                if (!string.IsNullOrEmpty(defaultLabel) &&
+                    labelStyles[li].Equals(defaultLabel, StringComparison.OrdinalIgnoreCase))
+                    selLabelIdx = li + 1;
+            }
+            cboLabelStyle.SelectedIndex = selLabelIdx;
+            pnlPhatSinh.Controls.Add(cboLabelStyle);
+
+            // Row 4: Checkbox đường cong
+            chkCurve = CreateCheckBox("Phát sinh cọc trong đường cong (TĐ, P, TC)", 15, 145, true);
             chkCurve.CheckedChanged += (s, e) => GeneratePreview();
             pnlPhatSinh.Controls.Add(chkCurve);
 
-            y += 148;
+            var lblStyleHint = CreateLabel("💡 Style được lưu tại CT_StyleSettings", 15, 175);
+            lblStyleHint.ForeColor = TextDim;
+            lblStyleHint.Font = new Font("Segoe UI", 8f, FontStyle.Italic);
+            pnlPhatSinh.Controls.Add(lblStyleHint);
+
+            y += 228;
+
+            // ═══════════════════════════════════════════════════
+            // SECTION 3A: PANEL COGOPOINT
+            // ═══════════════════════════════════════════════════
+            pnlCogoPoint = CreateGroupBox("📍  Từ CogoPoint — chọn nhóm điểm trên bản vẽ", 0, y, 730, 60);
+            pnlCogoPoint.Visible = false;
+            pnlCogoPoint.Controls.Add(CreateLabel("Chọn 1 CogoPoint thuộc nhóm cần phát sinh cọc → pick trên bản vẽ khi thực hiện", 15, 30));
+            mainPanel.Controls.Add(pnlCogoPoint);
+
+            // ═══════════════════════════════════════════════════
+            // SECTION 3B: PANEL TABLE
+            // ═══════════════════════════════════════════════════
+            pnlTable = CreateGroupBox("📋  Từ Bảng tọa độ (AutoCAD Table)", 0, y, 730, 100);
+            pnlTable.Visible = false;
+            mainPanel.Controls.Add(pnlTable);
+
+            pnlTable.Controls.Add(CreateLabel("Cột tên cọc:", 15, 32));
+            numColTenCoc = new NumericUpDown
+            {
+                Location = new Point(120, 28), Size = new Size(60, 28),
+                Minimum = 1, Maximum = 20, Value = 1,
+                BackColor = BgInput, ForeColor = TextWhite
+            };
+            pnlTable.Controls.Add(numColTenCoc);
+
+            pnlTable.Controls.Add(CreateLabel("Cột lý trình:", 210, 32));
+            numColLyTrinh = new NumericUpDown
+            {
+                Location = new Point(310, 28), Size = new Size(60, 28),
+                Minimum = 1, Maximum = 20, Value = 2,
+                BackColor = BgInput, ForeColor = TextWhite
+            };
+            pnlTable.Controls.Add(numColLyTrinh);
+
+            pnlTable.Controls.Add(CreateLabel("Hàng bắt đầu:", 410, 32));
+            numRowStart = new NumericUpDown
+            {
+                Location = new Point(520, 28), Size = new Size(60, 28),
+                Minimum = 1, Maximum = 1000, Value = 2,
+                BackColor = BgInput, ForeColor = TextWhite
+            };
+            pnlTable.Controls.Add(numRowStart);
+
+            pnlTable.Controls.Add(CreateLabel("Chọn bảng tọa độ cọc (Table) và Alignment trên bản vẽ khi thực hiện", 15, 70));
 
             // ═══════════════════════════════════════════════════
             // SECTION 3B: QUY CÁCH ĐẶT TÊN CỌC
@@ -495,6 +668,8 @@ namespace MyFirstProject
         private void OnModeChanged()
         {
             pnlPhatSinh.Visible = rdoPhatSinh.Checked;
+            pnlCogoPoint.Visible = rdoCogoPoint.Checked;
+            pnlTable.Visible = rdoTable.Checked;
             GeneratePreview();
         }
 
@@ -574,6 +749,10 @@ namespace MyFirstProject
                     row.DefaultCellStyle.ForeColor = Color.FromArgb(255, 180, 50);
                 else if (item.TenCoc.StartsWith("H"))
                     row.DefaultCellStyle.ForeColor = Color.FromArgb(100, 200, 255);
+                else if (item.TenCoc.StartsWith("NĐ") || item.TenCoc.StartsWith("NC"))
+                    row.DefaultCellStyle.ForeColor = Color.FromArgb(255, 140, 200);
+                else if (item.TenCoc.StartsWith("TĐ") || item.TenCoc.StartsWith("TC") || item.TenCoc.StartsWith("P"))
+                    row.DefaultCellStyle.ForeColor = Color.FromArgb(255, 100, 100);
             }
 
             lblTotal.Text = $"Tổng: {PreviewItems.Count} cọc";
@@ -625,6 +804,22 @@ namespace MyFirstProject
                             stations.Add(kvp.Key);
                     }
                 }
+
+                // Loại bỏ cọc thông thường nằm quá gần cọc đặc biệt (< 0.5m)
+                // Giữ lại cọc đặc biệt, bỏ cọc thường bị trùng
+                stations = stations.Where(s =>
+                {
+                    // Nếu station này chính là cọc đặc biệt → giữ
+                    if (specialCurveStations.Keys.Any(k => Math.Abs(k - s) < 0.01))
+                        return true;
+                    // Nếu là startSta hoặc endSta → giữ (DT/CT)
+                    if (Math.Abs(s - startSta) < 0.01 || Math.Abs(s - endSta) < 0.01)
+                        return true;
+                    // Nếu nằm quá gần cọc đặc biệt khác → loại
+                    if (specialCurveStations.Keys.Any(k => Math.Abs(k - s) < 0.5))
+                        return false;
+                    return true;
+                }).ToList();
             }
 
             stations = stations.Distinct().OrderBy(s => s).ToList();
@@ -665,6 +860,7 @@ namespace MyFirstProject
 
         /// <summary>
         /// Lấy danh sách các đoạn cong (StartStation, EndStation)
+        /// Hỗ trợ: AlignmentArc, AlignmentSpiral, AlignmentSCS (compound)
         /// </summary>
         private List<(double StartStation, double EndStation)> GetCurveSegments(ObjectId alignmentId)
         {
@@ -677,7 +873,15 @@ namespace MyFirstProject
                 {
                     foreach (AlignmentEntity entity in al.Entities)
                     {
-                        if (entity is AlignmentArc arc)
+                        if (entity is AlignmentSCS scs)
+                        {
+                            // SCS là compound entity: SpiralIn + Arc + SpiralOut
+                            // Toàn bộ từ đầu SpiralIn đến cuối SpiralOut là đoạn cong
+                            double scsStart = scs.SpiralIn.StartStation;
+                            double scsEnd = scs.SpiralOut.EndStation;
+                            curves.Add((scsStart, scsEnd));
+                        }
+                        else if (entity is AlignmentArc arc)
                         {
                             curves.Add((arc.StartStation, arc.EndStation));
                         }
@@ -694,7 +898,11 @@ namespace MyFirstProject
         }
 
         /// <summary>
-        /// Lấy danh sách các Station đặc biệt trong đường cong (TĐ, P, TC)
+        /// Lấy danh sách các Station đặc biệt trong đường cong
+        /// Hỗ trợ đầy đủ:
+        ///   - AlignmentSCS (compound):  NĐ — TĐ — P — TC — NC
+        ///   - Cung tròn đơn (Arc):      TĐ — P — TC
+        ///   - Spiral đơn:               NĐ — NC
         /// </summary>
         private Dictionary<double, string> GetSpecialCurveStations(ObjectId alignmentId)
         {
@@ -705,27 +913,58 @@ namespace MyFirstProject
             {
                 using Transaction tr = A.Db.TransactionManager.StartTransaction();
                 Alignment? al = tr.GetObject(alignmentId, OpenMode.ForRead) as Alignment;
-                if (al != null)
+                if (al == null) { tr.Commit(); return dict; }
+
+                int curveIndex = 1; // Đánh số đường cong bắt đầu từ 1
+                foreach (AlignmentEntity entity in al.Entities)
                 {
-                    foreach (AlignmentEntity entity in al.Entities)
+                    if (entity is AlignmentSCS scs)
                     {
-                        if (entity is AlignmentArc arc)
-                        {
-                            double td = arc.StartStation;
-                            double tc = arc.EndStation;
-                            double p = (td + tc) / 2.0;
-                            
-                            // Giữ lại tên nếu có sai số rất nhỏ
-                            dict[td] = "TĐ";
-                            dict[p] = "P";
-                            dict[tc] = "TC";
-                        }
+                        // === ĐƯỜNG CONG CHUYỂN TIẾP SCS (compound entity) ===
+                        string idx = curveIndex.ToString();
+                        AddStation(dict, scs.SpiralIn.StartStation, $"NĐ{idx}");   // Nối Đầu
+                        AddStation(dict, scs.SpiralIn.EndStation, $"TĐ{idx}");     // Tiếp Đầu
+                        double pStation = (scs.Arc.StartStation + scs.Arc.EndStation) / 2.0;
+                        AddStation(dict, pStation, $"P{idx}");
+                        AddStation(dict, scs.Arc.EndStation, $"TC{idx}");          // Tiếp Cuối
+                        AddStation(dict, scs.SpiralOut.EndStation, $"NC{idx}");    // Nối Cuối
+                        curveIndex++;
+                    }
+                    else if (entity is AlignmentArc arc)
+                    {
+                        // === CUNG TRÒN ĐƠN (không có Spiral) ===
+                        string idx = curveIndex.ToString();
+                        AddStation(dict, arc.StartStation, $"TĐ{idx}");
+                        double pStation = (arc.StartStation + arc.EndStation) / 2.0;
+                        AddStation(dict, pStation, $"P{idx}");
+                        AddStation(dict, arc.EndStation, $"TC{idx}");
+                        curveIndex++;
+                    }
+                    else if (entity is AlignmentSpiral spiral)
+                    {
+                        // === SPIRAL ĐƠN (không nằm trong SCS) ===
+                        string idx = curveIndex.ToString();
+                        AddStation(dict, spiral.StartStation, $"NĐ{idx}");
+                        AddStation(dict, spiral.EndStation, $"NC{idx}");
+                        curveIndex++;
                     }
                 }
+
                 tr.Commit();
             }
             catch { }
             return dict;
+        }
+
+        /// <summary>
+        /// Thêm station đặc biệt vào dictionary, tránh ghi đè nếu đã tồn tại
+        /// </summary>
+        private static void AddStation(Dictionary<double, string> dict, double station, string name)
+        {
+            // Kiểm tra trùng (sai số < 0.01m)
+            bool exists = dict.Keys.Any(k => Math.Abs(k - station) < 0.01);
+            if (!exists)
+                dict[station] = name;
         }
 
         /// <summary>
@@ -868,13 +1107,25 @@ namespace MyFirstProject
         /// <summary>
         /// Lệnh gộp: Phát sinh cọc hoặc Đổi tên cọc
         /// </summary>
-        [CommandMethod("CTPO_CocTuyenDuong")]
-        public static void CTPOCocTuyenDuong()
+        [CommandMethod("CTS_PhatSinhCoc")]
+        public static void CTSPhatSinhCoc()
         {
             using CocTuyenDuongForm form = new();
             var result = AcadApp.ShowModalDialog(form);
 
             if (result != DialogResult.OK || !form.IsConfirmed) return;
+
+            if (form.IsCogoPointMode)
+            {
+                ExecuteFromCogoPoint(form);
+                return;
+            }
+            if (form.IsTableMode)
+            {
+                ExecuteFromTable(form);
+                return;
+            }
+
             if (form.SelectedAlignmentId == ObjectId.Null) return;
 
             if (form.IsPhatSinh)
@@ -886,7 +1137,7 @@ namespace MyFirstProject
         [CommandMethod("CTS_DoiTenCoc")]
         public static void CTSDoiTenCocAlias()
         {
-            CTPOCocTuyenDuong();
+            CTSPhatSinhCoc();
         }
 
         /// <summary>
@@ -925,6 +1176,9 @@ namespace MyFirstProject
                 if (slGroup != null)
                     RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue);
 
+                // Áp dụng Style cho SampleLine
+                ApplyStyleAndLabel(tr, slgId, form.SelectedSampleLineStyle, form.SelectedLabelStyle);
+
                 A.Ed.WriteMessage($"\n✅ Đã phát sinh {created}/{form.PreviewItems.Count} cọc trên tuyến {alignment.Name}");
                 tr.Commit();
             }
@@ -957,7 +1211,141 @@ namespace MyFirstProject
                 if (slGroup == null) { tr.Commit(); return; }
 
                 int count = RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue);
+
+                // Áp dụng Style cho SampleLine
+                ApplyStyleAndLabel(tr, slgIds[0], form.SelectedSampleLineStyle, form.SelectedLabelStyle);
+
                 A.Ed.WriteMessage($"\n✅ Đã đổi tên {count} cọc trên tuyến {alignment.Name}");
+                tr.Commit();
+            }
+            catch (System.Exception ex)
+            {
+                A.Ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Phát sinh cọc từ nhóm CogoPoint
+        /// </summary>
+        private static void ExecuteFromCogoPoint(CocTuyenDuongForm form)
+        {
+            try
+            {
+                // Pick trên bản vẽ sau khi form đóng
+                ObjectId cogoPointId = UserInput.GCogoPointId("\n Chọn 1 CogoPoint thuộc nhóm điểm cần phát sinh cọc: \n");
+                ObjectId alignmentId = UserInput.GAlignmentId("\n Chọn tim đường cần phát sinh cọc:");
+
+                using Transaction tr = A.Db.TransactionManager.StartTransaction();
+                CogoPoint? cogoPoint = tr.GetObject(cogoPointId, OpenMode.ForRead) as CogoPoint;
+                if (cogoPoint == null) { tr.Commit(); return; }
+
+                ObjectId pointGroupId = cogoPoint.PrimaryPointGroupId;
+                ObjectIdCollection pointIds = UtilitiesC3D.GPointIdsFromPointGroup(pointGroupId);
+
+                Alignment? alignment = tr.GetObject(alignmentId, OpenMode.ForWrite) as Alignment;
+                if (alignment == null) { tr.Commit(); return; }
+
+                // Tạo hoặc lấy SampleLineGroup
+                ObjectId slgId;
+                if (alignment.GetSampleLineGroupIds().Count == 0)
+                    slgId = SampleLineGroup.Create(alignment.Name, alignmentId);
+                else
+                    slgId = alignment.GetSampleLineGroupIds()[0];
+
+                double station = 0, offset = 0;
+                int created = 0;
+                foreach (ObjectId pointId in pointIds)
+                {
+                    CogoPoint? pt = tr.GetObject(pointId, OpenMode.ForRead) as CogoPoint;
+                    if (pt == null) continue;
+                    alignment.StationOffset(pt.Easting, pt.Northing, ref station, ref offset);
+                    try
+                    {
+                        string tempName = "z_" + Guid.NewGuid().ToString("N").Substring(0, 10);
+                        CreateSamplelineWithWidth(tr, tempName, slgId, alignment, station, form.BeRongTrai, form.BeRongPhai);
+                        created++;
+                    }
+                    catch { }
+                }
+
+                // Rename theo quy cách
+                SampleLineGroup? slGroup = tr.GetObject(slgId, OpenMode.ForWrite) as SampleLineGroup;
+                if (slGroup != null)
+                    RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue);
+
+                // Áp dụng Style
+                ApplyStyleAndLabel(tr, slgId, form.SelectedSampleLineStyle, form.SelectedLabelStyle);
+
+                A.Ed.WriteMessage($"\n✅ Đã phát sinh {created} cọc từ CogoPoint trên tuyến {alignment.Name}");
+                tr.Commit();
+            }
+            catch (System.Exception ex)
+            {
+                A.Ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Phát sinh cọc từ bảng tọa độ (AutoCAD Table)
+        /// </summary>
+        private static void ExecuteFromTable(CocTuyenDuongForm form)
+        {
+            try
+            {
+                ObjectId bangId = UserInput.GTable("Chọn bảng tọa độ cọc có lý trình:");
+                ObjectId alignmentId = UserInput.GAlignmentId("Chọn tim tuyến cần bổ sung cọc:");
+
+                int soTenCoc = form.ColTenCoc;
+                int soLyTrinh = form.ColLyTrinh;
+                int soHangCoc = form.RowStart;
+
+                using Transaction tr = A.Db.TransactionManager.StartTransaction();
+                Alignment? alignment = tr.GetObject(alignmentId, OpenMode.ForWrite) as Alignment;
+                Autodesk.AutoCAD.DatabaseServices.Table? bang = tr.GetObject(bangId, OpenMode.ForRead) as Autodesk.AutoCAD.DatabaseServices.Table;
+                if (alignment == null || bang == null) { tr.Commit(); return; }
+
+                // Tạo hoặc lấy SampleLineGroup
+                ObjectId slgId;
+                if (alignment.GetSampleLineGroupIds().Count == 0)
+                    slgId = SampleLineGroup.Create(alignment.Name, alignment.ObjectId);
+                else
+                    slgId = alignment.GetSampleLineGroupIds()[0];
+
+                List<string> listTenCoc = new();
+                List<double> listLyTrinh = new();
+                int soCocThem = 1;
+
+                for (int i = soHangCoc - 1; i < bang.Rows.Count; i++)
+                {
+                    string tenCoc = bang.Cells[i, soTenCoc - 1].GetTextString(Autodesk.AutoCAD.DatabaseServices.FormatOption.IgnoreMtextFormat);
+                    listTenCoc.Add(tenCoc);
+                    // Check duplicate
+                    for (int j = 0; j < listTenCoc.Count - 1; j++)
+                    {
+                        if (tenCoc == listTenCoc[j])
+                        {
+                            listTenCoc[j] = tenCoc + soCocThem.ToString();
+                            soCocThem++;
+                        }
+                    }
+                    listLyTrinh.Add(Convert.ToDouble(bang.Cells[i, soLyTrinh - 1].GetTextString(Autodesk.AutoCAD.DatabaseServices.FormatOption.IgnoreMtextFormat)));
+                }
+
+                if (listLyTrinh.Count > 0)
+                    listLyTrinh[listLyTrinh.Count - 1] -= 0.01;
+
+                int created = 0;
+                for (int i = 0; i < listTenCoc.Count; i++)
+                {
+                    try
+                    {
+                        CreateSamplelineWithWidth(tr, listTenCoc[i], slgId, alignment, listLyTrinh[i], form.BeRongTrai, form.BeRongPhai);
+                        created++;
+                    }
+                    catch { }
+                }
+
+                A.Ed.WriteMessage($"\n✅ Đã phát sinh {created}/{listTenCoc.Count} cọc từ bảng trên tuyến {alignment.Name}");
                 tr.Commit();
             }
             catch (System.Exception ex)
@@ -976,18 +1364,39 @@ namespace MyFirstProject
             bool useDtCt = true, bool useH = true, bool useKm = true, bool useCurve = true, bool usePrefix = false, string prefixValue = "")
         {
             Dictionary<double, string> specialStations = new();
-            if (useCurve)
+            if (useCurve && al != null)
             {
-                if (al != null)
+                int curveIndex = 1; // Đánh số đường cong bắt đầu từ 1
+                foreach (AlignmentEntity entity in al.Entities)
                 {
-                    foreach (AlignmentEntity entity in al.Entities)
+                    if (entity is AlignmentSCS scs)
                     {
-                        if (entity is AlignmentArc arc)
-                        {
-                            specialStations[arc.StartStation] = "TĐ";
-                            specialStations[(arc.StartStation + arc.EndStation) / 2.0] = "P";
-                            specialStations[arc.EndStation] = "TC";
-                        }
+                        // === ĐƯỜNG CONG CHUYỂN TIẾP SCS (compound: SpiralIn → Arc → SpiralOut) ===
+                        string idx = curveIndex.ToString();
+                        AddStationStatic(specialStations, scs.SpiralIn.StartStation, $"NĐ{idx}");
+                        AddStationStatic(specialStations, scs.SpiralIn.EndStation, $"TĐ{idx}");
+                        double pStation = (scs.Arc.StartStation + scs.Arc.EndStation) / 2.0;
+                        AddStationStatic(specialStations, pStation, $"P{idx}");
+                        AddStationStatic(specialStations, scs.Arc.EndStation, $"TC{idx}");
+                        AddStationStatic(specialStations, scs.SpiralOut.EndStation, $"NC{idx}");
+                        curveIndex++;
+                    }
+                    else if (entity is AlignmentArc arc)
+                    {
+                        // === CUNG TRÒN ĐƠN (không nằm trong SCS) ===
+                        string idx = curveIndex.ToString();
+                        AddStationStatic(specialStations, arc.StartStation, $"TĐ{idx}");
+                        AddStationStatic(specialStations, (arc.StartStation + arc.EndStation) / 2.0, $"P{idx}");
+                        AddStationStatic(specialStations, arc.EndStation, $"TC{idx}");
+                        curveIndex++;
+                    }
+                    else if (entity is AlignmentSpiral spiral)
+                    {
+                        // === SPIRAL ĐƠN (không nằm trong SCS) ===
+                        string idx = curveIndex.ToString();
+                        AddStationStatic(specialStations, spiral.StartStation, $"NĐ{idx}");
+                        AddStationStatic(specialStations, spiral.EndStation, $"NC{idx}");
+                        curveIndex++;
                     }
                 }
             }
@@ -1062,6 +1471,16 @@ namespace MyFirstProject
         }
 
         /// <summary>
+        /// Thêm station đặc biệt vào dictionary (static version cho RenameSampleLines)
+        /// </summary>
+        private static void AddStationStatic(Dictionary<double, string> dict, double station, string name)
+        {
+            bool exists = dict.Keys.Any(k => Math.Abs(k - station) < 0.01);
+            if (!exists)
+                dict[station] = name;
+        }
+
+        /// <summary>
         /// Tạo SampleLine với bề rộng trái/phải tùy chỉnh
         /// </summary>
         private static ObjectId CreateSamplelineWithWidth(Transaction tr, string name, ObjectId slgId, Alignment alignment, double station, double widthLeft, double widthRight)
@@ -1079,6 +1498,60 @@ namespace MyFirstProject
 
             ObjectId slId = SampleLine.Create(name, slgId, points);
             return slId;
+        }
+
+        /// <summary>
+        /// Áp dụng Style dao diện và Label cho tất cả SampleLine trong group
+        /// </summary>
+        private static void ApplyStyleAndLabel(Transaction tr, ObjectId slgId, string styleName, string labelStyleName)
+        {
+            CivilDocument cdoc = CivilApplication.ActiveDocument;
+
+            // 1. Áp dụng SampleLine Style
+            if (!string.IsNullOrEmpty(styleName))
+            {
+                try
+                {
+                    SampleLineGroup? slGroup = tr.GetObject(slgId, OpenMode.ForRead) as SampleLineGroup;
+                    if (slGroup != null)
+                    {
+                        foreach (ObjectId slId in slGroup.GetSampleLineIds())
+                        {
+                            SampleLine? sl = tr.GetObject(slId, OpenMode.ForWrite) as SampleLine;
+                            if (sl != null)
+                            {
+                                try { sl.StyleName = styleName; }
+                                catch { /* Style không tồn tại — bỏ qua */ }
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            // 2. Tạo Label Group nếu có chọn Label Style
+            if (!string.IsNullOrEmpty(labelStyleName))
+            {
+                try
+                {
+                    ObjectId labelStyleId = ObjectId.Null;
+                    foreach (ObjectId lsId in cdoc.Styles.LabelStyles.SampleLineLabelStyles.LabelStyles)
+                    {
+                        var ls = (StyleBase)tr.GetObject(lsId, OpenMode.ForRead);
+                        if (ls.Name.Equals(labelStyleName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            labelStyleId = lsId;
+                            break;
+                        }
+                    }
+
+                    if (labelStyleId != ObjectId.Null)
+                    {
+                        SampleLineLabelGroup.Create(slgId, labelStyleId);
+                    }
+                }
+                catch { }
+            }
         }
 
         #endregion

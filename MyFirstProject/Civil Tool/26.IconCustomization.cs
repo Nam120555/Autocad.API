@@ -260,7 +260,7 @@ namespace MyFirstProject
                 ("CTS_TaoSpotElevation_OnSurface_TaiTim", "◎ Spot Elevation Tại Tim"),
                 
                 // SampleLine - Đổi tên cọc
-                ("CTPO_CocTuyenDuong", "▸ Đổi tên cọc"),
+                ("CTS_PhatSinhCoc", "▸ Phát sinh / Đổi tên cọc"),
                 ("CTS_DoiTenCoc2", "▸ Đổi tên cọc đoạn"),
                 ("CTS_DoiTenCoc3", "▸ Đổi tên cọc Km"),
                 ("CTS_DoiTenCoc_fromCogoPoint", "▸ Đổi tên từ CogoPoint"),
@@ -478,7 +478,7 @@ namespace MyFirstProject
             return
             [
                 ("CTS_TaoSpotElevation_OnSurface_TaiTim", "◎ Spot Elevation Tại Tim"),
-                ("CTPO_CocTuyenDuong", "▸ Đổi tên cọc"),
+                ("CTS_PhatSinhCoc", "▸ Phát sinh / Đổi tên cọc"),
                 ("CTS_DoiTenCoc2", "▸ Đổi tên cọc đoạn"),
                 ("CTS_DoiTenCoc3", "▸ Đổi tên cọc Km"),
                 ("CTS_DoiTenCoc_fromCogoPoint", "▸ Đổi tên từ CogoPoint"),

@@ -1592,9 +1592,8 @@ namespace MyFirstProject
                     //get min max
                     ymin = Math.Round(section.MinmumElevation - moRongKhungDungDuoi, 0);
                     xmin = Math.Round(section.LeftOffset - moRongKhungNgangTrai, 0);
-h.Round(section.LeftOffset - moRongKhungNgang, 0);
-                    ymax = Math.Round(section.MaximumElevation + moRongKhungDung, 0);
-                    xmax = Math.Round(section.RightOffset + moRongKhungNgang, 0);
+                    ymax = Math.Round(section.MaximumElevation + moRongKhungDungTren, 0);
+                    xmax = Math.Round(section.RightOffset + moRongKhungNgangPhai, 0);
 
 
                     //set sectionview

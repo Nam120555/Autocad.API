@@ -874,13 +874,11 @@ namespace MyFirstProject
         {
             return new List<(string, string, string)>
             {
-                ("CTPO_CocTuyenDuong", "Đổi tên cọc", "RENAME"),
+                ("CTS_PhatSinhCoc", "Phát sinh cọc", "ADD"),
                 ("CTS_DoiTenCoc2", "Đổi tên đoạn", "RENAME"),
                 ("CTS_DoiTenCoc3", "Đổi tên Km", "RENAME"),
                 ("---", "", ""),
                 ("CTS_TaoBang_ToaDoCoc", "Bảng tọa độ", "TABLE"),
-                ("CTS_PhatSinhCoc", "Phát sinh auto", "ADD"),
-                ("CTS_PhatSinhCoc_ChiTiet", "Phát sinh CT", "ADD"),
                 ("---", "", ""),
                 ("CTS_DichCoc_TinhTien", "Dịch tịnh tiến", "MOVE"),
                 ("CTS_Copy_NhomCoc", "Copy nhóm cọc", "COPY"),
