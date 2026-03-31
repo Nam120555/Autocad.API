@@ -77,8 +77,14 @@ namespace MyFirstProject
         public double Station { get; set; }
         public string LyTrinh { get; set; } = "";
 
-        // Diện tích tại mặt cắt (m²)
+        // Diện tích tại mặt cắt (m²) — giá trị đã chọn theo AreaSource
         public Dictionary<string, double> MaterialAreas { get; set; } = new();
+
+        // Đối chiếu: DT từ API (section.Area)
+        public Dictionary<string, double> MaterialAreas_API { get; set; } = new();
+
+        // Đối chiếu: DT từ Shoelace (tự tính từ SectionPoints)
+        public Dictionary<string, double> MaterialAreas_Shoelace { get; set; } = new();
 
         // Khối lượng Average End Area (m³)
         public Dictionary<string, double> MaterialVolumes_AEA { get; set; } = new();
@@ -482,11 +488,13 @@ namespace MyFirstProject
                         LyTrinh = FormatStation(sl.Station)
                     };
 
-                    // Tính diện tích cho mỗi Material
+                    // Tính diện tích cho mỗi Material + thu thập dữ liệu đối chiếu
                     foreach (var (matName, listName, listGuid, matGuid) in selectedMaterials)
                     {
-                        double area = GetMaterialArea(tr, sl, listGuid, matGuid, areaSource);
+                        var (area, apiArea, shoelaceArea) = GetMaterialAreaWithVerify(tr, sl, listGuid, matGuid, areaSource);
                         result.MaterialAreas[matName] = Math.Round(area, 4);
+                        result.MaterialAreas_API[matName] = Math.Round(apiArea, 4);
+                        result.MaterialAreas_Shoelace[matName] = Math.Round(shoelaceArea, 4);
                     }
 
                     results.Add(result);
@@ -541,33 +549,41 @@ namespace MyFirstProject
         private static double GetMaterialArea(Transaction tr, SampleLine sampleLine,
             Guid listGuid, Guid matGuid, AreaSource areaSource)
         {
+            var (area, _, _) = GetMaterialAreaWithVerify(tr, sampleLine, listGuid, matGuid, areaSource);
+            return area;
+        }
+
+        /// <summary>
+        /// Lấy diện tích + cả 2 nguồn (API + Shoelace) để đối chiếu
+        /// Returns: (chọn theo areaSource, API area, Shoelace area)
+        /// </summary>
+        private static (double chosen, double apiArea, double shoelaceArea) GetMaterialAreaWithVerify(
+            Transaction tr, SampleLine sampleLine,
+            Guid listGuid, Guid matGuid, AreaSource areaSource)
+        {
             try
             {
                 ObjectId materialSectionId = sampleLine.GetMaterialSectionId(listGuid, matGuid);
-                if (materialSectionId.IsNull || !materialSectionId.IsValid) return 0;
+                if (materialSectionId.IsNull || !materialSectionId.IsValid) return (0, 0, 0);
 
                 var section = tr.GetObject(materialSectionId, OpenMode.ForRead, false, true) as Section;
-                if (section == null) return 0;
+                if (section == null) return (0, 0, 0);
 
-                switch (areaSource)
+                double api = section.Area;
+                double shoelace = CalculateShoelaceArea(section);
+
+                double chosen = areaSource switch
                 {
-                    case AreaSource.API:
-                        return section.Area;
+                    AreaSource.API => api,
+                    AreaSource.Shoelace => shoelace,
+                    _ => api > 0 ? api : shoelace, // APIWithFallback
+                };
 
-                    case AreaSource.Shoelace:
-                        return CalculateShoelaceArea(section);
-
-                    case AreaSource.APIWithFallback:
-                    default:
-                        double apiArea = section.Area;
-                        if (apiArea > 0) return apiArea;
-                        // Fallback: tự tính bằng Shoelace
-                        return CalculateShoelaceArea(section);
-                }
+                return (chosen, api, shoelace);
             }
             catch
             {
-                return 0;
+                return (0, 0, 0);
             }
         }
 
@@ -989,6 +1005,8 @@ namespace MyFirstProject
 
         // ═══════════════════════════════════════════════════════════
         // XUẤT EXCEL (.xlsx) — ClosedXML
+        // Layout: 1 sheet/tuyến (Mục A: Diện tích + Mục B: Khối lượng)
+        //         + 1 sheet "Tổng hợp" toàn bộ tuyến
         // ═══════════════════════════════════════════════════════════
 
         private static void ExportToExcel(Editor ed, string alignmentName,
@@ -1002,190 +1020,420 @@ namespace MyFirstProject
                 Title = "Lưu file Excel khối lượng trắc ngang",
                 FileName = $"KL_TracNgang_{alignmentName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
             };
-
             if (sfd.ShowDialog() != DialogResult.OK) return;
 
             try
             {
                 using var wb = new XLWorkbook();
-                var ws = wb.Worksheets.Add("Khối lượng");
+                string methodTag = method == VolumeMethod.AverageEndArea ? "AEA" : "Prismoidal";
+                int colsPerMat = compare ? 5 : 3;
 
-                // ─── Title ───
-                ws.Cell(1, 1).Value = $"BẢNG KHỐI LƯỢNG TRẮC NGANG — {alignmentName}";
-                ws.Range(1, 1, 1, 6).Merge();
-                ws.Cell(1, 1).Style.Font.Bold = true;
-                ws.Cell(1, 1).Style.Font.FontSize = 14;
-                ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                // Ghi sheet cho tuyến này
+                WriteAlignmentSheet(wb, alignmentName, results, materials, method, compare, methodTag, colsPerMat);
 
-                string methodText = compare ? "So sánh AEA + Prismoidal"
-                    : (method == VolumeMethod.AverageEndArea ? "Average End Area" : "Prismoidal");
-                ws.Cell(2, 1).Value = $"Phương pháp: {methodText}";
-                ws.Cell(2, 1).Style.Font.Italic = true;
-
-                // ─── Header ───
-                int startRow = 4;
-                int col = 1;
-                var headers = new[] { "STT", "Tên Cọc", "Lý Trình", "Station", "Khoảng cách (m)" };
-                foreach (var h in headers)
+                // Ghi sheet tổng hợp (hiện tại 1 tuyến, sau này mở rộng nhiều tuyến)
+                var allData = new List<(string AlignmentName, List<SectionVolumeResult> Results,
+                    List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> Materials)>
                 {
-                    ws.Cell(startRow, col).Value = h;
-                    ws.Cell(startRow, col).Style.Font.Bold = true;
-                    ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkBlue;
-                    ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
-                    ws.Cell(startRow, col).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    col++;
-                }
+                    (alignmentName, results, materials)
+                };
+                WriteSummarySheet(wb, allData, method, compare, methodTag);
 
-                foreach (var mat in materials)
-                {
-                    ws.Cell(startRow, col).Value = $"DT_{mat.MaterialName} (m²)";
-                    ws.Cell(startRow, col).Style.Font.Bold = true;
-                    ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkBlue;
-                    ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
-                    col++;
-
-                    if (compare)
-                    {
-                        string[] matHeaders = { $"V_AEA (m³)", $"V_Pris (m³)", $"TL_AEA (m³)", $"TL_Pris (m³)", $"Δ%" };
-                        foreach (var mh in matHeaders)
-                        {
-                            ws.Cell(startRow, col).Value = mh;
-                            ws.Cell(startRow, col).Style.Font.Bold = true;
-                            ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkSlateBlue;
-                            ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
-                            col++;
-                        }
-                    }
-                    else
-                    {
-                        string tag = method == VolumeMethod.AverageEndArea ? "AEA" : "Pris";
-                        ws.Cell(startRow, col).Value = $"V_{tag} (m³)";
-                        ws.Cell(startRow, col).Style.Font.Bold = true;
-                        ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkSlateBlue;
-                        ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
-                        col++;
-
-                        ws.Cell(startRow, col).Value = $"Tích lũy (m³)";
-                        ws.Cell(startRow, col).Style.Font.Bold = true;
-                        ws.Cell(startRow, col).Style.Fill.BackgroundColor = XLColor.DarkSlateBlue;
-                        ws.Cell(startRow, col).Style.Font.FontColor = XLColor.White;
-                        col++;
-                    }
-                }
-
-                // ─── Data ───
-                int row = startRow + 1;
-                int stt = 1;
-                foreach (var r in results)
-                {
-                    col = 1;
-                    ws.Cell(row, col++).Value = stt;
-                    ws.Cell(row, col++).Value = r.TenCoc;
-                    ws.Cell(row, col++).Value = r.LyTrinh;
-                    ws.Cell(row, col++).Value = Math.Round(r.Station, 3);
-                    ws.Cell(row, col++).Value = Math.Round(r.DistanceToPrev, 3);
-
-                    foreach (var mat in materials)
-                    {
-                        double area = r.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
-                        double volAEA = r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
-                        double volPris = r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
-                        double cumAEA = r.CumulativeVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
-                        double cumPris = r.CumulativeVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
-
-                        ws.Cell(row, col++).Value = Math.Round(area, 3);
-
-                        if (compare)
-                        {
-                            ws.Cell(row, col++).Value = Math.Round(volAEA, 3);
-                            ws.Cell(row, col++).Value = Math.Round(volPris, 3);
-                            ws.Cell(row, col++).Value = Math.Round(cumAEA, 3);
-                            ws.Cell(row, col++).Value = Math.Round(cumPris, 3);
-                            double diff = volAEA > 0 ? ((volAEA - volPris) / volAEA * 100) : 0;
-                            ws.Cell(row, col).Value = Math.Round(diff, 2);
-                            // Tô màu chênh lệch
-                            if (Math.Abs(diff) > 5)
-                                ws.Cell(row, col).Style.Font.FontColor = XLColor.Red;
-                            else if (Math.Abs(diff) > 2)
-                                ws.Cell(row, col).Style.Font.FontColor = XLColor.Orange;
-                            col++;
-                        }
-                        else
-                        {
-                            double vol = method == VolumeMethod.AverageEndArea ? volAEA : volPris;
-                            double cum = method == VolumeMethod.AverageEndArea ? cumAEA : cumPris;
-                            ws.Cell(row, col++).Value = Math.Round(vol, 3);
-                            ws.Cell(row, col++).Value = Math.Round(cum, 3);
-                        }
-                    }
-                    row++;
-                    stt++;
-                }
-
-                // ─── Dòng tổng ───
-                col = 1;
-                ws.Cell(row, col).Value = "TỔNG";
-                ws.Cell(row, col).Style.Font.Bold = true;
-                ws.Range(row, 1, row, 5).Style.Fill.BackgroundColor = XLColor.LightGoldenrodYellow;
-                ws.Range(row, 1, row, 5).Style.Font.Bold = true;
-                col = 6;
-
-                foreach (var mat in materials)
-                {
-                    double totalAEA = results.Sum(r => r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0));
-                    double totalPris = results.Sum(r => r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0));
-
-                    ws.Cell(row, col++).Value = ""; // Area trống
-                    if (compare)
-                    {
-                        ws.Cell(row, col).Value = Math.Round(totalAEA, 3);
-                        ws.Cell(row, col).Style.Font.Bold = true;
-                        col++;
-                        ws.Cell(row, col).Value = Math.Round(totalPris, 3);
-                        ws.Cell(row, col).Style.Font.Bold = true;
-                        col++;
-                        col++; col++; // Skip cumulative
-                        double diff = totalAEA > 0 ? ((totalAEA - totalPris) / totalAEA * 100) : 0;
-                        ws.Cell(row, col).Value = Math.Round(diff, 2);
-                        ws.Cell(row, col).Style.Font.Bold = true;
-                        col++;
-                    }
-                    else
-                    {
-                        double total = method == VolumeMethod.AverageEndArea ? totalAEA : totalPris;
-                        ws.Cell(row, col).Value = Math.Round(total, 3);
-                        ws.Cell(row, col).Style.Font.Bold = true;
-                        col++;
-                        col++; // Skip cumulative
-                    }
-                }
-
-                // ─── Format ───
-                ws.Columns().AdjustToContents();
-                ws.SheetView.FreezeRows(startRow);
-
-                // Số format
-                for (int c = 5; c <= col; c++)
-                    ws.Column(c).Style.NumberFormat.Format = "#,##0.000";
+                // Ghi sheet đối chiếu DT (API vs Shoelace)
+                WriteVerifySheet(wb, alignmentName, results, materials);
 
                 wb.SaveAs(sfd.FileName);
                 ed.WriteMessage($"\n✅ Đã xuất file Excel: {sfd.FileName}");
 
-                // Hỏi mở file
-                if (MessageBox.Show("Đã xuất file Excel!\nBạn có muốn mở file?",
+                if (MessageBox.Show("Đã xuất file Excel!\n\n" +
+                    $"• Sheet \"{alignmentName}\": Mục A (Diện tích) + Mục B (Khối lượng)\n" +
+                    "• Sheet \"Tổng hợp KL\": Tổng hợp khối lượng\n" +
+                    "• Sheet \"Đối chiếu\": So sánh API vs Shoelace\n\n" +
+                    "Bạn có muốn mở file?",
                     "Hoàn thành", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
                 {
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = sfd.FileName,
-                        UseShellExecute = true
-                    });
+                    { FileName = sfd.FileName, UseShellExecute = true });
                 }
             }
             catch (System.Exception ex)
             {
                 ed.WriteMessage($"\n❌ Lỗi xuất Excel: {ex.Message}");
             }
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // Ghi 1 sheet cho 1 tuyến: Mục A (Diện tích) rồi Mục B (Khối lượng)
+        // ───────────────────────────────────────────────────────────
+
+        private static void WriteAlignmentSheet(XLWorkbook wb, string alignmentName,
+            List<SectionVolumeResult> results,
+            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+            VolumeMethod method, bool compare, string methodTag, int colsPerMat)
+        {
+            // Tên sheet tối đa 31 ký tự
+            string sheetName = alignmentName.Length > 31 ? alignmentName.Substring(0, 31) : alignmentName;
+            var ws = wb.Worksheets.Add(sheetName);
+
+            int matCount = materials.Count;
+            int areaTotalCols = 4 + matCount;
+            int volTotalCols = 4 + matCount * colsPerMat;
+            int maxCols = Math.Max(areaTotalCols, volTotalCols);
+
+            // ╔══════════════════════════════════════════╗
+            // ║  MỤC A: BẢNG TỔNG HỢP DIỆN TÍCH        ║
+            // ╚══════════════════════════════════════════╝
+
+            int row = 1;
+            // Title Mục A
+            ws.Cell(row, 1).Value = "A. BẢNG TỔNG HỢP DIỆN TÍCH MẶT CẮT NGANG";
+            ws.Range(row, 1, row, maxCols).Merge();
+            StyleSectionTitle(ws.Cell(row, 1));
+            row++;
+
+            ws.Cell(row, 1).Value = $"Tuyến: {alignmentName}";
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 4).Value = "Đơn vị: m²";
+            ws.Cell(row, 4).Style.Font.Italic = true;
+            row += 2;
+
+            // Header Diện tích
+            int areaHeaderRow = row;
+            int col = 1;
+            foreach (var h in new[] { "STT", "Tên Cọc", "Lý Trình", "Station" })
+                StyleHeaderCell(ws.Cell(row, col++), h);
+            foreach (var mat in materials)
+                StyleHeaderCell(ws.Cell(row, col++), $"S_{mat.MaterialName} (m²)", true);
+            row++;
+
+            // Data Diện tích
+            int stt = 1;
+            foreach (var r in results)
+            {
+                col = 1;
+                ws.Cell(row, col++).Value = stt;
+                ws.Cell(row, col++).Value = r.TenCoc;
+                ws.Cell(row, col++).Value = r.LyTrinh;
+                ws.Cell(row, col++).Value = Math.Round(r.Station, 3);
+                foreach (var mat in materials)
+                    ws.Cell(row, col++).Value = Math.Round(r.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0), 4);
+                if (stt % 2 == 0)
+                    ws.Range(row, 1, row, areaTotalCols).Style.Fill.BackgroundColor = XLColor.FromArgb(240, 245, 250);
+                row++; stt++;
+            }
+
+            // Border & format Mục A
+            ws.Range(areaHeaderRow, 1, row - 1, areaTotalCols).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(areaHeaderRow, 1, row - 1, areaTotalCols).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            for (int c = 5; c <= areaTotalCols; c++)
+                ws.Column(c).Style.NumberFormat.Format = "#,##0.0000";
+
+            // ╔══════════════════════════════════════════╗
+            // ║  MỤC B: BẢNG TÍNH KHỐI LƯỢNG            ║
+            // ╚══════════════════════════════════════════╝
+
+            row += 2; // Khoảng cách giữa 2 mục
+
+            // Title Mục B
+            ws.Cell(row, 1).Value = "B. BẢNG TÍNH KHỐI LƯỢNG ĐÀO ĐẮP";
+            ws.Range(row, 1, row, maxCols).Merge();
+            StyleSectionTitle(ws.Cell(row, 1));
+            row++;
+
+            string formula = method == VolumeMethod.AverageEndArea
+                ? "V = (S₁ + S₂) / 2 × L" : "V = (S₁ + 4√(S₁·S₂) + S₂) / 6 × L";
+            if (compare) formula = "So sánh AEA + Prismoidal";
+            ws.Cell(row, 1).Value = $"Công thức: {formula}";
+            ws.Cell(row, 1).Style.Font.Italic = true;
+            ws.Cell(row, 1).Style.Font.FontColor = XLColor.FromArgb(100, 100, 100);
+            row += 2;
+
+            // Header Row 1: Nhóm Material (merge)
+            int volHeaderRow1 = row;
+            col = 1;
+            foreach (var h in new[] { "STT", "Tên Cọc", "Lý Trình", "L (m)" })
+            {
+                StyleHeaderCell(ws.Cell(row, col), h);
+                ws.Range(row, col, row + 1, col).Merge(); // Merge 2 hàng
+                col++;
+            }
+            foreach (var mat in materials)
+            {
+                int startCol = col;
+                ws.Range(row, startCol, row, startCol + colsPerMat - 1).Merge();
+                StyleHeaderCell(ws.Cell(row, startCol), mat.MaterialName, true);
+
+                // Sub-header row
+                string[] subH = compare
+                    ? new[] { "DT TB (m²)", "V_AEA (m³)", "V_Pris (m³)", "TL_AEA (m³)", "TL_Pris (m³)" }
+                    : new[] { "DT TB (m²)", $"V_{methodTag} (m³)", "Tích lũy (m³)" };
+                for (int i = 0; i < subH.Length; i++)
+                    StyleSubHeaderCell(ws.Cell(row + 1, startCol + i), subH[i]);
+                col += colsPerMat;
+            }
+            row += 2; // Qua 2 hàng header
+
+            // Data Khối lượng
+            int volDataStartRow = row;
+            stt = 1;
+            foreach (var r in results)
+            {
+                col = 1;
+                ws.Cell(row, col++).Value = stt;
+                ws.Cell(row, col++).Value = r.TenCoc;
+                ws.Cell(row, col++).Value = r.LyTrinh;
+                ws.Cell(row, col++).Value = Math.Round(r.DistanceToPrev, 3);
+
+                int matIdx = 0;
+                foreach (var mat in materials)
+                {
+                    if (stt == 1)
+                    {
+                        // Mặt cắt đầu: chưa có mặt cắt trước → KL = 0
+                        ws.Cell(row, col++).Value = 0;
+                        if (compare) { ws.Cell(row, col++).Value = 0; ws.Cell(row, col++).Value = 0; ws.Cell(row, col++).Value = 0; ws.Cell(row, col++).Value = 0; }
+                        else { ws.Cell(row, col++).Value = 0; ws.Cell(row, col++).Value = 0; }
+                    }
+                    else
+                    {
+                        // DT TB lấy từ Mục A (cùng sheet)
+                        int areaSrcCol = 5 + matIdx;
+                        string aCol = GetExcelColLetter(areaSrcCol);
+                        int aPrevRow = areaHeaderRow + stt - 1; // row trước trong Mục A
+                        int aCurrRow = areaHeaderRow + stt;     // row hiện tại trong Mục A
+
+                        // DT Trung bình = (DT_prev + DT_curr) / 2
+                        ws.Cell(row, col).FormulaA1 = $"=({aCol}{aPrevRow}+{aCol}{aCurrRow})/2";
+                        int dtTbCol = col; col++;
+
+                        string dtLetter = GetExcelColLetter(dtTbCol);
+                        string lLetter = GetExcelColLetter(4);
+
+                        if (compare)
+                        {
+                            // V_AEA = DT_TB × L
+                            ws.Cell(row, col).FormulaA1 = $"={dtLetter}{row}*{lLetter}{row}";
+                            int vAeaCol = col; col++;
+                            // V_Pris
+                            ws.Cell(row, col++).Value = Math.Round(r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0), 3);
+                            // TL_AEA
+                            string vAeaL = GetExcelColLetter(vAeaCol);
+                            string tlAeaL = GetExcelColLetter(col);
+                            ws.Cell(row, col).FormulaA1 = $"={tlAeaL}{row - 1}+{vAeaL}{row}";
+                            col++;
+                            // TL_Pris
+                            ws.Cell(row, col++).Value = Math.Round(r.CumulativeVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0), 3);
+                        }
+                        else
+                        {
+                            // V = DT_TB × L
+                            ws.Cell(row, col).FormulaA1 = $"={dtLetter}{row}*{lLetter}{row}";
+                            int vCol = col; col++;
+                            // TL
+                            string vL = GetExcelColLetter(vCol);
+                            string tlL = GetExcelColLetter(col);
+                            ws.Cell(row, col).FormulaA1 = $"={tlL}{row - 1}+{vL}{row}";
+                            col++;
+                        }
+                    }
+                    matIdx++;
+                }
+
+                if (stt % 2 == 0)
+                    ws.Range(row, 1, row, volTotalCols).Style.Fill.BackgroundColor = XLColor.FromArgb(240, 245, 250);
+                row++; stt++;
+            }
+
+            // Dòng TỔNG
+            ws.Cell(row, 1).Value = "TỔNG";
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Range(row, 1, row, 4).Merge();
+            ws.Range(row, 1, row, volTotalCols).Style.Fill.BackgroundColor = XLColor.FromArgb(255, 248, 220);
+            ws.Range(row, 1, row, volTotalCols).Style.Font.Bold = true;
+            col = 5;
+            foreach (var mat in materials)
+            {
+                col++; // Skip DT TB
+                if (compare)
+                {
+                    string l1 = GetExcelColLetter(col);
+                    ws.Cell(row, col).FormulaA1 = $"=SUM({l1}{volDataStartRow}:{l1}{row - 1})"; col++;
+                    string l2 = GetExcelColLetter(col);
+                    ws.Cell(row, col).FormulaA1 = $"=SUM({l2}{volDataStartRow}:{l2}{row - 1})"; col++;
+                    col++; col++; // Skip TL
+                }
+                else
+                {
+                    string l1 = GetExcelColLetter(col);
+                    ws.Cell(row, col).FormulaA1 = $"=SUM({l1}{volDataStartRow}:{l1}{row - 1})"; col++;
+                    col++; // Skip TL
+                }
+            }
+
+            // Border Mục B
+            ws.Range(volHeaderRow1, 1, row, volTotalCols).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(volHeaderRow1, 1, row, volTotalCols).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            for (int c = 4; c <= volTotalCols; c++)
+                ws.Column(c).Style.NumberFormat.Format = "#,##0.000";
+
+            // Format chung
+            ws.Columns().AdjustToContents();
+            ws.Column(1).Width = 6;
+            ws.Column(2).Width = 16;
+            ws.Column(3).Width = 16;
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // Sheet Tổng hợp KL toàn bộ các tuyến
+        // ───────────────────────────────────────────────────────────
+
+        private static void WriteSummarySheet(XLWorkbook wb,
+            List<(string AlignmentName, List<SectionVolumeResult> Results,
+                List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> Materials)> allData,
+            VolumeMethod method, bool compare, string methodTag)
+        {
+            var ws = wb.Worksheets.Add("Tổng hợp KL");
+
+            ws.Cell(1, 1).Value = "BẢNG TỔNG HỢP KHỐI LƯỢNG TOÀN BỘ CÁC TUYẾN";
+            ws.Range(1, 1, 1, 6).Merge();
+            StyleSectionTitle(ws.Cell(1, 1));
+
+            string methodText = compare ? "So sánh AEA + Prismoidal"
+                : (method == VolumeMethod.AverageEndArea ? "Average End Area" : "Prismoidal");
+            ws.Cell(2, 1).Value = $"Phương pháp: {methodText}";
+            ws.Cell(2, 1).Style.Font.Italic = true;
+            ws.Cell(2, 4).Value = $"Số tuyến: {allData.Count}";
+
+            // Tìm tất cả Material names (union)
+            var allMatNames = allData.SelectMany(d => d.Materials.Select(m => m.MaterialName)).Distinct().ToList();
+
+            // Header
+            int row = 4;
+            int col = 1;
+            StyleHeaderCell(ws.Cell(row, col++), "STT");
+            StyleHeaderCell(ws.Cell(row, col++), "Tuyến");
+            StyleHeaderCell(ws.Cell(row, col++), "Số mặt cắt");
+            foreach (var mn in allMatNames)
+            {
+                if (compare)
+                {
+                    StyleHeaderCell(ws.Cell(row, col++), $"{mn}_AEA (m³)", true);
+                    StyleHeaderCell(ws.Cell(row, col++), $"{mn}_Pris (m³)", true);
+                }
+                else
+                {
+                    StyleHeaderCell(ws.Cell(row, col++), $"{mn}_{methodTag} (m³)", true);
+                }
+            }
+            int totalCols = col - 1;
+            row++;
+
+            // Data cho mỗi tuyến
+            int dataStartRow = row;
+            int idx = 1;
+            foreach (var (aName, results, materials) in allData)
+            {
+                col = 1;
+                ws.Cell(row, col++).Value = idx;
+                ws.Cell(row, col++).Value = aName;
+                ws.Cell(row, col++).Value = results.Count;
+
+                foreach (var mn in allMatNames)
+                {
+                    double totalAEA = results.Sum(r => r.MaterialVolumes_AEA.GetValueOrDefault(mn, 0));
+                    double totalPris = results.Sum(r => r.MaterialVolumes_Prismoidal.GetValueOrDefault(mn, 0));
+                    if (compare)
+                    {
+                        ws.Cell(row, col++).Value = Math.Round(totalAEA, 3);
+                        ws.Cell(row, col++).Value = Math.Round(totalPris, 3);
+                    }
+                    else
+                    {
+                        double v = method == VolumeMethod.AverageEndArea ? totalAEA : totalPris;
+                        ws.Cell(row, col++).Value = Math.Round(v, 3);
+                    }
+                }
+                if (idx % 2 == 0)
+                    ws.Range(row, 1, row, totalCols).Style.Fill.BackgroundColor = XLColor.FromArgb(240, 245, 250);
+                row++; idx++;
+            }
+
+            // Dòng TỔNG
+            ws.Cell(row, 1).Value = "TỔNG";
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Range(row, 1, row, 3).Merge();
+            ws.Range(row, 1, row, totalCols).Style.Fill.BackgroundColor = XLColor.FromArgb(255, 248, 220);
+            ws.Range(row, 1, row, totalCols).Style.Font.Bold = true;
+            for (int c = 4; c <= totalCols; c++)
+            {
+                string cL = GetExcelColLetter(c);
+                ws.Cell(row, c).FormulaA1 = $"=SUM({cL}{dataStartRow}:{cL}{row - 1})";
+            }
+
+            // Border & format
+            ws.Range(4, 1, row, totalCols).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(4, 1, row, totalCols).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            for (int c = 4; c <= totalCols; c++)
+                ws.Column(c).Style.NumberFormat.Format = "#,##0.000";
+
+            // Diễn giải
+            row += 2;
+            ws.Cell(row, 1).Value = "DIỄN GIẢI";
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 1).Style.Font.FontSize = 12;
+            row++;
+            ws.Cell(row++, 1).Value = "• AEA: V = (S₁ + S₂) / 2 × L  —  Average End Area";
+            ws.Cell(row++, 1).Value = "• Prismoidal: V = (S₁ + 4·√(S₁·S₂) + S₂) / 6 × L";
+            ws.Cell(row++, 1).Value = "• S₁, S₂ = diện tích 2 mặt cắt liên tiếp (m²)";
+            ws.Cell(row++, 1).Value = "• L = khoảng cách giữa 2 mặt cắt (m)";
+
+            ws.Columns().AdjustToContents();
+            ws.Column(2).Width = Math.Max(ws.Column(2).Width, 25);
+        }
+
+        // ───────────────────────────────────────────────────────────
+        // Style helpers
+        // ───────────────────────────────────────────────────────────
+
+        private static void StyleSectionTitle(IXLCell cell)
+        {
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontSize = 13;
+            cell.Style.Font.FontColor = XLColor.FromArgb(27, 42, 74);
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        }
+
+        private static void StyleHeaderCell(IXLCell cell, string text, bool accent = false)
+        {
+            cell.Value = text;
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = accent ? XLColor.FromArgb(46, 74, 122) : XLColor.FromArgb(27, 42, 74);
+            cell.Style.Font.FontColor = XLColor.White;
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        }
+
+        private static void StyleSubHeaderCell(IXLCell cell, string text)
+        {
+            cell.Value = text;
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontSize = 9;
+            cell.Style.Fill.BackgroundColor = XLColor.FromArgb(70, 100, 150);
+            cell.Style.Font.FontColor = XLColor.White;
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        }
+
+        private static string GetExcelColLetter(int colNumber)
+        {
+            string result = "";
+            while (colNumber > 0)
+            {
+                colNumber--;
+                result = (char)('A' + colNumber % 26) + result;
+                colNumber /= 26;
+            }
+            return result;
         }
 
         // ═══════════════════════════════════════════════════════════
