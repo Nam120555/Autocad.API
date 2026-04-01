@@ -55,7 +55,18 @@ namespace MyFirstProject
     }
 
     /// <summary>
-    /// Nguồn dữ liệu diện tích mặt cắt
+    /// Nguồn phân tích khối lượng
+    /// </summary>
+    public enum DataSourceMode
+    {
+        /// <summary>Tính từ danh sách Compute Materials (Mặc định)</summary>
+        ComputeMaterials,
+        /// <summary>Rã Hatch đồ họa (In-Memory Explode) từ Section View</summary>
+        HatchExplosion
+    }
+
+    /// <summary>
+    /// Nguồn dữ liệu diện tích mặt cắt (dùng khi DataSourceMode = ComputeMaterials)
     /// </summary>
     public enum AreaSource
     {
@@ -124,6 +135,8 @@ namespace MyFirstProject
         private CheckBox chkExportCSV = null!;
         private CheckBox chkExportExcel = null!;
         private CheckBox chkWriteToDrawing = null!;
+        private RadioButton rdoSource_ComputeMat = null!;
+        private RadioButton rdoSource_HatchExp = null!;
 
         // Kết quả
         public bool IsConfirmed { get; private set; }
@@ -144,6 +157,8 @@ namespace MyFirstProject
                 return result;
             }
         }
+        public DataSourceMode SelectedDataSource =>
+            rdoSource_HatchExp.Checked ? DataSourceMode.HatchExplosion : DataSourceMode.ComputeMaterials;
         public AreaSource SelectedAreaSource =>
             rdoArea_API.Checked ? AreaSource.API :
             rdoArea_Shoelace.Checked ? AreaSource.Shoelace :
@@ -201,35 +216,103 @@ namespace MyFirstProject
             var slg = tr.GetObject(slgId, OpenMode.ForRead) as SampleLineGroup;
             if (slg == null) { tr.Commit(); return; }
 
-            foreach (QTOMaterialList matList in slg.MaterialLists)
+            if (rdoSource_HatchExp.Checked)
             {
-                try
+                // Móc trực tiếp Hatch Layer từ Trắc ngang đồ họa
+                var slIds = slg.GetSampleLineIds();
+                var uniqueLayers = new HashSet<string>();
+
+                // Quét 5 trắc ngang đầu tiên để lấy mẫu layer Hatch
+                int scanCount = Math.Min(5, slIds.Count);
+                for (int i = 0; i < scanCount; i++)
                 {
-                    foreach (QTOMaterial mat in matList)
+                    var sl = tr.GetObject(slIds[i], OpenMode.ForRead) as SampleLine;
+                    if (sl == null) continue;
+
+                    // Đổi từ SectionView sang quét trực tiếp các Section (MaterialSection, CorridorSection...)
+                    // Vì Hatch vật liệu thực chất là các Section con thuộc SampleLine.
+                    var secIds = sl.GetSectionIds();
+                    foreach (ObjectId secId in secIds)
                     {
-                        string type = mat.QuantityType == MaterialQuantityType.Cut ? "🔻 Đào" :
-                                      mat.QuantityType == MaterialQuantityType.Fill ? "🔺 Đắp" :
-                                      mat.QuantityType == MaterialQuantityType.CutFill ? "🔄 Đào+Đắp" :
-                                      mat.QuantityType == MaterialQuantityType.Earthwork ? "🏔️ Earthwork" :
-                                      mat.QuantityType == MaterialQuantityType.Structure ? "🏗️ Kết cấu" : "📦 Khác";
-                        materialList.Add((mat.Name, matList.Name ?? "Unnamed", matList.Guid, mat.Guid));
-                        int idx = chkMaterials.Items.Add($"{type}: {mat.Name} ({matList.Name})");
+                        // Thử mở như là Entity chung (vì Section kế thừa từ Entity)
+                        var sec = tr.GetObject(secId, OpenMode.ForRead) as Autodesk.Civil.DatabaseServices.Section;
+                        if (sec == null) continue;
+
+                        try
+                        {
+                            var objs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
+                            sec.Explode(objs);
+
+                            foreach (Autodesk.AutoCAD.DatabaseServices.DBObject obj in objs)
+                            {
+                                if (obj is Hatch h)
+                                {
+                                    uniqueLayers.Add(h.Layer);
+                                }
+                                else if (obj is BlockReference br)
+                                {
+                                    var subObjs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
+                                    try { br.Explode(subObjs); } catch { }
+                                    foreach (Autodesk.AutoCAD.DatabaseServices.DBObject subObj in subObjs)
+                                    {
+                                        if (subObj is Hatch subH) uniqueLayers.Add(subH.Layer);
+                                        subObj.Dispose();
+                                    }
+                                }
+                                obj.Dispose();
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+                if (uniqueLayers.Count > 0)
+                {
+                    foreach (var layer in uniqueLayers.OrderBy(x => x))
+                    {
+                        materialList.Add((layer, "Hatch_Layer", Guid.Empty, Guid.Empty));
+                        int idx = chkMaterials.Items.Add($"Layer: {layer}");
                         chkMaterials.SetItemChecked(idx, true);
                     }
                 }
-                catch { }
+                else
+                {
+                    chkMaterials.Items.Add("⚠️ Không tìm thấy Hatch trên Trắc ngang mẫu.");
+                }
+            }
+            else
+            {
+                // Bắt nguồn từ Compute Materials (Mặc định)
+                foreach (QTOMaterialList matList in slg.MaterialLists)
+                {
+                    try
+                    {
+                        foreach (QTOMaterial mat in matList)
+                        {
+                            string type = mat.QuantityType == MaterialQuantityType.Cut ? "Đào" :
+                                          mat.QuantityType == MaterialQuantityType.Fill ? "Đắp" :
+                                          mat.QuantityType == MaterialQuantityType.CutFill ? "Đào+Đắp" :
+                                          mat.QuantityType == MaterialQuantityType.Earthwork ? "Earthwork" :
+                                          mat.QuantityType == MaterialQuantityType.Structure ? "Kết cấu" : "Khác";
+                            materialList.Add((mat.Name, matList.Name ?? "Unnamed", matList.Guid, mat.Guid));
+                            int idx = chkMaterials.Items.Add($"{type}: {mat.Name} ({matList.Name})");
+                            chkMaterials.SetItemChecked(idx, true);
+                        }
+                    }
+                    catch { }
+                }
+
+                if (materialList.Count == 0)
+                {
+                    chkMaterials.Items.Add("Chưa có Material List. Hãy chạy Compute Materials trước.");
+                }
             }
             tr.Commit();
-
-            if (materialList.Count == 0)
-            {
-                chkMaterials.Items.Add("⚠️ Chưa có Material List. Hãy chạy Compute Materials trước.");
-            }
         }
 
         private void InitializeComponent()
         {
-            InitBaseTheme("📐  TÍNH KHỐI LƯỢNG TRẮC NGANG", 500, 750);
+            InitBaseTheme("TÍNH KHỐI LƯỢNG TRẮC NGANG", 500, 830);
 
             int y = 0;
 
@@ -243,7 +326,7 @@ namespace MyFirstProject
             y = 82;
 
             // ═══ CHỌN ALIGNMENT ═══
-            var grpAlign = CreateGroupBox("📏 Chọn Alignment + SampleLine Group", 16, y, 460, 64);
+            var grpAlign = CreateGroupBox("Chọn Alignment + SampleLine Group", 16, y, 460, 64);
             this.Controls.Add(grpAlign);
 
             cboAlignment = CreateComboBox(12, 26, 436);
@@ -256,8 +339,37 @@ namespace MyFirstProject
 
             y += 72;
 
+            // ═══ NGUỒN DỮ LIỆU ĐẦU VÀO ═══
+            var grpDataSource = CreateGroupBox("Nguồn Dữ Liệu Khối Lượng", 16, y, 460, 75);
+            this.Controls.Add(grpDataSource);
+
+            rdoSource_ComputeMat = new RadioButton
+            {
+                Text = "Từ Compute Materials (QTOMaterialList)",
+                Location = new Point(12, 24),
+                AutoSize = true,
+                Checked = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
+            rdoSource_ComputeMat.CheckedChanged += (s, e) => { if (rdoSource_ComputeMat.Checked) LoadMaterials(); };
+            grpDataSource.Controls.Add(rdoSource_ComputeMat);
+
+            rdoSource_HatchExp = new RadioButton
+            {
+                Text = "Từ Hatch Đồ Họa (Rã ảo Trắc ngang để đo diện tích)",
+                Location = new Point(12, 48),
+                AutoSize = true,
+                ForeColor = Color.DarkRed,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
+            };
+            rdoSource_HatchExp.CheckedChanged += (s, e) => { if (rdoSource_HatchExp.Checked) LoadMaterials(); };
+            grpDataSource.Controls.Add(rdoSource_HatchExp);
+
+            y += 85;
+
             // ═══ CHỌN MATERIAL ═══
-            var grpMat = CreateGroupBox("📦 Chọn Material cần tính", 16, y, 460, 140);
+            var grpMat = CreateGroupBox("Chọn Material / Category cần tính", 16, y, 460, 140);
             this.Controls.Add(grpMat);
 
             chkMaterials = new CheckedListBox
@@ -275,12 +387,12 @@ namespace MyFirstProject
             y += 148;
 
             // ═══ PHƯƠNG PHÁP TÍNH DIỆN TÍCH ═══
-            var grpArea = CreateGroupBox("📐 Nguồn diện tích mặt cắt", 16, y, 460, 90);
+            var grpArea = CreateGroupBox("Nguồn diện tích mặt cắt", 16, y, 460, 90);
             this.Controls.Add(grpArea);
 
             rdoArea_Fallback = new RadioButton
             {
-                Text = "⭐ section.Area (API) — fallback Shoelace",
+                Text = "section.Area (API) — fallback Shoelace",
                 Location = new Point(12, 26),
                 AutoSize = true,
                 Checked = true,
@@ -312,12 +424,12 @@ namespace MyFirstProject
             y += 98;
 
             // ═══ PHƯƠNG PHÁP TÍNH KHỐI LƯỢNG ═══
-            var grpVol = CreateGroupBox("📊 Phương pháp tính khối lượng", 16, y, 460, 108);
+            var grpVol = CreateGroupBox("Phương pháp tính khối lượng", 16, y, 460, 108);
             this.Controls.Add(grpVol);
 
             rdoVol_AEA = new RadioButton
             {
-                Text = "⭐ Average End Area:  V = (S₁ + S₂) / 2 × L",
+                Text = "Average End Area:  V = (S₁ + S₂) / 2 × L",
                 Location = new Point(12, 26),
                 AutoSize = true,
                 Checked = true,
@@ -338,7 +450,7 @@ namespace MyFirstProject
 
             chkCompare = new CheckBox
             {
-                Text = "📊 So sánh cả 2 phương pháp (hiển thị chênh lệch %)",
+                Text = "So sánh cả 2 phương pháp (hiển thị chênh lệch %)",
                 Location = new Point(12, 78),
                 AutoSize = true,
                 Checked = false,
@@ -350,12 +462,12 @@ namespace MyFirstProject
             y += 116;
 
             // ═══ TÙY CHỌN XUẤT ═══
-            var grpExport = CreateGroupBox("📤 Tùy chọn xuất", 16, y, 460, 85);
+            var grpExport = CreateGroupBox("Tùy chọn xuất", 16, y, 460, 85);
             this.Controls.Add(grpExport);
 
             chkExportCSV = new CheckBox
             {
-                Text = "📄 Xuất CSV",
+                Text = "Xuất CSV",
                 Location = new Point(12, 26),
                 AutoSize = true,
                 Checked = true,
@@ -366,7 +478,7 @@ namespace MyFirstProject
 
             chkExportExcel = new CheckBox
             {
-                Text = "📊 Xuất Excel (.xlsx)",
+                Text = "Xuất Excel (.xlsx)",
                 Location = new Point(160, 26),
                 AutoSize = true,
                 Checked = false,
@@ -377,7 +489,7 @@ namespace MyFirstProject
 
             chkWriteToDrawing = new CheckBox
             {
-                Text = "✏️ Ghi text lên trắc ngang",
+                Text = "Ghi text lên trắc ngang",
                 Location = new Point(12, 52),
                 AutoSize = true,
                 Checked = false,
@@ -392,10 +504,10 @@ namespace MyFirstProject
             var bottomBar = CreateBottomBar(56);
             this.Controls.Add(bottomBar);
 
-            var btnCancel = CreateButton("✕ Hủy", 10, 10, 220, 36, bottomBar);
+            var btnCancel = CreateButton("Hủy", 10, 10, 220, 36, bottomBar);
             btnCancel.Click += (s, e) => { IsConfirmed = false; this.Close(); };
 
-            var btnRun = CreateSuccessButton("📐 Tính Khối Lượng", 240, 10, 220, 36, bottomBar);
+            var btnRun = CreateSuccessButton("Tính Khối Lượng", 240, 10, 220, 36, bottomBar);
             btnRun.Click += (s, e) =>
             {
                 if (cboAlignment.SelectedIndex < 0)
@@ -450,6 +562,7 @@ namespace MyFirstProject
             var alignmentId = form.SelectedAlignmentId;
             var slgId = form.SelectedSLGId;
             var selectedMaterials = form.SelectedMaterials;
+            var dataSourceMode = form.SelectedDataSource;
             var areaSource = form.SelectedAreaSource;
             var volumeMethod = form.SelectedVolumeMethod;
             bool compareMethods = form.CompareMethods;
@@ -459,7 +572,7 @@ namespace MyFirstProject
 
             if (alignmentId.IsNull || slgId.IsNull)
             {
-                ed.WriteMessage("\n❌ Không chọn được Alignment.");
+                ed.WriteMessage("\n Không chọn được Alignment.");
                 return;
             }
 
@@ -488,13 +601,27 @@ namespace MyFirstProject
                         LyTrinh = FormatStation(sl.Station)
                     };
 
-                    // Tính diện tích cho mỗi Material + thu thập dữ liệu đối chiếu
-                    foreach (var (matName, listName, listGuid, matGuid) in selectedMaterials)
+                    // Tính diện tích cho mỗi Material tùy theo NGUỒN (Compute Materials hay Rã Hatch)
+                    if (dataSourceMode == DataSourceMode.HatchExplosion)
                     {
-                        var (area, apiArea, shoelaceArea) = GetMaterialAreaWithVerify(tr, sl, listGuid, matGuid, areaSource);
-                        result.MaterialAreas[matName] = Math.Round(area, 4);
-                        result.MaterialAreas_API[matName] = Math.Round(apiArea, 4);
-                        result.MaterialAreas_Shoelace[matName] = Math.Round(shoelaceArea, 4);
+                        var areaMap = GetHatchAreaMap(tr, sl);
+                        foreach (var (matName, _, _, _) in selectedMaterials)
+                        {
+                            double hatchArea = areaMap.GetValueOrDefault(matName, 0.0);
+                            result.MaterialAreas[matName] = Math.Round(hatchArea, 4);
+                            result.MaterialAreas_API[matName] = Math.Round(hatchArea, 4);
+                            result.MaterialAreas_Shoelace[matName] = Math.Round(hatchArea, 4);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var (matName, listName, listGuid, matGuid) in selectedMaterials)
+                        {
+                            var (area, apiArea, shoelaceArea) = GetMaterialAreaWithVerify(tr, sl, listGuid, matGuid, areaSource);
+                            result.MaterialAreas[matName] = Math.Round(area, 4);
+                            result.MaterialAreas_API[matName] = Math.Round(apiArea, 4);
+                            result.MaterialAreas_Shoelace[matName] = Math.Round(shoelaceArea, 4);
+                        }
                     }
 
                     results.Add(result);
@@ -531,16 +658,69 @@ namespace MyFirstProject
 
                 tr.Commit();
 
-                ed.WriteMessage("\n\n✅ HOÀN THÀNH tính khối lượng trắc ngang!");
+                ed.WriteMessage("\n\n HOÀN THÀNH tính khối lượng trắc ngang!");
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
         // ═══════════════════════════════════════════════════════════
-        // LẤY DIỆN TÍCH MATERIAL SECTION
+        // RÃ HATCH TRỰC TIẾP TỪ ĐỒ HỌA TRẮC NGANG MÔ HÌNH (IN-MEMORY EXPLODE)
+        // ═══════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Nổ ảo Trắc ngang sinh ra từ Sample Line và gom tổng diện tích Hatch theo từng Layer
+        /// Trả về: Dictionary[LayerName] = TotalArea
+        /// </summary>
+        private static Dictionary<string, double> GetHatchAreaMap(Transaction tr, SampleLine sl)
+        {
+            var map = new Dictionary<string, double>();
+            var secIds = sl.GetSectionIds();
+            foreach (ObjectId secId in secIds)
+            {
+                var sec = tr.GetObject(secId, OpenMode.ForRead) as Autodesk.Civil.DatabaseServices.Section;
+                if (sec == null) continue;
+
+                try
+                {
+                    // Explode trực tiếp đối tượng Section (CorridorSection / MaterialSection)
+                    var objs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
+                    sec.Explode(objs);
+
+                    foreach (Autodesk.AutoCAD.DatabaseServices.DBObject obj in objs)
+                    {
+                        if (obj is Hatch h)
+                        {
+                            if (!map.ContainsKey(h.Layer)) map[h.Layer] = 0;
+                            map[h.Layer] += h.Area;
+                        }
+                        else if (obj is BlockReference br)
+                        {
+                            // Level đệ quy 1: nếu nổ ra cục Block (rất hay gặp trên Civil3D)
+                            var subObjs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
+                            try { br.Explode(subObjs); } catch { }
+                            foreach (Autodesk.AutoCAD.DatabaseServices.DBObject subObj in subObjs)
+                            {
+                                if (subObj is Hatch subH)
+                                {
+                                    if (!map.ContainsKey(subH.Layer)) map[subH.Layer] = 0;
+                                    map[subH.Layer] += subH.Area;
+                                }
+                                subObj.Dispose(); // Dọn rác
+                            }
+                        }
+                        obj.Dispose(); // Dọn rác
+                    }
+                }
+                catch { } // Bỏ qua lỗi đồ họa
+            }
+            return map;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // LẤY DIỆN TÍCH MATERIAL SECTION (TỪ API / SHOELACE)
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
@@ -731,27 +911,22 @@ namespace MyFirstProject
 
             // ─── Header ───
             string headerBase = $"\n{"STT",-5} {"Tên Cọc",-14} {"Lý Trình",-14} {"L(m)",-8}";
-            string headerMats = "";
+            string headerAreas = "";
+            string headerVols = "";
 
             foreach (var mat in materials)
             {
-                string shortName = mat.MaterialName.Length > 8
-                    ? mat.MaterialName.Substring(0, 8) : mat.MaterialName;
-
-                headerMats += $" {"S_" + shortName,-10}";
+                string shortName = mat.MaterialName.Length > 8 ? mat.MaterialName.Substring(0, 8) : mat.MaterialName;
+                headerAreas += $" {"S_" + shortName,-10}";
 
                 if (compare)
-                {
-                    headerMats += $" {"V_AEA",-10} {"V_Pris",-10} {"Δ%",-6}";
-                }
+                    headerVols += $" {"V_AEA_" + shortName,-12} {"V_Pr_" + shortName,-12} {"Δ%",-6}";
                 else
-                {
-                    headerMats += $" {"V(m³)",-10}";
-                }
+                    headerVols += $" {"V_" + shortName,-10}";
             }
-            ed.WriteMessage(headerBase + headerMats);
+            ed.WriteMessage(headerBase + headerAreas + headerVols);
 
-            int lineLen = 42 + materials.Count * (compare ? 38 : 22);
+            int lineLen = 42 + materials.Count * 11 + materials.Count * (compare ? 28 : 11);
             ed.WriteMessage($"\n{new string('─', lineLen)}");
 
             // ─── Data ───
@@ -768,13 +943,18 @@ namespace MyFirstProject
             {
                 string line = $"\n{stt,-5} {r.TenCoc,-14} {r.LyTrinh,-14} {r.DistanceToPrev,-8:F2}";
 
+                // IN DIỆN TÍCH TRƯỚC
                 foreach (var mat in materials)
                 {
                     double area = r.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+                    line += $" {area,-10:F3}";
+                }
+
+                // IN KHỐI LƯỢNG SAU
+                foreach (var mat in materials)
+                {
                     double volAEA = r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
                     double volPris = r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
-
-                    line += $" {area,-10:F3}";
 
                     if (compare)
                     {
@@ -798,9 +978,13 @@ namespace MyFirstProject
             // ─── Tổng ───
             ed.WriteMessage($"\n{new string('═', lineLen)}");
             string totalLine = $"\n{"TỔNG",-5} {"",-14} {"",-14} {"",-8}";
+            
+            // Xả trống phần diện tích
+            foreach (var mat in materials) totalLine += $" {"",-10}";
+
+            // In tổng khối lượng
             foreach (var mat in materials)
             {
-                totalLine += $" {"",-10}";
                 if (compare)
                 {
                     double diff = totalAEA[mat.MaterialName] > 0
@@ -855,9 +1039,9 @@ namespace MyFirstProject
 
             // Header
             sb.Append("STT\tTên Cọc\tLý Trình\tKhoảng cách (m)");
+            foreach (var mat in materials) sb.Append($"\tDT_{mat.MaterialName} (m²)");
             foreach (var mat in materials)
             {
-                sb.Append($"\tDT_{mat.MaterialName} (m²)");
                 if (compare)
                 {
                     sb.Append($"\tKL_AEA_{mat.MaterialName} (m³)");
@@ -877,13 +1061,20 @@ namespace MyFirstProject
             foreach (var r in results)
             {
                 sb.Append($"{stt}\t{r.TenCoc}\t{r.LyTrinh}\t{r.DistanceToPrev:F2}");
+                
+                // Cột DT
                 foreach (var mat in materials)
                 {
                     double area = r.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+                    sb.Append($"\t{area:F3}");
+                }
+
+                // Cột KL
+                foreach (var mat in materials)
+                {
                     double volAEA = r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
                     double volPris = r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
 
-                    sb.Append($"\t{area:F3}");
                     if (compare)
                     {
                         double diff = volAEA > 0 ? ((volAEA - volPris) / volAEA * 100) : 0;
@@ -928,9 +1119,9 @@ namespace MyFirstProject
 
             // Header
             sb.Append("STT,TenCoc,LyTrinh,Station,KhoangCach_m");
+            foreach (var mat in materials) sb.Append($",DT_{mat.MaterialName}_m2");
             foreach (var mat in materials)
             {
-                sb.Append($",DT_{mat.MaterialName}_m2");
                 if (compare)
                 {
                     sb.Append($",KL_AEA_{mat.MaterialName}_m3");
@@ -953,15 +1144,22 @@ namespace MyFirstProject
             foreach (var r in results)
             {
                 sb.Append($"{stt},{r.TenCoc},{r.LyTrinh},{r.Station:F3},{r.DistanceToPrev:F3}");
+                
+                // Cột DT
                 foreach (var mat in materials)
                 {
                     double area = r.MaterialAreas.GetValueOrDefault(mat.MaterialName, 0);
+                    sb.Append($",{area:F3}");
+                }
+
+                // Cột KL
+                foreach (var mat in materials)
+                {
                     double volAEA = r.MaterialVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
                     double volPris = r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
                     double cumAEA = r.CumulativeVolumes_AEA.GetValueOrDefault(mat.MaterialName, 0);
                     double cumPris = r.CumulativeVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0);
 
-                    sb.Append($",{area:F3}");
                     if (compare)
                     {
                         double diff = volAEA > 0 ? ((volAEA - volPris) / volAEA * 100) : 0;
@@ -1040,15 +1238,14 @@ namespace MyFirstProject
                 WriteSummarySheet(wb, allData, method, compare, methodTag);
 
                 // Ghi sheet đối chiếu DT (API vs Shoelace)
-                WriteVerifySheet(wb, alignmentName, results, materials);
+                // WriteVerifySheet(wb, alignmentName, results, materials);
 
                 wb.SaveAs(sfd.FileName);
                 ed.WriteMessage($"\n✅ Đã xuất file Excel: {sfd.FileName}");
 
                 if (MessageBox.Show("Đã xuất file Excel!\n\n" +
                     $"• Sheet \"{alignmentName}\": Mục A (Diện tích) + Mục B (Khối lượng)\n" +
-                    "• Sheet \"Tổng hợp KL\": Tổng hợp khối lượng\n" +
-                    "• Sheet \"Đối chiếu\": So sánh API vs Shoelace\n\n" +
+                    "• Sheet \"Tổng hợp KL\": Tổng hợp khối lượng\n\n" +
                     "Bạn có muốn mở file?",
                     "Hoàn thành", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
                 {
@@ -1148,7 +1345,7 @@ namespace MyFirstProject
             ws.Cell(row, 1).Style.Font.FontColor = XLColor.FromArgb(100, 100, 100);
             row += 2;
 
-            // Header Row 1: Nhóm Material (merge)
+            // Header Row 1: Nhóm Metric (merge)
             int volHeaderRow1 = row;
             col = 1;
             foreach (var h in new[] { "STT", "Tên Cọc", "Lý Trình", "L (m)" })
@@ -1157,20 +1354,54 @@ namespace MyFirstProject
                 ws.Range(row, col, row + 1, col).Merge(); // Merge 2 hàng
                 col++;
             }
-            foreach (var mat in materials)
-            {
-                int startCol = col;
-                ws.Range(row, startCol, row, startCol + colsPerMat - 1).Merge();
-                StyleHeaderCell(ws.Cell(row, startCol), mat.MaterialName, true);
 
-                // Sub-header row
-                string[] subH = compare
-                    ? new[] { "DT TB (m²)", "V_AEA (m³)", "V_Pris (m³)", "TL_AEA (m³)", "TL_Pris (m³)" }
-                    : new[] { "DT TB (m²)", $"V_{methodTag} (m³)", "Tích lũy (m³)" };
-                for (int i = 0; i < subH.Length; i++)
-                    StyleSubHeaderCell(ws.Cell(row + 1, startCol + i), subH[i]);
-                col += colsPerMat;
+            // Nhóm: Diện tích trung bình
+            int startColDT = col;
+            ws.Range(row, startColDT, row, startColDT + materials.Count - 1).Merge();
+            StyleHeaderCell(ws.Cell(row, startColDT), "DT Trung bình (m²)", true);
+            foreach (var mat in materials) StyleSubHeaderCell(ws.Cell(row + 1, col++), mat.MaterialName);
+
+            if (compare)
+            {
+                // Nhóm: Khối lượng AEA
+                int startColVAea = col;
+                ws.Range(row, startColVAea, row, startColVAea + materials.Count - 1).Merge();
+                StyleHeaderCell(ws.Cell(row, startColVAea), "V_AEA (m³)", true);
+                foreach (var mat in materials) StyleSubHeaderCell(ws.Cell(row + 1, col++), mat.MaterialName);
+
+                // Nhóm: Khối lượng Pris
+                int startColVPris = col;
+                ws.Range(row, startColVPris, row, startColVPris + materials.Count - 1).Merge();
+                StyleHeaderCell(ws.Cell(row, startColVPris), "V_Pris (m³)", true);
+                foreach (var mat in materials) StyleSubHeaderCell(ws.Cell(row + 1, col++), mat.MaterialName);
+
+                // Nhóm: Tích lũy AEA
+                int startColTlAea = col;
+                ws.Range(row, startColTlAea, row, startColTlAea + materials.Count - 1).Merge();
+                StyleHeaderCell(ws.Cell(row, startColTlAea), "TL_AEA (m³)", true);
+                foreach (var mat in materials) StyleSubHeaderCell(ws.Cell(row + 1, col++), mat.MaterialName);
+
+                // Nhóm: Tích lũy Pris
+                int startColTlPris = col;
+                ws.Range(row, startColTlPris, row, startColTlPris + materials.Count - 1).Merge();
+                StyleHeaderCell(ws.Cell(row, startColTlPris), "TL_Pris (m³)", true);
+                foreach (var mat in materials) StyleSubHeaderCell(ws.Cell(row + 1, col++), mat.MaterialName);
             }
+            else
+            {
+                // Nhóm: Khối lượng
+                int startColV = col;
+                ws.Range(row, startColV, row, startColV + materials.Count - 1).Merge();
+                StyleHeaderCell(ws.Cell(row, startColV), $"V_{methodTag} (m³)", true);
+                foreach (var mat in materials) StyleSubHeaderCell(ws.Cell(row + 1, col++), mat.MaterialName);
+
+                // Nhóm: Tích lũy
+                int startColTl = col;
+                ws.Range(row, startColTl, row, startColTl + materials.Count - 1).Merge();
+                StyleHeaderCell(ws.Cell(row, startColTl), "Tích luỹ (m³)", true);
+                foreach (var mat in materials) StyleSubHeaderCell(ws.Cell(row + 1, col++), mat.MaterialName);
+            }
+
             row += 2; // Qua 2 hàng header
 
             // Data Khối lượng
@@ -1183,60 +1414,88 @@ namespace MyFirstProject
                 ws.Cell(row, col++).Value = r.TenCoc;
                 ws.Cell(row, col++).Value = r.LyTrinh;
                 ws.Cell(row, col++).Value = Math.Round(r.DistanceToPrev, 3);
+                
+                string lLetter = GetExcelColLetter(4);
 
+                // --- GHI DIỆN TÍCH TRUNG BÌNH ---
+                int dtTbStartCol = col;
                 int matIdx = 0;
-                foreach (var mat in materials)
-                {
-                    if (stt == 1)
-                    {
-                        // Mặt cắt đầu: chưa có mặt cắt trước → KL = 0
-                        ws.Cell(row, col++).Value = 0;
-                        if (compare) { ws.Cell(row, col++).Value = 0; ws.Cell(row, col++).Value = 0; ws.Cell(row, col++).Value = 0; ws.Cell(row, col++).Value = 0; }
-                        else { ws.Cell(row, col++).Value = 0; ws.Cell(row, col++).Value = 0; }
-                    }
-                    else
-                    {
+                foreach(var mat in materials) {
+                    if (stt == 1) {
+                        ws.Cell(row, col).Value = 0;
+                    } else {
                         // DT TB lấy từ Mục A (cùng sheet)
                         int areaSrcCol = 5 + matIdx;
                         string aCol = GetExcelColLetter(areaSrcCol);
                         int aPrevRow = areaHeaderRow + stt - 1; // row trước trong Mục A
                         int aCurrRow = areaHeaderRow + stt;     // row hiện tại trong Mục A
-
-                        // DT Trung bình = (DT_prev + DT_curr) / 2
                         ws.Cell(row, col).FormulaA1 = $"=({aCol}{aPrevRow}+{aCol}{aCurrRow})/2";
-                        int dtTbCol = col; col++;
+                    }
+                    col++; matIdx++;
+                }
 
-                        string dtLetter = GetExcelColLetter(dtTbCol);
-                        string lLetter = GetExcelColLetter(4);
-
-                        if (compare)
-                        {
-                            // V_AEA = DT_TB × L
+                if (compare) {
+                    // --- GHI KHỐI LƯỢNG AEA ---
+                    int vAeaStartCol = col;
+                    matIdx = 0;
+                    foreach(var mat in materials) {
+                        if (stt == 1) ws.Cell(row, col).Value = 0;
+                        else {
+                            string dtLetter = GetExcelColLetter(dtTbStartCol + matIdx);
                             ws.Cell(row, col).FormulaA1 = $"={dtLetter}{row}*{lLetter}{row}";
-                            int vAeaCol = col; col++;
-                            // V_Pris
-                            ws.Cell(row, col++).Value = Math.Round(r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0), 3);
-                            // TL_AEA
-                            string vAeaL = GetExcelColLetter(vAeaCol);
+                        }
+                        col++; matIdx++;
+                    }
+
+                    // --- GHI KHỐI LƯỢNG PRIS ---
+                    foreach(var mat in materials) {
+                        if (stt == 1) ws.Cell(row, col++).Value = 0;
+                        else ws.Cell(row, col++).Value = Math.Round(r.MaterialVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0), 3);
+                    }
+
+                    // --- GHI TÍCH LŨY AEA ---
+                    matIdx = 0;
+                    foreach(var mat in materials) {
+                        if (stt == 1) ws.Cell(row, col).Value = 0;
+                        else {
+                            string vAeaL = GetExcelColLetter(vAeaStartCol + matIdx);
                             string tlAeaL = GetExcelColLetter(col);
                             ws.Cell(row, col).FormulaA1 = $"={tlAeaL}{row - 1}+{vAeaL}{row}";
-                            col++;
-                            // TL_Pris
-                            ws.Cell(row, col++).Value = Math.Round(r.CumulativeVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0), 3);
                         }
-                        else
-                        {
-                            // V = DT_TB × L
+                        col++; matIdx++;
+                    }
+
+                    // --- GHI TÍCH LŨY PRIS ---
+                    foreach(var mat in materials) {
+                        if (stt == 1) ws.Cell(row, col++).Value = 0;
+                        else ws.Cell(row, col++).Value = Math.Round(r.CumulativeVolumes_Prismoidal.GetValueOrDefault(mat.MaterialName, 0), 3);
+                    }
+                } 
+                else 
+                {
+                    // --- GHI KHỐI LƯỢNG ---
+                    int vStartCol = col;
+                    matIdx = 0;
+                    foreach(var mat in materials) {
+                        if (stt == 1) ws.Cell(row, col).Value = 0;
+                        else {
+                            string dtLetter = GetExcelColLetter(dtTbStartCol + matIdx);
                             ws.Cell(row, col).FormulaA1 = $"={dtLetter}{row}*{lLetter}{row}";
-                            int vCol = col; col++;
-                            // TL
-                            string vL = GetExcelColLetter(vCol);
+                        }
+                        col++; matIdx++;
+                    }
+
+                    // --- GHI TÍCH LŨY ---
+                    matIdx = 0;
+                    foreach(var mat in materials) {
+                        if (stt == 1) ws.Cell(row, col).Value = 0;
+                        else {
+                            string vL = GetExcelColLetter(vStartCol + matIdx);
                             string tlL = GetExcelColLetter(col);
                             ws.Cell(row, col).FormulaA1 = $"={tlL}{row - 1}+{vL}{row}";
-                            col++;
                         }
+                        col++; matIdx++;
                     }
-                    matIdx++;
                 }
 
                 if (stt % 2 == 0)

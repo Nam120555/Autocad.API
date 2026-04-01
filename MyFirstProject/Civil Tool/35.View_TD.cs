@@ -8,7 +8,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Acad = Autodesk.AutoCAD.ApplicationServices;
-using FormLabel = System.Windows.Forms.Label;
+using WinLabel = System.Windows.Forms.Label;
 
 [assembly: CommandClass(typeof(MyFirstProject.View_TD))]
 
@@ -265,11 +265,12 @@ namespace MyFirstProject
         }
     }
 
-    public class MainForm_ViewTD : Form
+    public class MainForm_ViewTD : CivilFormBase
     {
-        private ComboBox cboBlocks;
-        private NumericUpDown nudWidth, nudHeight, nudSpacingX, nudSpacingY, nudStartX, nudStartY, nudColumns, nudRows, nudScale;
-        private Button btnDrawFrames, btnCreateLayouts, btnClose;
+        private ComboBox cboBlocks = null!;
+        private NumericUpDown nudWidth = null!, nudHeight = null!, nudSpacingX = null!, nudSpacingY = null!;
+        private NumericUpDown nudStartX = null!, nudStartY = null!, nudColumns = null!, nudRows = null!, nudScale = null!;
+        private Button btnDrawFrames = null!, btnCreateLayouts = null!, btnClose = null!;
 
         public MainForm_ViewTD(List<string> blockNames)
         {
@@ -279,87 +280,123 @@ namespace MyFirstProject
 
         private void InitComponents(List<string> blockNames)
         {
-            this.Text = "Tạo Trang In Trắc Dọc / Bình Đồ (MV)";
-            this.Size = new Size(420, 520);
-            this.StartPosition = FormStartPosition.CenterScreen;
+            InitBaseTheme("TẠO TRANG IN TRẮC DỌC / BÌNH ĐỒ", 550, 640);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
 
-            int y = 15;
-            int lblW = 150, ctrlW = 200;
+            var header = CreateHeader("TẠO TRANG IN TRẮC DỌC / BÌNH ĐỒ");
+            this.Controls.Add(header);
 
-            this.Controls.Add(new FormLabel { Text = "Block Khung Tên:", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            cboBlocks = new ComboBox { Location = new Point(180, y), Size = new Size(ctrlW, 20), DropDownStyle = ComboBoxStyle.DropDownList };
+            // ── SUBTITLE ──
+            var subtitle = new WinLabel
+            {
+                Text = "Cấu hình khung Viewport và bố trí tự động Layout từ các khung Model Space.",
+                Font = new Font("Segoe UI", 9.5f),
+                ForeColor = TextDark,
+                AutoSize = false,
+                Height = 35,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Dock = DockStyle.Top,
+                Padding = new Padding(15, 0, 0, 0),
+                BackColor = BgPanel
+            };
+            this.Controls.Add(subtitle);
+            subtitle.BringToFront();
+
+            var mainPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(15),
+                AutoScroll = true
+            };
+            this.Controls.Add(mainPanel);
+            mainPanel.BringToFront();
+
+            int y = 5;
+
+            // SECTION 1: CẤU HÌNH VIEW
+            var grpConfig = CreateSection("Cấu hình Khung View (MView)", 0, y, 500, 185);
+            mainPanel.Controls.Add(grpConfig);
+
+            grpConfig.Controls.Add(CreateLabel("Block Khung Tên:", 15, 33));
+            cboBlocks = new ComboBox
+            {
+                Location = new Point(200, 29),
+                Size = new Size(270, 28),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9.5f)
+            };
             cboBlocks.Items.Add("<Không dùng>");
             foreach (var b in blockNames) cboBlocks.Items.Add(b);
             if (cboBlocks.Items.Count > 0) cboBlocks.SelectedIndex = 0;
-            this.Controls.Add(cboBlocks);
+            grpConfig.Controls.Add(cboBlocks);
 
-            y += 35;
-            this.Controls.Add(new FormLabel { Text = "Tỷ lệ hiển thị 1/ :", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            nudScale = CreateNud(180, y, ctrlW, 1, 10000, 1000, 0);
+            grpConfig.Controls.Add(CreateLabel("Tỷ lệ hiển thị 1/:", 15, 68));
+            nudScale = CreateNud(200, 64, 270, 1, 10000, 1000, 0, grpConfig);
 
-            y += 35;
-            this.Controls.Add(new FormLabel { Text = "Rộng MView (Layout):", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            nudWidth = CreateNud(180, y, ctrlW, 10, 10000, 297, 1);
+            grpConfig.Controls.Add(CreateLabel("Rộng MView (Layout):", 15, 103));
+            nudWidth = CreateNud(200, 99, 270, 10, 10000, 297, 1, grpConfig);
 
-            y += 35;
-            this.Controls.Add(new FormLabel { Text = "Cao MView (Layout):", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            nudHeight = CreateNud(180, y, ctrlW, 10, 10000, 210, 1);
+            grpConfig.Controls.Add(CreateLabel("Cao MView (Layout):", 15, 138));
+            nudHeight = CreateNud(200, 134, 270, 10, 10000, 210, 1, grpConfig);
 
-            y += 35;
-            this.Controls.Add(new FormLabel { Text = "Tọa độ MView đầu X:", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            nudStartX = CreateNud(180, y, ctrlW, -10000, 10000, 10, 1);
+            y += 200;
 
-            y += 35;
-            this.Controls.Add(new FormLabel { Text = "Tọa độ MView đầu Y:", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            nudStartY = CreateNud(180, y, ctrlW, -10000, 10000, 200, 1);
+            // SECTION 2: BỐ TRÍ
+            var grpLayout = CreateSection("Tọa độ và Bố trí Layout", 0, y, 500, 255);
+            mainPanel.Controls.Add(grpLayout);
 
-            y += 35;
-            this.Controls.Add(new FormLabel { Text = "Khoảng cách X:", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            nudSpacingX = CreateNud(180, y, ctrlW, 0, 10000, 10, 1);
+            grpLayout.Controls.Add(CreateLabel("Tọa độ MView đầu X:", 15, 33));
+            nudStartX = CreateNud(200, 29, 270, -10000, 10000, 10, 1, grpLayout);
 
-            y += 35;
-            this.Controls.Add(new FormLabel { Text = "Khoảng cách Y:", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            nudSpacingY = CreateNud(180, y, ctrlW, 0, 10000, 10, 1);
+            grpLayout.Controls.Add(CreateLabel("Tọa độ MView đầu Y:", 15, 68));
+            nudStartY = CreateNud(200, 64, 270, -10000, 10000, 200, 1, grpLayout);
 
-            y += 35;
-            this.Controls.Add(new FormLabel { Text = "Số cột MView:", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            nudColumns = CreateNud(180, y, ctrlW, 1, 100, 1, 0);
+            grpLayout.Controls.Add(CreateLabel("Khoảng cách X:", 15, 103));
+            nudSpacingX = CreateNud(200, 99, 270, 0, 10000, 10, 1, grpLayout);
 
-            y += 35;
-            this.Controls.Add(new FormLabel { Text = "Số hàng MView:", Location = new Point(20, y), Size = new Size(lblW, 20) });
-            nudRows = CreateNud(180, y, ctrlW, 1, 100, 1, 0);
+            grpLayout.Controls.Add(CreateLabel("Khoảng cách Y:", 15, 138));
+            nudSpacingY = CreateNud(200, 134, 270, 0, 10000, 10, 1, grpLayout);
 
-            y += 50;
-            btnDrawFrames = new Button { Text = "1. Vẽ Khung trên Model", Location = new Point(20, y), Size = new Size(170, 40) };
+            grpLayout.Controls.Add(CreateLabel("Số cột MView:", 15, 173));
+            nudColumns = CreateNud(200, 169, 270, 1, 100, 1, 0, grpLayout);
+
+            grpLayout.Controls.Add(CreateLabel("Số hàng MView:", 15, 208));
+            nudRows = CreateNud(200, 204, 270, 1, 100, 1, 0, grpLayout);
+
+            // SECTION 3: HÀNH ĐỘNG
+            var pnlBottom = CreateBottomBar();
+            this.Controls.Add(pnlBottom);
+
+            btnDrawFrames = CreateButton("Vẽ Khung Model", 12, 8, 150, 36, pnlBottom);
             btnDrawFrames.Click += BtnDrawFrames_Click;
-            btnDrawFrames.BackColor = Color.LightBlue;
-            this.Controls.Add(btnDrawFrames);
+            btnDrawFrames.FlatAppearance.BorderColor = NavyMedium;
+            btnDrawFrames.ForeColor = NavyMedium;
 
-            btnCreateLayouts = new Button { Text = "2. Tạo Layouts & MViews", Location = new Point(210, y), Size = new Size(170, 40) };
-            btnCreateLayouts.Click += BtnCreateLayouts_Click;
-            btnCreateLayouts.BackColor = Color.LightGreen;
-            this.Controls.Add(btnCreateLayouts);
-
-            y += 50;
-            btnClose = new Button { Text = "Đóng", Location = new Point(125, y), Size = new Size(150, 30) };
+            btnClose = CreateButton("Đóng", 250, 8, 80, 36, pnlBottom);
             btnClose.Click += (s, e) => this.Close();
-            this.Controls.Add(btnClose);
+
+            btnCreateLayouts = CreatePrimaryButton("Tạo Layouts & MViews", 340, 8, 180, 36, pnlBottom);
+            btnCreateLayouts.Click += BtnCreateLayouts_Click;
         }
 
-        private NumericUpDown CreateNud(int x, int y, int w, decimal min, decimal max, decimal val, int dec)
+        private NumericUpDown CreateNud(int x, int y, int w, decimal min, decimal max, decimal val, int dec, Control parent)
         {
             var nud = new NumericUpDown
             {
                 Location = new Point(x, y),
-                Size = new Size(w, 20),
+                Size = new Size(w, 28),
                 Minimum = min,
                 Maximum = max,
                 DecimalPlaces = dec,
-                Value = val
+                Value = val,
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
             };
-            this.Controls.Add(nud);
+            parent.Controls.Add(nud);
             return nud;
         }
 
@@ -393,14 +430,14 @@ namespace MyFirstProject
             View_TD.ScaleVal = (double)nudScale.Value;
         }
 
-        private void BtnDrawFrames_Click(object sender, EventArgs e)
+        private void BtnDrawFrames_Click(object? sender, EventArgs e)
         {
             SaveSettings();
             this.DialogResult = DialogResult.Retry; // Trapping loop in parent
             this.Close();
         }
 
-        private void BtnCreateLayouts_Click(object sender, EventArgs e)
+        private void BtnCreateLayouts_Click(object? sender, EventArgs e)
         {
             SaveSettings();
             this.DialogResult = DialogResult.OK; // Layout generation

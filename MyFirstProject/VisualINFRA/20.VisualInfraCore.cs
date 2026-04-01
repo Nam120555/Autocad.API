@@ -402,7 +402,7 @@ namespace MyFirstProject.VisualINFRA
                 tr.Commit();
             }
             
-            ed.WriteMessage("\n✅ Đã zoom đến đối tượng được chọn.");
+            ed.WriteMessage("\n Đã zoom đến đối tượng được chọn.");
         }
 
         /// <summary>
@@ -426,7 +426,7 @@ namespace MyFirstProject.VisualINFRA
             var point = new Point3d(xResult.Value, yResult.Value, 0);
             VIUtilities.ZoomToPoint(point, scale);
             
-            ed.WriteMessage($"\n✅ Đã zoom đến ({xResult.Value:F2}, {yResult.Value:F2})");
+            ed.WriteMessage($"\n Đã zoom đến ({xResult.Value:F2}, {yResult.Value:F2})");
         }
 
         /// <summary>

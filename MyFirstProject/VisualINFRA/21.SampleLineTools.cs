@@ -46,7 +46,7 @@ namespace MyFirstProject.VisualINFRA
                 var alignmentId = SelectAlignment(ed, civilDoc);
                 if (alignmentId.IsNull)
                 {
-                    ed.WriteMessage("\n❌ Không chọn được Alignment.");
+                    ed.WriteMessage("\n Không chọn được Alignment.");
                     return;
                 }
 
@@ -55,7 +55,7 @@ namespace MyFirstProject.VisualINFRA
                     var alignment = tr.GetObject(alignmentId, OpenMode.ForRead) as Alignment;
                     if (alignment == null)
                     {
-                        ed.WriteMessage("\n❌ Không đọc được Alignment.");
+                        ed.WriteMessage("\n Không đọc được Alignment.");
                         tr.Commit();
                         return;
                     }
@@ -64,7 +64,7 @@ namespace MyFirstProject.VisualINFRA
                     var slgIds = alignment.GetSampleLineGroupIds();
                     if (slgIds.Count == 0)
                     {
-                        ed.WriteMessage("\n❌ Alignment chưa có Sample Line Group.");
+                        ed.WriteMessage("\n Alignment chưa có Sample Line Group.");
                         tr.Commit();
                         return;
                     }
@@ -79,7 +79,7 @@ namespace MyFirstProject.VisualINFRA
                     var slIds = slg.GetSampleLineIds();
                     
                     ed.WriteMessage($"\n\n{'=',-60}");
-                    ed.WriteMessage($"\n📍 TỌA ĐỘ CỌC - {alignment.Name}");
+                    ed.WriteMessage($"\n TỌA ĐỘ CỌC - {alignment.Name}");
                     ed.WriteMessage($"\n{'=',-60}");
                     ed.WriteMessage($"\n{"STT",-5} {"Tên Cọc",-15} {"Lý Trình",-15} {"X",-15} {"Y",-15}");
                     ed.WriteMessage($"\n{new string('-', 65)}");
@@ -115,7 +115,7 @@ namespace MyFirstProject.VisualINFRA
                     }
 
                     ed.WriteMessage($"\n{new string('=', 65)}");
-                    ed.WriteMessage($"\n✅ Tổng: {stt - 1} cọc. Đã copy vào clipboard!");
+                    ed.WriteMessage($"\n Tổng: {stt - 1} cọc. Đã copy vào clipboard!");
 
                     // Copy to clipboard
                     try
@@ -129,7 +129,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -175,7 +175,7 @@ namespace MyFirstProject.VisualINFRA
                     var slgIds = alignment.GetSampleLineGroupIds();
                     if (slgIds.Count == 0)
                     {
-                        ed.WriteMessage("\n❌ Không có Sample Line Group.");
+                        ed.WriteMessage("\n Không có Sample Line Group.");
                         tr.Commit();
                         return;
                     }
@@ -208,14 +208,14 @@ namespace MyFirstProject.VisualINFRA
                     }
 
                     File.WriteAllText(sfd.FileName, sb.ToString(), Encoding.UTF8);
-                    ed.WriteMessage($"\n✅ Đã xuất {stt - 1} cọc ra file: {sfd.FileName}");
+                    ed.WriteMessage($"\n Đã xuất {stt - 1} cọc ra file: {sfd.FileName}");
 
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -251,7 +251,7 @@ namespace MyFirstProject.VisualINFRA
                 var lines = File.ReadAllLines(ofd.FileName, Encoding.UTF8);
                 if (lines.Length < 2)
                 {
-                    ed.WriteMessage("\n❌ File rỗng hoặc không đúng định dạng.");
+                    ed.WriteMessage("\n File rỗng hoặc không đúng định dạng.");
                     return;
                 }
 
@@ -281,7 +281,7 @@ namespace MyFirstProject.VisualINFRA
 
                     if (slg == null)
                     {
-                        ed.WriteMessage("\n❌ Không thể tạo Sample Line Group.");
+                        ed.WriteMessage("\n Không thể tạo Sample Line Group.");
                         tr.Commit();
                         return;
                     }
@@ -320,13 +320,13 @@ namespace MyFirstProject.VisualINFRA
                         }
                     }
 
-                    ed.WriteMessage($"\n✅ Đã tạo {created} Sample Line từ file.");
+                    ed.WriteMessage($"\n Đã tạo {created} Sample Line từ file.");
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -366,7 +366,7 @@ namespace MyFirstProject.VisualINFRA
                     var slgIds = alignment.GetSampleLineGroupIds();
                     if (slgIds.Count == 0)
                     {
-                        ed.WriteMessage("\n❌ Không có Sample Line Group.");
+                        ed.WriteMessage("\n Không có Sample Line Group.");
                         tr.Commit();
                         return;
                     }
@@ -396,13 +396,13 @@ namespace MyFirstProject.VisualINFRA
                         }
                     }
 
-                    ed.WriteMessage($"\n✅ Đã đổi tên {renamed} Sample Line.");
+                    ed.WriteMessage($"\n Đã đổi tên {renamed} Sample Line.");
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -448,7 +448,7 @@ namespace MyFirstProject.VisualINFRA
                     var slgIds = alignment.GetSampleLineGroupIds();
                     if (slgIds.Count == 0)
                     {
-                        ed.WriteMessage("\n❌ Không có Sample Line Group.");
+                        ed.WriteMessage("\n Không có Sample Line Group.");
                         tr.Commit();
                         return;
                     }
@@ -475,13 +475,13 @@ namespace MyFirstProject.VisualINFRA
                         added++;
                     }
 
-                    ed.WriteMessage($"\n✅ Đã điền text cho {added} cọc.");
+                    ed.WriteMessage($"\n Đã điền text cho {added} cọc.");
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -497,7 +497,7 @@ namespace MyFirstProject.VisualINFRA
             var alignmentIds = civilDoc.GetAlignmentIds();
             if (alignmentIds.Count == 0)
             {
-                ed.WriteMessage("\n❌ Không có Alignment trong bản vẽ.");
+                ed.WriteMessage("\n Không có Alignment trong bản vẽ.");
                 return ObjectId.Null;
             }
 

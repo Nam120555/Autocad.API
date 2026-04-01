@@ -212,7 +212,7 @@ namespace MyFirstProject
     /// <summary>
     /// Form hiển thị danh sách tất cả các lệnh Civil Tool
     /// </summary>
-    public class CommandListForm : Form
+    public class CommandListForm : CivilFormBase
     {
         private static CommandListForm? formInstance;
         private ListView listView = null!;
@@ -227,80 +227,49 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.Text = "📋 Danh Sách Lệnh Civil Tool";
-            this.Size = new Size(750, 600);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = Color.FromArgb(255, 255, 255);
-            this.ForeColor = Color.FromArgb(61, 61, 61);
+            InitBaseTheme("📋 Danh Sách Lệnh Civil Tool", 750, 600);
+            
+            // Header bar
+            var header = CreateHeader("DANH SÁCH LỆNH CIVIL TOOL");
+            this.Controls.Add(header);
+
+            // Container panel
+            var mainPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
+            this.Controls.Add(mainPanel);
+            mainPanel.BringToFront();
 
             // Search box
-            var lblSearch = new Label
-            {
-                Text = "🔍 Tìm kiếm:",
-                Location = new Point(10, 12),
-                Size = new Size(80, 25),
-                ForeColor = Color.FromArgb(27, 42, 74)
-            };
-            this.Controls.Add(lblSearch);
+            var lblSearch = CreateLabel("🔍 Tìm kiếm:", 10, 15);
+            lblSearch.ForeColor = NavyDark;
+            mainPanel.Controls.Add(lblSearch);
 
-            searchBox = new TextBox
-            {
-                Location = new Point(95, 10),
-                Size = new Size(300, 25),
-                BackColor = Color.FromArgb(245, 247, 250),
-                ForeColor = Color.FromArgb(61, 61, 61),
-                BorderStyle = BorderStyle.FixedSingle
-            };
+            searchBox = CreateTextBox(95, 12, 300);
             searchBox.TextChanged += SearchBox_TextChanged;
-            this.Controls.Add(searchBox);
+            mainPanel.Controls.Add(searchBox);
 
             // Button chạy lệnh
-            var btnRun = new Button
-            {
-                Text = "▶ Chạy lệnh",
-                Location = new Point(550, 8),
-                Size = new Size(90, 28),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(27, 42, 74),
-                ForeColor = Color.White
-            };
+            var btnRun = CreatePrimaryButton("▶ Chạy lệnh", 450, 10, 120, 30, mainPanel);
             btnRun.Click += BtnRun_Click;
-            this.Controls.Add(btnRun);
 
             // Button đóng
-            var btnClose = new Button
-            {
-                Text = "✕ Đóng",
-                Location = new Point(645, 8),
-                Size = new Size(80, 28),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(245, 247, 250),
-                ForeColor = Color.FromArgb(61, 61, 61)
-            };
+            var btnClose = CreateButton("✕ Đóng", 580, 10, 100, 30, mainPanel);
             btnClose.Click += (s, e) => this.Close();
-            this.Controls.Add(btnClose);
 
             // ListView
-            listView = new ListView
-            {
-                Location = new Point(10, 45),
-                Size = new Size(715, 500),
-                View = View.Details,
-                FullRowSelect = true,
-                GridLines = true,
-                BackColor = Color.FromArgb(255, 255, 255),
-                ForeColor = Color.FromArgb(61, 61, 61)
-            };
+            listView = CreateListView(10, 50, 715, 430);
             listView.Columns.Add("STT", 45);
-            listView.Columns.Add("Nhóm", 100);
-            listView.Columns.Add("Lệnh", 220);
-            listView.Columns.Add("Mô tả", 330);
+            listView.Columns.Add("Nhóm", 120);
+            listView.Columns.Add("Lệnh", 200);
+            listView.Columns.Add("Mô tả", 320);
             listView.DoubleClick += ListView_DoubleClick;
-            this.Controls.Add(listView);
+            mainPanel.Controls.Add(listView);
 
             this.Resize += (s, e) =>
             {
-                listView.Size = new Size(this.ClientSize.Width - 20, this.ClientSize.Height - 55);
+                if (mainPanel.Width > 20 && mainPanel.Height > 60)
+                {
+                    listView.Size = new Size(mainPanel.Width - 20, mainPanel.Height - 60);
+                }
             };
         }
 
@@ -308,123 +277,123 @@ namespace MyFirstProject
         {
             allCommands = new List<(string, string, string)>
             {
-                // ── 1. THIẾT LẬP ──
-                ("Thiết Lập", "CTDS_ThietLap", "Thiết lập bản vẽ Civil 3D"),
-                ("Thiết Lập", "CTDS_SaveClean", "Lưu & dọn dẹp file"),
-                ("Thiết Lập", "CT_StyleSettings", "Quản lý Style Civil 3D"),
-                ("Thiết Lập", "CT_StyleInfo", "Thông tin Style"),
-                ("Thiết Lập", "CTDS_ConvertMM2M", "Chuyển đơn vị MM → M"),
-                ("Thiết Lập", "CTDS_ConvertCM2M", "Chuyển đơn vị CM → M"),
-                ("Thiết Lập", "CTL_Hub", "Quản lý Layer Civil"),
+                // ── 1. SETTINGS & STYLES ──
+                ("⚙ Settings", "CTDS_ThietLap", "Drawing Setup"),
+                ("⚙ Settings", "CTDS_SaveClean", "Save & Purge"),
+                ("⚙ Settings", "CT_StyleSettings", "Style Manager"),
+                ("⚙ Settings", "CT_StyleInfo", "Style Info"),
+                ("⚙ Settings", "CTDS_ConvertMM2M", "Convert MM → M"),
+                ("⚙ Settings", "CTDS_ConvertCM2M", "Convert CM → M"),
+                ("⚙ Settings", "CTL_Hub", "Layer Hub"),
 
-                // ── 2. BỀ MẶT ──
-                ("Bề Mặt", "CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation tại tim tuyến"),
-                ("Bề Mặt", "CTS_RebuildSurface", "Rebuild Surface"),
-                ("Bề Mặt", "CTSV_DaoDap", "Tính đào đắp Surface"),
-                ("Bề Mặt", "CTSV_HienThiMaterialList", "Hiển thị Material List"),
-                ("Bề Mặt", "CTSV_ChiTietMaterialSection", "Chi tiết Material Section"),
-                ("Bề Mặt", "CTSV_PhanTichArea", "Phân tích Area từ Section"),
-                ("Bề Mặt", "CTSV_KiemTraKhoiLuong", "Kiểm tra khối lượng"),
+                // ── 2. SURFACES ──
+                ("🗺 Surfaces", "CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation at Center"),
+                ("🗺 Surfaces", "CTS_RebuildSurface", "Rebuild Surface"),
+                ("🗺 Surfaces", "CTSV_DaoDap", "Cut/Fill Heatmap"),
+                ("🗺 Surfaces", "CTSV_HienThiMaterialList", "Show Material List"),
+                ("🗺 Surfaces", "CTSV_ChiTietMaterialSection", "Material Section Details"),
+                ("🗺 Surfaces", "CTSV_PhanTichArea", "Analyze Section Area"),
+                ("🗺 Surfaces", "CTSV_KiemTraKhoiLuong", "Verify Volumes"),
 
-                // ── 3. TUYẾN ──
-                ("Tuyến", "CTC_ThongSoDuongCong_4054", "Thông số đường cong TCVN 4054"),
-                ("Tuyến", "CTC_ThongSoDuongCong_13592", "Thông số đường cong TCVN 13592"),
-                ("Tuyến", "CTC_KiemTraDuongCong_4054", "Kiểm tra đường cong 4054"),
-                ("Tuyến", "CTC_KiemTraDuongCong_13592", "Kiểm tra đường cong 13592"),
-                ("Tuyến", "CTC_TraCuuDuongCong", "Tra cứu đường cong"),
-                ("Tuyến", "CTC_ThietLapDuongCong", "Thiết lập đường cong"),
+                // ── 3. ALIGNMENTS ──
+                ("📏 Alignments", "CTC_ThongSoDuongCong_4054", "Curve Params (4054)"),
+                ("📏 Alignments", "CTC_ThongSoDuongCong_13592", "Curve Params (13592)"),
+                ("📏 Alignments", "CTC_KiemTraDuongCong_4054", "Check Curve (4054)"),
+                ("📏 Alignments", "CTC_KiemTraDuongCong_13592", "Check Curve (13592)"),
+                ("📏 Alignments", "CTC_TraCuuDuongCong", "Curve Lookup Table"),
+                ("📏 Alignments", "CTC_ThietLapDuongCong", "Curve Form Settings"),
 
-                // ── 4. TRẮC DỌC ──
-                ("Trắc Dọc", "CTP_VeTracDoc_TuNhien", "Vẽ trắc dọc địa hình tự nhiên"),
-                ("Trắc Dọc", "CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ trắc dọc TN tất cả tuyến"),
-                ("Trắc Dọc", "CTP_Fix_DuongTuNhien_TheoCoc", "Fix đường TN theo cọc"),
-                ("Trắc Dọc", "CTP_GanNhanNutGiao_LenTracDoc", "Gán nhãn nút giao lên trắc dọc"),
-                ("Trắc Dọc", "CTP_TaoCogoPointTuPVI", "Tạo CogoPoint từ PVI"),
-                ("Trắc Dọc", "CTP_XuatBangCivil", "Xuất bảng Civil 3D"),
-                ("Trắc Dọc", "CTP_AddParcelLabels", "Thêm Parcel Labels"),
+                // ── 4. PROFILES ──
+                ("📈 Profiles", "CTP_VeTracDoc_TuNhien", "Draw Existing Ground"),
+                ("📈 Profiles", "CTP_VeTracDoc_TuNhien_TatCaTuyen", "Draw EG Profile (All)"),
+                ("📈 Profiles", "CTP_Fix_DuongTuNhien_TheoCoc", "Fix EG Profile by Station"),
+                ("📈 Profiles", "CTP_GanNhanNutGiao_LenTracDoc", "Intersection Labels → Profile"),
+                ("📈 Profiles", "CTP_TaoCogoPointTuPVI", "Create Point from PVI"),
+                ("📈 Profiles", "CTP_XuatBangCivil", "Export Profile Data"),
+                ("📈 Profiles", "CTP_AddParcelLabels", "Add Parcel Labels"),
 
-                // ── 5. CORRIDOR ──
-                ("Corridor", "CTC_AddAllSection", "Thêm tất cả section vào corridor"),
-                ("Corridor", "CTC_TaoCooridor_DuongDoThi_RePhai", "Tạo corridor rẽ phải"),
-                ("Corridor", "CTC_TaoMViewTheoTuyen", "Tạo MView theo tuyến"),
+                // ── 5. CORRIDORS ──
+                ("🛤 Corridors", "CTC_AddAllSection", "Add All Sections to Baselines"),
+                ("🛤 Corridors", "CTC_TaoCooridor_DuongDoThi_RePhai", "Right-Turn Corridor"),
+                ("🛤 Corridors", "CTC_TaoMViewTheoTuyen", "Create Viewport by Alignment"),
 
-                // ── 6. CỌC ──
-                ("Cọc", "CTS_PhatSinhCoc", "⭐ Phát sinh / Đổi tên cọc"),
-                ("Cọc", "CTS_DoiTenCoc", "Đổi tên cọc"),
-                ("Cọc", "CTS_DichCoc_TinhTien", "Dịch cọc tịnh tiến"),
-                ("Cọc", "CTS_DichCoc_TinhTien40", "Dịch cọc 40m"),
-                ("Cọc", "CTS_DichCoc_TinhTien_20", "Dịch cọc 20m"),
-                ("Cọc", "CTS_Copy_NhomCoc", "Sao chép nhóm cọc"),
-                ("Cọc", "CTS_DongBo_2_NhomCoc", "Đồng bộ 2 nhóm cọc"),
-                ("Cọc", "CTS_DongBo_2_NhomCoc_TheoDoan", "Đồng bộ theo đoạn"),
-                ("Cọc", "CTS_Copy_BeRong_sampleLine", "Copy bề rộng SampleLine"),
-                ("Cọc", "CTS_Thaydoi_BeRong_sampleLine", "Thay đổi bề rộng SampleLine"),
-                ("Cọc", "CTS_Offset_BeRong_sampleLine", "Offset bề rộng SampleLine"),
-                ("Cọc", "CTSV_ThongKeCoc", "Thống kê cọc ra Excel"),
+                // ── 6. SAMPLE LINES ──
+                ("📍 Sample Lines", "CTS_PhatSinhCoc", "⭐ Generate Stake / SL"),
+                ("📍 Sample Lines", "CTS_DoiTenCoc", "Rename Stakes"),
+                ("📍 Sample Lines", "CTS_DichCoc_TinhTien", "Translate Stakes"),
+                ("📍 Sample Lines", "CTS_DichCoc_TinhTien40", "Translate 40m"),
+                ("📍 Sample Lines", "CTS_DichCoc_TinhTien_20", "Translate 20m"),
+                ("📍 Sample Lines", "CTS_Copy_NhomCoc", "Copy Stake Group"),
+                ("📍 Sample Lines", "CTS_DongBo_2_NhomCoc", "Sync 2 Stake Groups"),
+                ("📍 Sample Lines", "CTS_DongBo_2_NhomCoc_TheoDoan", "Sync SL by Segment"),
+                ("📍 Sample Lines", "CTS_Copy_BeRong_sampleLine", "Copy SL Swath Widths"),
+                ("📍 Sample Lines", "CTS_Thaydoi_BeRong_sampleLine", "Modify SL Swath Widths"),
+                ("📍 Sample Lines", "CTS_Offset_BeRong_sampleLine", "Offset SL Swath Widths"),
+                ("📍 Sample Lines", "CTSV_ThongKeCoc", "Export Stake Data to Excel"),
 
-                // ── 7. TRẮC NGANG ──
-                ("Trắc Ngang", "CTSV_VeTracNgangThietKe", "Vẽ trắc ngang thiết kế"),
-                ("Trắc Ngang", "CTSV_DanhCap", "Đánh cấp VHC"),
-                ("Trắc Ngang", "CTSV_DanhCap_XoaBo", "Xóa bỏ đánh cấp"),
-                ("Trắc Ngang", "CTSV_DanhCap_VeThem", "Vẽ thêm đánh cấp"),
-                ("Trắc Ngang", "CTSV_ThemVatLieu_TrenCatNgang", "Điền vật liệu trên cắt ngang"),
-                ("Trắc Ngang", "CTSV_fit_KhungIn", "Fit khung in trắc ngang"),
-                ("Trắc Ngang", "CTSV_An_DuongDiaChat", "Ẩn đường địa chất"),
+                // ── 7. SECTION VIEWS ──
+                ("📐 Section Views", "CTSV_VeTracNgangThietKe", "Draw Design Sections"),
+                ("📐 Section Views", "CTSV_DanhCap", "Slope Benching (VHC)"),
+                ("📐 Section Views", "CTSV_DanhCap_XoaBo", "Remove Benching"),
+                ("📐 Section Views", "CTSV_DanhCap_VeThem", "Draw Extra Bench"),
+                ("📐 Section Views", "CTSV_ThemVatLieu_TrenCatNgang", "Hatch Section Materials"),
+                ("📐 Section Views", "CTSV_fit_KhungIn", "Fit Viewport Frame"),
+                ("📐 Section Views", "CTSV_An_DuongDiaChat", "Hide Geotech Profile"),
 
-                // ── 8. KHỐI LƯỢNG ──
-                ("Khối Lượng", "CTSV_TinhKhoiLuongTracNgang", "⭐ Tính KL trắc ngang (AEA + Prismoidal + Excel)"),
-                ("Khối Lượng", "CTSV_Taskbar", "Mở taskbar khối lượng"),
-                ("Khối Lượng", "CTSV_CaiDatBang", "Cài đặt bảng khối lượng"),
-                ("Khối Lượng", "CTSV_XuatCad", "Xuất khối lượng ra CAD"),
-                ("Khối Lượng", "CTSV_SoSanhSurface", "So sánh bề mặt"),
-                ("Khối Lượng", "CTSV_PolyArea", "Tính KL từ Polyline"),
-                ("Khối Lượng", "CTSV_TinhDienTichPoly", "Tính diện tích Polyline"),
-                ("Khối Lượng", "CTSV_TinhKhoiLuongPoly", "Tính khối lượng Polyline"),
-                ("Khối Lượng", "CTSV_GhiDienTichPoly", "Ghi diện tích Poly lên bản vẽ"),
+                // ── 8. QUANTITIES ──
+                ("📊 Quantities", "CTSV_TinhKhoiLuongTracNgang", "⭐ Compute Sec. Volumes"),
+                ("📊 Quantities", "CTSV_Taskbar", "Volume Taskbar"),
+                ("📊 Quantities", "CTSV_CaiDatBang", "Volume Table Settings"),
+                ("📊 Quantities", "CTSV_XuatCad", "Export Volumes to CAD"),
+                ("📊 Quantities", "CTSV_SoSanhSurface", "Surface Volume Compare"),
+                ("📊 Quantities", "CTSV_PolyArea", "Area from Polyline"),
+                ("📊 Quantities", "CTSV_TinhDienTichPoly", "Calculate Poly Areas"),
+                ("📊 Quantities", "CTSV_TinhKhoiLuongPoly", "Calculate Poly Volumes"),
+                ("📊 Quantities", "CTSV_GhiDienTichPoly", "Label Poly Area to CAD"),
 
-                // ── 9. ĐIỂM ──
-                ("Điểm", "CTPO_NhapToaDoTrucTiep", "⭐ Nhập tọa độ trực tiếp lên Civil"),
-                ("Điểm", "CTPO_TaoPointTheoBang", "Import tọa độ từ Excel"),
-                ("Điểm", "CTPO_TaoCogoPoint_CaoDo_FromSurface", "Tạo Point lấy CĐ từ Surface"),
-                ("Điểm", "CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Tạo Point từ Spot Elevation"),
-                ("Điểm", "CTPO_CreateCogopointFromText", "Tạo Point từ Text"),
-                ("Điểm", "CTPO_An_CogoPoint", "Ẩn các điểm CogoPoint"),
-                ("Điểm", "CTPO_UpdateAllPointGroup", "Cập nhật tất cả Point Group"),
-                ("Điểm", "CTPO_CPTT", "Chuyển Point thành Text"),
-                ("Điểm", "CTPo_ReorderPoints", "Sắp xếp lại Points"),
+                // ── 9. POINTS ──
+                ("📌 Points", "CTPO_NhapToaDoTrucTiep", "⭐ Direct Point Entry"),
+                ("📌 Points", "CTPO_TaoPointTheoBang", "Import Points from Excel"),
+                ("📌 Points", "CTPO_TaoCogoPoint_CaoDo_FromSurface", "Points from Surface Elev"),
+                ("📌 Points", "CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Points from Spot Elevs"),
+                ("📌 Points", "CTPO_CreateCogopointFromText", "Create Point from Text"),
+                ("📌 Points", "CTPO_An_CogoPoint", "Hide Cogo Points"),
+                ("📌 Points", "CTPO_UpdateAllPointGroup", "Update Point Groups"),
+                ("📌 Points", "CTPO_CPTT", "Convert Point to Text"),
+                ("📌 Points", "CTPo_ReorderPoints", "Reorder Point Numbers"),
 
-                // ── 10. CỐNG ──
-                ("Cống", "CTPI_ThayDoi_DuongKinhCong", "Thay đổi đường kính cống"),
-                ("Cống", "CTPI_ThayDoi_MatPhangRef_Cong", "Đặt mặt phẳng reference cống"),
-                ("Cống", "CTPI_ThayDoi_DoanDocCong", "Thay đổi độ dốc cống"),
-                ("Cống", "CTPI_BangCaoDo_TuNhienHoThu", "Bảng CĐ tự nhiên hố thu"),
-                ("Cống", "CTPI_XoayHoThu_Theo2diem", "Xoay hố thu theo 2 điểm"),
-                ("Cống", "CT_VTOADOHG", "Tọa độ hố ga (DLL ngoài)"),
+                // ── 10. PIPE NETWORKS ──
+                ("🔧 Pipe Networks", "CTPI_ThayDoi_DuongKinhCong", "Modify Pipe Diameter"),
+                ("🔧 Pipe Networks", "CTPI_ThayDoi_MatPhangRef_Cong", "Set Pipe Ref Surface"),
+                ("🔧 Pipe Networks", "CTPI_ThayDoi_DoanDocCong", "Modify Pipe Slope"),
+                ("🔧 Pipe Networks", "CTPI_BangCaoDo_TuNhienHoThu", "Catch Basin EG Table"),
+                ("🔧 Pipe Networks", "CTPI_XoayHoThu_Theo2diem", "Rotate Catch Basin via 2Pts"),
+                ("🔧 Pipe Networks", "CT_VTOADOHG", "Catch Basin Coords (DLL)"),
 
-                // ── 11. SAN NỀN ──
-                ("San Nền", "CTSN_Taskbar", "Mở taskbar san nền"),
-                ("San Nền", "CTSN_TaoLuoi", "Tạo lưới san nền"),
-                ("San Nền", "CTSN_NhapCaoDo", "Nhập cao độ lưới"),
-                ("San Nền", "CTSN_Surface", "Lấy CĐ từ Surface"),
-                ("San Nền", "CTSN_TinhKL", "Tính khối lượng san nền"),
-                ("San Nền", "CTSN_XuatBang", "Xuất bảng KL CAD"),
+                // ── 11. GRADING ──
+                ("▦ Grading", "CTSN_Taskbar", "Grading Taskbar"),
+                ("▦ Grading", "CTSN_TaoLuoi", "Grid Generation"),
+                ("▦ Grading", "CTSN_NhapCaoDo", "Import Grid Elevations"),
+                ("▦ Grading", "CTSN_Surface", "Get Surface Elevations"),
+                ("▦ Grading", "CTSN_TinhKL", "Compute Grading Volumes"),
+                ("▦ Grading", "CTSN_XuatBang", "Export Grading Grid to CAD"),
 
-                // ── 12. IN ẤN ──
-                ("In Ấn", "CT_PrintCenter", "In trung tâm"),
-                ("In Ấn", "CTSV_TaoTrangInTD", "Tạo trang in trắc dọc"),
-                ("In Ấn", "CTDS_PrintAllLayouts", "In tất cả Layout"),
-                ("In Ấn", "CTDS_PrintCurrentLayout", "In Layout hiện tại"),
-                ("In Ấn", "CTDS_ExportPDF", "Xuất PDF"),
+                // ── 12. PLOT & LAYOUT ──
+                ("🖨 Plot & Layout", "CT_PrintCenter", "Print Center"),
+                ("🖨 Plot & Layout", "CTSV_TaoTrangInTD", "Profile Plot Sheets"),
+                ("🖨 Plot & Layout", "CTDS_PrintAllLayouts", "Print All Layouts"),
+                ("🖨 Plot & Layout", "CTDS_PrintCurrentLayout", "Print Current Layout"),
+                ("🖨 Plot & Layout", "CTDS_ExportPDF", "Export to PDF"),
 
-                // ── 13. TIỆN ÍCH ──
-                ("Tiện Ích", "CTU_ExportCAD2007", "Export file CAD 2007"),
-                ("Tiện Ích", "CTU_ExplodeAEC", "Explode AEC Object"),
-                ("Tiện Ích", "CTU_TextToMText", "Chuyển Text → MText"),
-                ("Tiện Ích", "CTU_TotalLength", "Tổng chiều dài đối tượng"),
-                ("Tiện Ích", "CTU_DrawTaluy", "Vẽ ta-luy"),
-                ("Tiện Ích", "CT_DoiIcon", "Đổi icon lệnh"),
-                ("Tiện Ích", "CT_Taskbar", "Mở thanh công cụ Civil"),
-                ("Tiện Ích", "CT_MENU_SETTINGS", "Cài đặt menu"),
+                // ── 13. UTILITIES ──
+                ("🔧 Utilities", "CTU_ExportCAD2007", "Export to CAD 2007"),
+                ("🔧 Utilities", "CTU_ExplodeAEC", "Explode AEC Objects"),
+                ("🔧 Utilities", "CTU_TextToMText", "Convert Text → MText"),
+                ("🔧 Utilities", "CTU_TotalLength", "Total Entity Length"),
+                ("🔧 Utilities", "CTU_DrawTaluy", "Draw Embankment Slope"),
+                ("🔧 Utilities", "CT_DoiIcon", "Change Command Icons"),
+                ("🔧 Utilities", "CT_Taskbar", "Open Civil Taskbar"),
+                ("🔧 Utilities", "CT_MENU_SETTINGS", "Menu Settings Panel"),
             };
 
             RefreshListView();

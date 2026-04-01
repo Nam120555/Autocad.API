@@ -1,4 +1,4 @@
-﻿// (C) Copyright 2024
+// (C) Copyright 2024
 // Tool San Nền - Tính khối lượng đào đắp theo phương pháp lưới ô vuông
 //
 using System;
@@ -127,7 +127,7 @@ namespace MyFirstProject
     /// <summary>
     /// Form cài đặt san nền
     /// </summary>
-    public class SanNenSettingsForm : Form
+    public class SanNenSettingsForm : CivilFormBase
     {
         private NumericUpDown nudCellSize = null!;
         private NumericUpDown nudTextHeight = null!;
@@ -169,41 +169,19 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.Text = "Cài đặt San Nền";
-            this.Size = new System.Drawing.Size(400, 280);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
-            this.ForeColor = System.Drawing.Color.White;
+            InitBaseTheme("Cài đặt San Nền", 400, 300);
+
+            var header = CreateHeader("CÀI ĐẶT SAN NỀN");
+            this.Controls.Add(header);
 
             int labelWidth = 150;
             int inputWidth = 180;
             int rowHeight = 35;
             int margin = 20;
-            int y = 20;
-
-            // Title
-            var lblTitle = new FormLabel
-            {
-                Text = "⚙ CÀI ĐẶT SAN NỀN",
-                Location = new System.Drawing.Point(margin, y),
-                Size = new System.Drawing.Size(350, 25),
-                Font = new System.Drawing.Font("Segoe UI", 11, System.Drawing.FontStyle.Bold),
-                ForeColor = System.Drawing.Color.FromArgb(0, 122, 204)
-            };
-            this.Controls.Add(lblTitle);
-            y += 35;
+            int y = 55;
 
             // Kích thước ô
-            var lblCellSize = new FormLabel
-            {
-                Text = "Kích thước ô lưới (m):",
-                Location = new System.Drawing.Point(margin, y + 3),
-                Size = new System.Drawing.Size(labelWidth, 20),
-                ForeColor = System.Drawing.Color.White
-            };
+            var lblCellSize = CreateLabel("Kích thước ô lưới (m):", margin, y + 3);
             this.Controls.Add(lblCellSize);
 
             nudCellSize = new NumericUpDown
@@ -215,20 +193,14 @@ namespace MyFirstProject
                 Maximum = 100M,
                 Increment = 5M,
                 Value = 20M,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             this.Controls.Add(nudCellSize);
             y += rowHeight;
 
             // Chiều cao text
-            var lblTextHeight = new FormLabel
-            {
-                Text = "Chiều cao chữ (mm):",
-                Location = new System.Drawing.Point(margin, y + 3),
-                Size = new System.Drawing.Size(labelWidth, 20),
-                ForeColor = System.Drawing.Color.White
-            };
+            var lblTextHeight = CreateLabel("Chiều cao chữ (mm):", margin, y + 3);
             this.Controls.Add(lblTextHeight);
 
             nudTextHeight = new NumericUpDown
@@ -240,20 +212,14 @@ namespace MyFirstProject
                 Maximum = 20M,
                 Increment = 0.5M,
                 Value = 2.5M,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             this.Controls.Add(nudTextHeight);
             y += rowHeight;
 
             // Surface TN
-            var lblSurfaceTN = new FormLabel
-            {
-                Text = "Surface Tự Nhiên:",
-                Location = new System.Drawing.Point(margin, y + 3),
-                Size = new System.Drawing.Size(labelWidth, 20),
-                ForeColor = System.Drawing.Color.White
-            };
+            var lblSurfaceTN = CreateLabel("Surface Tự Nhiên:", margin, y + 3);
             this.Controls.Add(lblSurfaceTN);
 
             cboSurfaceTN = new ComboBox
@@ -261,8 +227,8 @@ namespace MyFirstProject
                 Location = new System.Drawing.Point(margin + labelWidth + 10, y),
                 Size = new System.Drawing.Size(inputWidth, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             cboSurfaceTN.Items.Add("(Nhập thủ công)");
             foreach (var surf in surfaces)
@@ -272,13 +238,7 @@ namespace MyFirstProject
             y += rowHeight;
 
             // Surface TK
-            var lblSurfaceTK = new FormLabel
-            {
-                Text = "Surface Thiết Kế:",
-                Location = new System.Drawing.Point(margin, y + 3),
-                Size = new System.Drawing.Size(labelWidth, 20),
-                ForeColor = System.Drawing.Color.White
-            };
+            var lblSurfaceTK = CreateLabel("Surface Thiết Kế:", margin, y + 3);
             this.Controls.Add(lblSurfaceTK);
 
             cboSurfaceTK = new ComboBox
@@ -286,8 +246,8 @@ namespace MyFirstProject
                 Location = new System.Drawing.Point(margin + labelWidth + 10, y),
                 Size = new System.Drawing.Size(inputWidth, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             cboSurfaceTK.Items.Add("(Nhập thủ công)");
             foreach (var surf in surfaces)
@@ -297,37 +257,15 @@ namespace MyFirstProject
             y += rowHeight + 10;
 
             // Buttons
-            int btnWidth = 100;
-            int btnHeight = 30;
+            var pnlBottom = CreateBottomBar();
+            this.Controls.Add(pnlBottom);
 
-            btnOK = new Button
-            {
-                Text = "✓ Tiếp tục",
-                Location = new System.Drawing.Point(margin + 50, y),
-                Size = new System.Drawing.Size(btnWidth, btnHeight),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(0, 122, 204),
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand,
-                DialogResult = DialogResult.OK
-            };
-            btnOK.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(0, 100, 180);
+            btnCancel = CreateButton("Hủy", this.Width - 210, 8, 85, 36, pnlBottom);
+            btnCancel.DialogResult = DialogResult.Cancel;
+
+            btnOK = CreatePrimaryButton("Tiếp tục", this.Width - 110, 8, 85, 36, pnlBottom);
+            btnOK.DialogResult = DialogResult.OK;
             btnOK.Click += BtnOK_Click;
-            this.Controls.Add(btnOK);
-
-            btnCancel = new Button
-            {
-                Text = "✕ Hủy",
-                Location = new System.Drawing.Point(margin + 50 + btnWidth + 20, y),
-                Size = new System.Drawing.Size(btnWidth, btnHeight),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(100, 100, 105),
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand,
-                DialogResult = DialogResult.Cancel
-            };
-            btnCancel.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(80, 80, 85);
-            this.Controls.Add(btnCancel);
 
             this.AcceptButton = btnOK;
             this.CancelButton = btnCancel;
@@ -356,7 +294,7 @@ namespace MyFirstProject
     /// <summary>
     /// Thanh công cụ San Nền
     /// </summary>
-    public class SanNenTaskbar : Form
+    public class SanNenTaskbar : CivilFormBase
     {
         private static SanNenTaskbar? instance;
 
@@ -367,13 +305,10 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.Text = "🔧 San Nền - Tính Khối Lượng";
-            this.Size = new System.Drawing.Size(680, 90);
+            InitBaseTheme("San Nền - Tính Khối Lượng", 680, 80);
             this.FormBorderStyle = FormBorderStyle.FixedToolWindow;
             this.StartPosition = FormStartPosition.Manual;
             this.TopMost = true;
-            this.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
-            this.ForeColor = System.Drawing.Color.White;
 
             // Đặt vị trí ở góc dưới màn hình
             var screenBounds = Screen.PrimaryScreen?.WorkingArea ?? new System.Drawing.Rectangle(0, 0, 1920, 1080);
@@ -382,81 +317,47 @@ namespace MyFirstProject
                 screenBounds.Height - this.Height - 50
             );
 
-            int btnWidth = 95;
-            int btnHeight = 45;
+            int btnWidth = 90;
+            int btnHeight = 35;
             int margin = 8;
             int x = margin;
-            int y = 10;
+            int y = 5;
 
             // Button 1: Cài đặt
-            var btnSettings = CreateButton("⚙", "Cài đặt", x, y, btnWidth, btnHeight, 
-                System.Drawing.Color.FromArgb(100, 100, 105));
+            var btnSettings = CreateButton("Cài đặt", x, y, btnWidth, btnHeight, this);
             btnSettings.Click += (s, e) => { this.Hide(); SanNen.CTSNCaiDat(); this.Show(); };
-            this.Controls.Add(btnSettings);
             x += btnWidth + margin;
 
             // Button 2: Tạo lưới
-            var btnTaoLuoi = CreateButton("▦", "Tạo lưới", x, y, btnWidth, btnHeight,
-                System.Drawing.Color.FromArgb(0, 122, 204));
+            var btnTaoLuoi = CreatePrimaryButton("Tạo lưới", x, y, btnWidth, btnHeight, this);
             btnTaoLuoi.Click += (s, e) => { this.Hide(); SanNen.CTSNTaoLuoi(); this.Show(); };
-            this.Controls.Add(btnTaoLuoi);
             x += btnWidth + margin;
 
             // Button 3: Nhập cao độ
-            var btnNhapCD = CreateButton("📝", "Nhập CĐ", x, y, btnWidth, btnHeight,
-                System.Drawing.Color.FromArgb(60, 150, 60));
+            var btnNhapCD = CreateButton("Nhập CĐ", x, y, btnWidth, btnHeight, this);
             btnNhapCD.Click += (s, e) => { this.Hide(); SanNen.CTSNNhapCaoDo(); this.Show(); };
-            this.Controls.Add(btnNhapCD);
             x += btnWidth + margin;
 
             // Button 4: Lấy CĐ từ Surface
-            var btnSurface = CreateButton("🏔", "Surface", x, y, btnWidth, btnHeight,
-                System.Drawing.Color.FromArgb(150, 100, 50));
+            var btnSurface = CreateButton("Surface", x, y, btnWidth, btnHeight, this);
             btnSurface.Click += (s, e) => { this.Hide(); SanNen.CTSNSurface(); this.Show(); };
-            this.Controls.Add(btnSurface);
             x += btnWidth + margin;
 
             // Button 5: Tính khối lượng
-            var btnTinhKL = CreateButton("📊", "Tính KL", x, y, btnWidth, btnHeight,
-                System.Drawing.Color.FromArgb(180, 60, 60));
+            var btnTinhKL = CreateButton("Tính KL", x, y, btnWidth, btnHeight, this);
             btnTinhKL.Click += (s, e) => { this.Hide(); SanNen.CTSNTinhKL(); this.Show(); };
-            this.Controls.Add(btnTinhKL);
             x += btnWidth + margin;
 
             // Button 6: Xuất bảng
-            var btnXuatBang = CreateButton("📋", "Xuất bảng", x, y, btnWidth, btnHeight,
-                System.Drawing.Color.FromArgb(60, 60, 150));
+            var btnXuatBang = CreateButton("Xuất bảng", x, y, btnWidth, btnHeight, this);
             btnXuatBang.Click += (s, e) => { this.Hide(); SanNen.CTSNXuatBang(); this.Show(); };
-            this.Controls.Add(btnXuatBang);
             x += btnWidth + margin;
 
             // Button Close
-            var btnClose = CreateButton("✕", "", x, y, 40, btnHeight,
-                System.Drawing.Color.FromArgb(150, 50, 50));
+            var btnClose = CreateButton("✕", x, y, 40, btnHeight, this);
             btnClose.Click += (s, e) => this.Close();
-            this.Controls.Add(btnClose);
         }
 
-        private Button CreateButton(string icon, string text, int x, int y, int width, int height, System.Drawing.Color bgColor)
-        {
-            var btn = new Button
-            {
-                Text = string.IsNullOrEmpty(text) ? icon : $"{icon}\n{text}",
-                Location = new System.Drawing.Point(x, y),
-                Size = new System.Drawing.Size(width, height),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = bgColor,
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand,
-                Font = new System.Drawing.Font("Segoe UI", 9, System.Drawing.FontStyle.Bold)
-            };
-            btn.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(80, 80, 85);
-            btn.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(
-                Math.Min(bgColor.R + 30, 255),
-                Math.Min(bgColor.G + 30, 255),
-                Math.Min(bgColor.B + 30, 255));
-            return btn;
-        }
 
         public static void ShowTaskbar()
         {
@@ -668,7 +569,7 @@ namespace MyFirstProject
 
                 tr.Commit();
 
-                ed.WriteMessage($"\n✓ Đã tạo lưới {rows}x{cols} = {rows * cols} ô");
+                ed.WriteMessage($"\n Đã tạo lưới {rows}x{cols} = {rows * cols} ô");
                 ed.WriteMessage("\nSử dụng lệnh CTSN_NhapCaoDo để nhập cao độ TN/TK");
             });
             }
@@ -798,7 +699,7 @@ namespace MyFirstProject
                 ed.WriteMessage($"\n  TN={nearestCorner.ElevationTN:F3}, TK={nearestCorner.ElevationTK:F3}, ΔH={nearestCorner.DeltaH:F3}");
             }
 
-            ed.WriteMessage("\n✓ Hoàn tất nhập cao độ");
+            ed.WriteMessage("\n Hoàn tất nhập cao độ");
             ed.WriteMessage("\nSử dụng lệnh CTSN_TinhKL để tính khối lượng");
         }
 

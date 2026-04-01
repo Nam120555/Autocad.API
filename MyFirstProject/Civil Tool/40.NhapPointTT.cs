@@ -89,13 +89,13 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            InitBaseTheme("📍  NHẬP TỌA ĐỘ TRỰC TIẾP VÀO CIVIL 3D", 820, 720);
+            InitBaseTheme("NHẬP TỌA ĐỘ TRỰC TIẾP VÀO CIVIL 3D", 820, 720);
 
             // ═══ HEADER ═══
             var header = CreateHeader("NHẬP TỌA ĐỘ TRỰC TIẾP");
             this.Controls.Add(header);
 
-            var subtitle = CreateSubtitle("Gõ tọa độ X, Y, Z trực tiếp trên bảng → Tạo COGO Point ngay lập tức");
+            var subtitle = CreateSubtitle("Gõ tọa độ X, Y, Z trực tiếp trên bảng -> Tạo COGO Point ngay lập tức");
             this.Controls.Add(subtitle);
 
             // ═══ Main Panel ═══
@@ -111,7 +111,7 @@ namespace MyFirstProject
             int y = 8;
 
             // ═══ 1. CẤU HÌNH ═══
-            var grpConfig = CreateGroupBox("⚙ Cấu hình Point", 0, y, 770, 90);
+            var grpConfig = CreateGroupBox("Cấu hình Point", 0, y, 770, 90);
             mainPanel.Controls.Add(grpConfig);
 
             // Hàng 1: Point Group + Layer
@@ -137,13 +137,32 @@ namespace MyFirstProject
 
             // Hàng 2: Point Style + Label Style
             grpConfig.Controls.Add(CreateLabel("Point Style:", 12, 60));
-            cboPointStyle = CreateComboBox(120, 57, 250);
+            cboPointStyle = CreateComboBox(120, 57, 240);
             grpConfig.Controls.Add(cboPointStyle);
 
-            grpConfig.Controls.Add(CreateLabel("Label Style:", 390, 60));
-            cboLabelStyle = CreateComboBox(480, 57, 280);
+            grpConfig.Controls.Add(CreateLabel("Label Style:", 375, 60));
+            cboLabelStyle = CreateComboBox(450, 57, 240);
             grpConfig.Controls.Add(cboLabelStyle);
 
+            var btnPickSample = new Button
+            {
+                Text = "Lấy mẫu điểm có sẵn",
+                Location = new Point(700, 57),
+                Size = new Size(180, 26),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White,
+                ForeColor = NavyDark,
+                Font = new Font("Segoe UI", 9f),
+                Cursor = Cursors.Hand
+            };
+            btnPickSample.FlatAppearance.BorderColor = BorderLight;
+            btnPickSample.FlatAppearance.MouseOverBackColor = HoverNavy;
+            btnPickSample.Click += BtnPickSample_Click;
+            grpConfig.Controls.Add(btnPickSample);
+
+            // Tăng chiều rộng group box
+            grpConfig.Size = new Size(890, 95);
+            
             y += 98;
 
             // ═══ 2. TOOLBAR ═══
@@ -155,28 +174,28 @@ namespace MyFirstProject
             };
             mainPanel.Controls.Add(grpToolbar);
 
-            btnAddRow = CreateToolButton("➕ Thêm dòng", 5, 5, 110, 30, grpToolbar);
+            btnAddRow = CreateToolButton("+ Thêm dòng", 5, 5, 110, 30, grpToolbar);
             btnAddRow.Click += (s, e) => AddEmptyRows(5);
 
-            btnRemoveRow = CreateToolButton("➖ Xóa dòng chọn", 120, 5, 130, 30, grpToolbar);
+            btnRemoveRow = CreateToolButton("- Xóa dòng", 120, 5, 110, 30, grpToolbar);
             btnRemoveRow.Click += BtnRemoveRow_Click;
 
-            btnPaste = CreateToolButton("📋 Dán từ Clipboard", 260, 5, 150, 30, grpToolbar);
+            btnPaste = CreateToolButton("Dán từ Clipboard", 240, 5, 130, 30, grpToolbar);
             btnPaste.Click += BtnPaste_Click;
 
-            btnClear = CreateToolButton("🗑 Xóa tất cả", 420, 5, 110, 30, grpToolbar);
+            btnClear = CreateToolButton("Xóa tất cả", 380, 5, 100, 30, grpToolbar);
             btnClear.Click += (s, e) => { dgvPoints.Rows.Clear(); AddEmptyRows(10); UpdateStatus(); };
 
-            var btnImportCSV = CreateToolButton("📄 Nhập CSV", 540, 5, 100, 30, grpToolbar);
+            var btnImportCSV = CreateToolButton("Nhập CSV", 490, 5, 100, 30, grpToolbar);
             btnImportCSV.Click += BtnImportCSV_Click;
 
-            var btnExportCSV = CreateToolButton("💾 Xuất CSV", 650, 5, 100, 30, grpToolbar);
+            var btnExportCSV = CreateToolButton("Xuất CSV", 600, 5, 100, 30, grpToolbar);
             btnExportCSV.Click += BtnExportCSV_Click;
 
             y += 44;
 
             // ═══ 3. BẢNG NHẬP DỮ LIỆU ═══
-            var grpTable = CreateGroupBox("📋 Bảng nhập tọa độ (gõ trực tiếp hoặc dán từ Excel)", 0, y, 770, 360);
+            var grpTable = CreateGroupBox("Bảng nhập tọa độ (gõ trực tiếp hoặc dán từ Excel)", 0, y, 770, 360);
             mainPanel.Controls.Add(grpTable);
 
             dgvPoints = new DataGridView
@@ -269,7 +288,7 @@ namespace MyFirstProject
                 Size = new Size(770, 24),
                 Font = new Font("Segoe UI", 9f),
                 ForeColor = TextHint,
-                Text = "Sẵn sàng — Nhập tọa độ vào bảng hoặc dán từ clipboard",
+                Text = "Sẵn sàng - Nhập tọa độ vào bảng hoặc dán từ clipboard",
                 BackColor = BgPanel,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding = new Padding(12, 0, 0, 0)
@@ -280,7 +299,10 @@ namespace MyFirstProject
             var bottomBar = CreateBottomBar(56);
             this.Controls.Add(bottomBar);
 
-            var btnCancel = CreateButton("✕ Hủy", 10, 10, 180, 36, bottomBar);
+            var btnCancel = CreateButton("Hủy", 10, 10, 180, 36, bottomBar);
+            btnCancel.ForeColor = Color.Red;
+            btnCancel.FlatAppearance.BorderColor = Color.Red;
+            btnCancel.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 235, 235);
             btnCancel.Click += (s, e) => { IsConfirmed = false; this.Close(); };
 
             var lblInfo = new WinLabel
@@ -289,16 +311,19 @@ namespace MyFirstProject
                 Size = new Size(320, 36),
                 Font = new Font("Segoe UI", 8.5f),
                 ForeColor = TextHint,
-                Text = "💡 Tip: Copy bảng từ Excel → Ctrl+V hoặc nút Dán",
+                Text = "Tip: Copy bảng từ Excel -> Ctrl+V hoặc nút Dán",
                 TextAlign = ContentAlignment.MiddleCenter
             };
             bottomBar.Controls.Add(lblInfo);
 
-            var btnRun = CreateSuccessButton("📍 Tạo COGO Points", 540, 10, 240, 36, bottomBar);
+            var btnRun = CreateSuccessButton("Tạo COGO Points", 640, 10, 240, 36, bottomBar);
             btnRun.Click += BtnRun_Click;
 
             this.AcceptButton = btnRun;
             this.CancelButton = btnCancel;
+
+            // Form wider to accommodate new button
+            this.Size = new Size(930, 720);
 
             // Pre-populate 10 dòng trống
             AddEmptyRows(10);
@@ -316,6 +341,11 @@ namespace MyFirstProject
                 if (doc == null) return;
                 var civilDoc = CivilApplication.ActiveDocument;
 
+                // Lưu lại selection cũ nếu có
+                string currentGroup = cboPointGroup.Text;
+                string currentPointStyle = cboPointStyle.Text;
+                string currentLabelStyle = cboLabelStyle.Text;
+
                 using var tr = doc.Database.TransactionManager.StartOpenCloseTransaction();
 
                 // Load Point Groups
@@ -328,33 +358,114 @@ namespace MyFirstProject
                         cboPointGroup.Items.Add(pg.Name);
                 }
                 cboPointGroup.SelectedIndex = 0;
+                if (!string.IsNullOrEmpty(currentGroup) && cboPointGroup.Items.Contains(currentGroup))
+                    cboPointGroup.SelectedItem = currentGroup;
 
                 // Load Point Styles
                 cboPointStyle.Items.Clear();
                 cboPointStyle.Items.Add("(Mặc định)");
                 foreach (ObjectId psId in civilDoc.Styles.PointStyles)
                 {
-                    var ps = tr.GetObject(psId, OpenMode.ForRead) as PointStyle;
-                    if (ps != null)
-                        cboPointStyle.Items.Add(ps.Name);
+                    try {
+                        var ps = tr.GetObject(psId, OpenMode.ForRead) as PointStyle;
+                        if (ps != null) cboPointStyle.Items.Add(ps.Name);
+                    } catch { } // Bỏ qua folder hoặc item lỗi
                 }
                 cboPointStyle.SelectedIndex = 0;
+                if (!string.IsNullOrEmpty(currentPointStyle) && cboPointStyle.Items.Contains(currentPointStyle))
+                    cboPointStyle.SelectedItem = currentPointStyle;
 
                 // Load Label Styles
                 cboLabelStyle.Items.Clear();
                 cboLabelStyle.Items.Add("(Mặc định)");
-                foreach (ObjectId lsId in civilDoc.Styles.LabelStyles.PointLabelStyles.LabelStyles)
-                {
-                    var ls = tr.GetObject(lsId, OpenMode.ForRead) as LabelStyle;
-                    if (ls != null)
-                        cboLabelStyle.Items.Add(ls.Name);
-                }
+                
+                // Tránh lỗi truy cập LabelStyles collection
+                try {
+                    foreach (ObjectId lsId in civilDoc.Styles.LabelStyles.PointLabelStyles.LabelStyles)
+                    {
+                        var ls = tr.GetObject(lsId, OpenMode.ForRead) as LabelStyle;
+                        if (ls != null) cboLabelStyle.Items.Add(ls.Name);
+                    }
+                } catch { }
+
                 cboLabelStyle.SelectedIndex = 0;
+                if (!string.IsNullOrEmpty(currentLabelStyle) && cboLabelStyle.Items.Contains(currentLabelStyle))
+                    cboLabelStyle.SelectedItem = currentLabelStyle;
 
                 tr.Commit();
             }
             catch { }
         }
+
+        private void BtnPickSample_Click(object? sender, EventArgs e)
+        {
+            var doc = AcadApp.DocumentManager.MdiActiveDocument;
+            var ed = doc.Editor;
+            var civilDoc = CivilApplication.ActiveDocument;
+
+            // Start user interaction hides the modal dialog safely
+            using (var interaction = ed.StartUserInteraction(this))
+            {
+                var peo = new PromptEntityOptions("\nChọn COGO Point mẫu để sao chép Style & Layer: ");
+                peo.SetRejectMessage("\nĐối tượng bạn chọn không phải là COGO Point. Vui lòng chọn lại.");
+                peo.AddAllowedClass(typeof(CogoPoint), true);
+                
+                var res = ed.GetEntity(peo);
+                if (res.Status == PromptStatus.OK)
+                {
+                    try
+                    {
+                        using var tr = doc.Database.TransactionManager.StartOpenCloseTransaction();
+                        var point = tr.GetObject(res.ObjectId, OpenMode.ForRead) as CogoPoint;
+                        if (point != null)
+                        {
+                            // 1. Sao chép Layer
+                            txtLayer.Text = point.Layer;
+
+                            // Đảm bảo dữ liệu các ComboBox đã load đầy đủ trước khi mapping
+                            if (cboPointStyle.Items.Count <= 1) LoadCivilData();
+
+                            // 2. Sao chép Point Style Name
+                            if (!point.StyleId.IsNull)
+                            {
+                                var ps = tr.GetObject(point.StyleId, OpenMode.ForRead) as PointStyle;
+                                if (ps != null && cboPointStyle.Items.Contains(ps.Name))
+                                {
+                                    cboPointStyle.SelectedItem = ps.Name;
+                                }
+                            }
+                            else
+                            {
+                                cboPointStyle.SelectedIndex = 0; // Về default
+                            }
+
+                            // 3. Sao chép Label Style Name
+                            if (!point.LabelStyleId.IsNull)
+                            {
+                                var ls = tr.GetObject(point.LabelStyleId, OpenMode.ForRead) as LabelStyle;
+                                if (ls != null && cboLabelStyle.Items.Contains(ls.Name))
+                                {
+                                    cboLabelStyle.SelectedItem = ls.Name;
+                                }
+                            }
+                            else
+                            {
+                                cboLabelStyle.SelectedIndex = 0; // Về default
+                            }
+
+                            MessageBox.Show($"Đã sao chép thành công mẫu từ điểm {point.PointNumber}!",
+                                "Thông minh hóa", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                        tr.Commit();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        MessageBox.Show($"Lỗi khi lấy mẫu: {ex.Message}", "Lỗi API", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
 
         private void AddEmptyRows(int count)
         {
@@ -403,7 +514,7 @@ namespace MyFirstProject
                 }
             }
             int totalRows = dgvPoints.Rows.Count - (dgvPoints.AllowUserToAddRows ? 1 : 0);
-            lblStatus.Text = $"📊 Tổng: {totalRows} dòng | Dữ liệu hợp lệ: {validCount} điểm";
+            lblStatus.Text = $"Tổng: {totalRows} dòng | Dữ liệu hợp lệ: {validCount} điểm";
         }
 
         private void BtnRemoveRow_Click(object? sender, EventArgs e)

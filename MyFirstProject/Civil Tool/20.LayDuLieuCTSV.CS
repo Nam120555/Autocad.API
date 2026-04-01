@@ -414,7 +414,7 @@ namespace MyFirstProject
         /// <summary>
         /// Form chọn Alignment đơn giản
         /// </summary>
-        private class FormChonAlignmentLocal : Form
+        private class FormChonAlignmentLocal : CivilFormBase
         {
             private CheckedListBox checkedListBox = null!;
             private Button btnOK = null!;
@@ -433,45 +433,39 @@ namespace MyFirstProject
 
             private void InitializeComponent()
             {
-                Text = "Chọn Alignment để vẽ đường bao";
-                Width = 450;
-                Height = 350;
-                StartPosition = FormStartPosition.CenterScreen;
-                FormBorderStyle = FormBorderStyle.FixedDialog;
-                MaximizeBox = false;
+                InitBaseTheme("Chọn Alignment để vẽ đường bao", 450, 350);
+                this.FormBorderStyle = FormBorderStyle.FixedDialog;
+
+                var header = CreateHeader("CHỌN ALIGNMENT");
+                this.Controls.Add(header);
+
+                var pnlMain = CreateSection("", 10, 60, 415, 195);
+                this.Controls.Add(pnlMain);
 
                 checkedListBox = new CheckedListBox
                 {
-                    Location = new System.Drawing.Point(12, 12),
-                    Width = 410,
-                    Height = 250,
-                    CheckOnClick = true
+                    Dock = DockStyle.Fill,
+                    BorderStyle = BorderStyle.None,
+                    CheckOnClick = true,
+                    BackColor = BgInput,
+                    ForeColor = TextDark,
+                    Font = new System.Drawing.Font("Segoe UI", 9.5f)
                 };
                 checkedListBox.ItemCheck += (s, e) =>
                 {
                     int index = e.Index;
                     alignmentInfos[index].IsSelected = e.NewValue == CheckState.Checked;
                 };
+                pnlMain.Controls.Add(checkedListBox);
 
-                btnOK = new Button
-                {
-                    Text = "OK",
-                    DialogResult = DialogResult.OK,
-                    Location = new System.Drawing.Point(266, 270),
-                    Width = 75
-                };
+                var pnlBottom = CreateBottomBar();
+                this.Controls.Add(pnlBottom);
 
-                btnCancel = new Button
-                {
-                    Text = "Hủy",
-                    DialogResult = DialogResult.Cancel,
-                    Location = new System.Drawing.Point(347, 270),
-                    Width = 75
-                };
+                btnCancel = CreateButton("Hủy", 230, 8, 90, 36, pnlBottom);
+                btnCancel.Click += (s, e) => this.Close();
 
-                Controls.Add(checkedListBox);
-                Controls.Add(btnOK);
-                Controls.Add(btnCancel);
+                btnOK = CreatePrimaryButton("OK", 330, 8, 90, 36, pnlBottom);
+                btnOK.Click += (s, e) => { this.DialogResult = DialogResult.OK; this.Close(); };
 
                 AcceptButton = btnOK;
                 CancelButton = btnCancel;

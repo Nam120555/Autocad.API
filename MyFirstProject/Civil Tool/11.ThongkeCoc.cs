@@ -78,7 +78,7 @@ namespace MyFirstProject
     /// <summary>
     /// Form chọn tuyến để thống kê cọc (tương tự V3Tools)
     /// </summary>
-    public class AlignmentSelectionForm : Form
+    public class AlignmentSelectionForm : CivilFormBase
     {
         private DataGridView dgvAlignments = null!;
         private NumericUpDown numDecimal = null!;
@@ -103,39 +103,47 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.Text = "Tạo bảng thống kê tọa độ cọc";
-            this.Size = new System.Drawing.Size(700, 550);
-            this.StartPosition = FormStartPosition.CenterScreen;
+            InitBaseTheme("Tạo bảng thống kê tọa độ cọc", 700, 580);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
-            this.ForeColor = System.Drawing.Color.White;
+
+            var header = CreateHeader("THỐNG KÊ TỌA ĐỘ CỌC");
+            this.Controls.Add(header);
 
             // GroupBox danh sách tuyến
-            GroupBox grpList = new GroupBox
-            {
-                Text = "Danh sách tuyến",
-                Location = new System.Drawing.Point(10, 10),
-                Size = new System.Drawing.Size(665, 350),
-                ForeColor = System.Drawing.Color.White
-            };
-            this.Controls.Add(grpList);
+            var pnlList = CreateSection("Danh sách tuyến", 10, 60, 665, 340);
+            this.Controls.Add(pnlList);
 
             // DataGridView
             dgvAlignments = new DataGridView
             {
-                Location = new System.Drawing.Point(10, 20),
-                Size = new System.Drawing.Size(645, 320),
+                Location = new System.Drawing.Point(10, 30),
+                Size = new System.Drawing.Size(645, 300),
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 RowHeadersVisible = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                BackgroundColor = System.Drawing.Color.FromArgb(37, 37, 38),
-                ForeColor = System.Drawing.Color.Black,
+                BackgroundColor = BgInput,
+                GridColor = BorderColor,
+                BorderStyle = BorderStyle.FixedSingle,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = BgInput,
+                    ForeColor = TextDark,
+                    SelectionBackColor = NavyMedium,
+                    SelectionForeColor = System.Drawing.Color.White,
+                    Font = new System.Drawing.Font("Segoe UI", 9f)
+                },
+                ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = NavyDark,
+                    ForeColor = System.Drawing.Color.White,
+                    Font = new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Bold),
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                },
+                EnableHeadersVisualStyles = false,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
             };
-            grpList.Controls.Add(dgvAlignments);
+            pnlList.Controls.Add(dgvAlignments);
 
             // Columns
             DataGridViewCheckBoxColumn colCheck = new DataGridViewCheckBoxColumn
@@ -180,94 +188,80 @@ namespace MyFirstProject
             dgvAlignments.Columns.Add(colProfileTK);
 
             // GroupBox Tùy chọn
-            GroupBox grpOptions = new GroupBox
-            {
-                Text = "Tùy chọn",
-                Location = new System.Drawing.Point(10, 365),
-                Size = new System.Drawing.Size(665, 90),
-                ForeColor = System.Drawing.Color.White
-            };
+            var grpOptions = CreateSection("Tùy chọn", 10, 410, 665, 80);
             this.Controls.Add(grpOptions);
 
             // Độ chính xác
             FormLabel lblDecimal = new FormLabel
             {
                 Text = "Độ chính xác:",
-                Location = new System.Drawing.Point(10, 25),
-                AutoSize = true
+                Location = new System.Drawing.Point(15, 35),
+                AutoSize = true,
+                ForeColor = TextDark,
+                Font = new System.Drawing.Font("Segoe UI", 9.5f)
             };
             grpOptions.Controls.Add(lblDecimal);
 
             numDecimal = new NumericUpDown
             {
-                Location = new System.Drawing.Point(100, 22),
+                Location = new System.Drawing.Point(110, 33),
                 Width = 60,
                 Minimum = 0,
                 Maximum = 6,
-                Value = 2
+                Value = 2,
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                Font = new System.Drawing.Font("Segoe UI", 9f)
             };
             grpOptions.Controls.Add(numDecimal);
-
-            // Button chọn tuyến
-            btnSelectAll = new Button
-            {
-                Text = "☑ Chọn tất cả",
-                Location = new System.Drawing.Point(500, 20),
-                Size = new System.Drawing.Size(150, 28),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 63),
-                ForeColor = System.Drawing.Color.White
-            };
-            btnSelectAll.Click += BtnSelectAll_Click;
-            grpOptions.Controls.Add(btnSelectAll);
 
             // Checkboxes
             chkCaoDoTuNhien = new CheckBox
             {
                 Text = "Cao độ tự nhiên",
-                Location = new System.Drawing.Point(10, 55),
+                Location = new System.Drawing.Point(200, 33),
                 AutoSize = true,
                 Checked = true,
-                ForeColor = System.Drawing.Color.LightGreen
+                ForeColor = TextDark,
+                Font = new System.Drawing.Font("Segoe UI", 9.5f)
             };
             grpOptions.Controls.Add(chkCaoDoTuNhien);
 
             chkCaoDoThietKe = new CheckBox
             {
                 Text = "Cao độ thiết kế",
-                Location = new System.Drawing.Point(150, 55),
+                Location = new System.Drawing.Point(340, 33),
                 AutoSize = true,
                 Checked = true,
-                ForeColor = System.Drawing.Color.LightGreen
+                ForeColor = TextDark,
+                Font = new System.Drawing.Font("Segoe UI", 9.5f)
             };
             grpOptions.Controls.Add(chkCaoDoThietKe);
-
-            // Buttons
-            btnExit = new Button
+            
+            // Button chọn tuyến
+            btnSelectAll = new Button
             {
-                Text = "✕ Thoát",
-                Location = new System.Drawing.Point(10, 465),
-                Size = new System.Drawing.Size(320, 40),
+                Text = "☑ Chọn tất cả",
+                Location = new System.Drawing.Point(500, 30),
+                Size = new System.Drawing.Size(145, 30),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(180, 50, 50),
-                ForeColor = System.Drawing.Color.White,
-                Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Bold)
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                Font = new System.Drawing.Font("Segoe UI", 9f)
             };
+            btnSelectAll.FlatAppearance.BorderColor = BorderColor;
+            btnSelectAll.Click += BtnSelectAll_Click;
+            grpOptions.Controls.Add(btnSelectAll);
+
+            // Buttons bottom
+            var pnlBottom = CreateBottomBar();
+            this.Controls.Add(pnlBottom);
+
+            btnExit = CreateButton("Hủy", 435, 8, 110, 36, pnlBottom);
             btnExit.Click += (s, e) => { IsConfirmed = false; this.Close(); };
-            this.Controls.Add(btnExit);
 
-            btnExecute = new Button
-            {
-                Text = "☑ Thực hiện",
-                Location = new System.Drawing.Point(345, 465),
-                Size = new System.Drawing.Size(330, 40),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(50, 150, 50),
-                ForeColor = System.Drawing.Color.White,
-                Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Bold)
-            };
+            btnExecute = CreatePrimaryButton("Thực hiện", 555, 8, 120, 36, pnlBottom);
             btnExecute.Click += BtnExecute_Click;
-            this.Controls.Add(btnExecute);
         }
 
         private void LoadData()

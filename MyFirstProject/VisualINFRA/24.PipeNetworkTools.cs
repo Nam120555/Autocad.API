@@ -118,7 +118,7 @@ namespace MyFirstProject.VisualINFRA
 
                     // Hiển thị kết quả
                     ed.WriteMessage($"\n\n{'=',-90}");
-                    ed.WriteMessage($"\n📍 TỌA ĐỘ HỐ GA - {network.Name}");
+                    ed.WriteMessage($"\n TỌA ĐỘ HỐ GA - {network.Name}");
                     ed.WriteMessage($"\n{'=',-90}");
                     ed.WriteMessage($"\n{"STT",-5} {"Tên",-15} {"X",-15} {"Y",-15} {"Rim",-12} {"Sump",-12} {"Depth",-10}");
                     ed.WriteMessage($"\n{new string('-', 90)}");
@@ -135,7 +135,7 @@ namespace MyFirstProject.VisualINFRA
                     }
 
                     ed.WriteMessage($"\n{'=',-90}");
-                    ed.WriteMessage($"\n✅ Tổng: {structures.Count} hố ga. Đã copy vào clipboard!");
+                    ed.WriteMessage($"\n Tổng: {structures.Count} hố ga. Đã copy vào clipboard!");
 
                     try
                     {
@@ -148,7 +148,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -213,7 +213,7 @@ namespace MyFirstProject.VisualINFRA
 
                     // Hiển thị kết quả
                     ed.WriteMessage($"\n\n{'=',-100}");
-                    ed.WriteMessage($"\n🔧 THÔNG TIN PIPE - {network.Name}");
+                    ed.WriteMessage($"\n THÔNG TIN PIPE - {network.Name}");
                     ed.WriteMessage($"\n{'=',-100}");
                     ed.WriteMessage($"\n{"STT",-5} {"Tên",-15} {"Đường kính",-12} {"Chiều dài",-12} {"Độ dốc (%)",-12} {"Z đầu",-10} {"Z cuối",-10}");
                     ed.WriteMessage($"\n{new string('-', 100)}");
@@ -237,7 +237,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -321,7 +321,7 @@ namespace MyFirstProject.VisualINFRA
                     string structureFile = Path.Combine(fbd.SelectedPath, $"{network.Name}_Structures.csv");
                     File.WriteAllText(structureFile, sbStructures.ToString(), Encoding.UTF8);
 
-                    ed.WriteMessage($"\n✅ Đã xuất Pipe Network ra:");
+                    ed.WriteMessage($"\n Đã xuất Pipe Network ra:");
                     ed.WriteMessage($"\n   - {pipeFile}");
                     ed.WriteMessage($"\n   - {structureFile}");
 
@@ -330,7 +330,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -359,12 +359,12 @@ namespace MyFirstProject.VisualINFRA
                     var pipe = tr.GetObject(pipeResult.ObjectId, OpenMode.ForWrite) as Pipe;
                     if (pipe == null)
                     {
-                        ed.WriteMessage("\n❌ Đối tượng không phải Pipe.");
+                        ed.WriteMessage("\n Đối tượng không phải Pipe.");
                         tr.Commit();
                         return;
                     }
 
-                    ed.WriteMessage($"\n📊 Thông tin Pipe: {pipe.Name}");
+                    ed.WriteMessage($"\n Thông tin Pipe: {pipe.Name}");
                     ed.WriteMessage($"\n   Cao độ đầu: {pipe.StartPoint.Z:F3}");
                     ed.WriteMessage($"\n   Cao độ cuối: {pipe.EndPoint.Z:F3}");
 
@@ -385,7 +385,7 @@ namespace MyFirstProject.VisualINFRA
                     pipe.StartPoint = new Point3d(startPt.X, startPt.Y, startPt.Z + delta);
                     pipe.EndPoint = new Point3d(endPt.X, endPt.Y, endPt.Z + delta);
 
-                    ed.WriteMessage($"\n✅ Đã dịch chuyển Pipe {delta:F3}m");
+                    ed.WriteMessage($"\n Đã dịch chuyển Pipe {delta:F3}m");
                     ed.WriteMessage($"\n   Cao độ đầu mới: {pipe.StartPoint.Z:F3}");
                     ed.WriteMessage($"\n   Cao độ cuối mới: {pipe.EndPoint.Z:F3}");
 
@@ -394,7 +394,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -423,12 +423,12 @@ namespace MyFirstProject.VisualINFRA
                     var structure = tr.GetObject(strResult.ObjectId, OpenMode.ForWrite) as Structure;
                     if (structure == null)
                     {
-                        ed.WriteMessage("\n❌ Đối tượng không phải Structure.");
+                        ed.WriteMessage("\n Đối tượng không phải Structure.");
                         tr.Commit();
                         return;
                     }
 
-                    ed.WriteMessage($"\n📊 Thông tin Structure: {structure.Name}");
+                    ed.WriteMessage($"\n Thông tin Structure: {structure.Name}");
                     ed.WriteMessage($"\n   Rim Elevation: {structure.RimElevation:F3}");
                     ed.WriteMessage($"\n   Sump Elevation: {structure.SumpElevation:F3}");
 
@@ -459,7 +459,7 @@ namespace MyFirstProject.VisualINFRA
                             break;
                     }
 
-                    ed.WriteMessage($"\n✅ Đã thay đổi cao độ Structure.");
+                    ed.WriteMessage($"\n Đã thay đổi cao độ Structure.");
                     ed.WriteMessage($"\n   Rim Elevation mới: {structure.RimElevation:F3}");
                     ed.WriteMessage($"\n   Sump Elevation mới: {structure.SumpElevation:F3}");
 
@@ -468,7 +468,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -492,7 +492,7 @@ namespace MyFirstProject.VisualINFRA
                 var networkIds = civilDoc.GetPipeNetworkIds();
                 
                 ed.WriteMessage($"\n\n{'=',-80}");
-                ed.WriteMessage($"\n📊 TỔNG HỢP PIPE NETWORK");
+                ed.WriteMessage($"\n TỔNG HỢP PIPE NETWORK");
                 ed.WriteMessage($"\n{'=',-80}");
                 ed.WriteMessage($"\n{"Tên Network",-30} {"Số Pipe",-12} {"Tổng dài (m)",-15} {"Số Structure",-12}");
                 ed.WriteMessage($"\n{new string('-', 80)}");
@@ -534,7 +534,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -547,7 +547,7 @@ namespace MyFirstProject.VisualINFRA
             var networkIds = civilDoc.GetPipeNetworkIds();
             if (networkIds.Count == 0)
             {
-                ed.WriteMessage("\n❌ Không có Pipe Network.");
+                ed.WriteMessage("\n Không có Pipe Network.");
                 return ObjectId.Null;
             }
 

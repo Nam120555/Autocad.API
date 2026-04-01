@@ -1,4 +1,4 @@
-﻿// CurveDesignStandards.cs - Thiết lập thông số đường cong theo tiêu chuẩn VN
+// CurveDesignStandards.cs - Thiết lập thông số đường cong theo tiêu chuẩn VN
 // TCVN 4054:2005 - Đường ô tô (ngoài đô thị)
 // TCVN 13592:2022 - Đường đô thị
 
@@ -617,7 +617,7 @@ namespace MyFirstProject
     /// <summary>
     /// Form thiết lập thông số đường cong
     /// </summary>
-    public class CurveDesignForm : Form
+    public class CurveDesignForm : CivilFormBase
     {
         private ComboBox cboStandard = null!;
         private ComboBox cboSpeed = null!;
@@ -635,76 +635,114 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.Text = "Thiết lập thông số đường cong - Tiêu chuẩn VN";
-            this.Size = new System.Drawing.Size(650, 500);
-            this.StartPosition = FormStartPosition.CenterScreen;
+            InitBaseTheme("Thông số đường cong", 650, 520);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
+
+            var header = CreateHeader("TIÊU CHUẨN THIẾT KẾ ĐƯỜNG CONG");
+            this.Controls.Add(header);
+
+            // Container for Settings
+            var pnlSettings = CreateSection("Tùy chọn thiết kế", 10, 60, 615, 120);
+            this.Controls.Add(pnlSettings);
 
             // Tiêu chuẩn
-            var lblStandard = new System.Windows.Forms.Label { Text = "Tiêu chuẩn:", Location = new System.Drawing.Point(15, 20), AutoSize = true };
+            var lblStandard = CreateLabel("Tiêu chuẩn:", 15, 30);
             cboStandard = new ComboBox
             {
-                Location = new System.Drawing.Point(120, 17),
-                Width = 250,
-                DropDownStyle = ComboBoxStyle.DropDownList
+                Location = new System.Drawing.Point(120, 27),
+                Width = 475,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                Font = new System.Drawing.Font("Segoe UI", 9f)
             };
             cboStandard.Items.Add($"{TCVN4054_2005.Name} - Đường ngoài đô thị");
             cboStandard.Items.Add($"{TCVN13592_2022.Name} - Đường đô thị");
             cboStandard.SelectedIndex = 0;
             cboStandard.SelectedIndexChanged += (s, e) => LoadData();
+            pnlSettings.Controls.Add(lblStandard);
+            pnlSettings.Controls.Add(cboStandard);
 
             // Vận tốc
-            var lblSpeed = new System.Windows.Forms.Label { Text = "Vận tốc TK:", Location = new System.Drawing.Point(15, 55), AutoSize = true };
+            var lblSpeed = CreateLabel("Vận tốc TK:", 15, 75);
             cboSpeed = new ComboBox
             {
-                Location = new System.Drawing.Point(120, 52),
+                Location = new System.Drawing.Point(120, 72),
                 Width = 120,
-                DropDownStyle = ComboBoxStyle.DropDownList
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                Font = new System.Drawing.Font("Segoe UI", 9f)
             };
             cboSpeed.SelectedIndexChanged += (s, e) => UpdateDisplay();
+            pnlSettings.Controls.Add(lblSpeed);
+            pnlSettings.Controls.Add(cboSpeed);
 
-            var lblKmh = new System.Windows.Forms.Label { Text = "km/h", Location = new System.Drawing.Point(245, 55), AutoSize = true };
+            var lblKmh = CreateLabel("km/h", 245, 75);
+            pnlSettings.Controls.Add(lblKmh);
+
+            // Container for Information
+            var pnlInfo = CreateSection("Thông số", 10, 190, 615, 230);
+            this.Controls.Add(pnlInfo);
 
             // Info label
-            lblInfo = new System.Windows.Forms.Label
-            {
-                Location = new System.Drawing.Point(15, 90),
-                Size = new System.Drawing.Size(600, 60),
-                Font = new System.Drawing.Font("Segoe UI", 9, System.Drawing.FontStyle.Bold)
-            };
+            lblInfo = CreateLabel("", 15, 25);
+            lblInfo.AutoSize = false;
+            lblInfo.Size = new System.Drawing.Size(585, 40);
+            lblInfo.Font = new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Bold);
+            lblInfo.ForeColor = NavyMedium;
+            pnlInfo.Controls.Add(lblInfo);
 
             // DataGridView
             dgvParameters = new DataGridView
             {
-                Location = new System.Drawing.Point(15, 155),
-                Size = new System.Drawing.Size(600, 250),
+                Location = new System.Drawing.Point(15, 70),
+                Size = new System.Drawing.Size(585, 145),
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
                 RowHeadersVisible = false,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                BackgroundColor = BgInput,
+                GridColor = BorderColor,
+                BorderStyle = BorderStyle.FixedSingle,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = BgInput,
+                    ForeColor = TextDark,
+                    SelectionBackColor = NavyMedium,
+                    SelectionForeColor = System.Drawing.Color.White,
+                    Font = new System.Drawing.Font("Segoe UI", 9f)
+                },
+                ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = NavyDark,
+                    ForeColor = System.Drawing.Color.White,
+                    Font = new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Bold),
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                },
+                EnableHeadersVisualStyles = false
             };
 
             dgvParameters.Columns.Add("Param", "Thông số");
             dgvParameters.Columns.Add("Value", "Giá trị");
             dgvParameters.Columns.Add("Unit", "Đơn vị");
             dgvParameters.Columns.Add("Note", "Ghi chú");
+            pnlInfo.Controls.Add(dgvParameters);
 
-            // Buttons
-            btnApply = new Button { Text = "Áp dụng", Location = new System.Drawing.Point(370, 420), Width = 80 };
-            btnCheck = new Button { Text = "Kiểm tra", Location = new System.Drawing.Point(455, 420), Width = 80 };
-            btnClose = new Button { Text = "Đóng", Location = new System.Drawing.Point(540, 420), Width = 80 };
+            // Bottom commands
+            var pnlBottom = CreateBottomBar();
+            this.Controls.Add(pnlBottom);
 
-            btnApply.Click += BtnApply_Click;
+            btnCheck = CreateButton("Kiểm tra Alignment", 15, 8, 160, 36, pnlBottom);
             btnCheck.Click += BtnCheck_Click;
+
+            btnClose = CreateButton("Đóng", 420, 8, 100, 36, pnlBottom);
             btnClose.Click += (s, e) => this.Close();
 
-            this.Controls.AddRange(new Control[] {
-                lblStandard, cboStandard, lblSpeed, cboSpeed, lblKmh,
-                lblInfo, dgvParameters, btnApply, btnCheck, btnClose
-            });
+            btnApply = CreatePrimaryButton("Áp dụng", 530, 8, 100, 36, pnlBottom);
+            btnApply.Click += BtnApply_Click;
         }
 
         private void LoadData()

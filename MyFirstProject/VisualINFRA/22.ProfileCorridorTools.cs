@@ -46,7 +46,7 @@ namespace MyFirstProject.VisualINFRA
                 var alignmentIds = civilDoc.GetAlignmentIds();
                 if (alignmentIds.Count == 0)
                 {
-                    ed.WriteMessage("\n❌ Không có Alignment.");
+                    ed.WriteMessage("\n Không có Alignment.");
                     return;
                 }
 
@@ -96,7 +96,7 @@ namespace MyFirstProject.VisualINFRA
 
                     if (profileViewStyleId.IsNull || bandSetStyleId.IsNull)
                     {
-                        ed.WriteMessage("\n❌ Không tìm thấy Profile View Style hoặc Band Set Style.");
+                        ed.WriteMessage("\n Không tìm thấy Profile View Style hoặc Band Set Style.");
                         tr.Commit();
                         return;
                     }
@@ -114,13 +114,13 @@ namespace MyFirstProject.VisualINFRA
 
                         if (!profileViewId.IsNull)
                         {
-                            ed.WriteMessage($"\n✅ Đã tạo Profile View: PV_{alignmentName}");
+                            ed.WriteMessage($"\n Đã tạo Profile View: PV_{alignmentName}");
                             VIUtilities.ZoomToEntity(profileViewId);
                         }
                     }
                     catch (System.Exception ex)
                     {
-                        ed.WriteMessage($"\n⚠️ Không thể tạo Profile View tự động: {ex.Message}");
+                        ed.WriteMessage($"\n Không thể tạo Profile View tự động: {ex.Message}");
                         ed.WriteMessage("\n   → Sử dụng lệnh PROFILEVIEWCREATE trong Civil 3D.");
                     }
 
@@ -129,7 +129,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -150,7 +150,7 @@ namespace MyFirstProject.VisualINFRA
                 var surfaceIds = civilDoc.GetSurfaceIds();
                 if (surfaceIds.Count == 0)
                 {
-                    ed.WriteMessage("\n❌ Không có Surface.");
+                    ed.WriteMessage("\n Không có Surface.");
                     return;
                 }
 
@@ -229,7 +229,7 @@ namespace MyFirstProject.VisualINFRA
                                 if (!profileId.IsNull)
                                 {
                                     created++;
-                                    ed.WriteMessage($"\n  ✅ Tạo Profile: {profileName}");
+                                    ed.WriteMessage($"\n  Tạo Profile: {profileName}");
                                 }
                             }
                         }
@@ -239,13 +239,13 @@ namespace MyFirstProject.VisualINFRA
                         }
                     }
 
-                    ed.WriteMessage($"\n\n✅ Đã tạo {created} Profile từ Surface {surfaceName}");
+                    ed.WriteMessage($"\n\n Đã tạo {created} Profile từ Surface {surfaceName}");
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -274,7 +274,7 @@ namespace MyFirstProject.VisualINFRA
                     var profileView = tr.GetObject(pvResult.ObjectId, OpenMode.ForRead) as ProfileView;
                     if (profileView == null)
                     {
-                        ed.WriteMessage("\n❌ Đối tượng không phải Profile View.");
+                        ed.WriteMessage("\n Đối tượng không phải Profile View.");
                         tr.Commit();
                         return;
                     }
@@ -289,7 +289,7 @@ namespace MyFirstProject.VisualINFRA
                         return;
                     }
 
-                    ed.WriteMessage($"\n\n📊 Các Profile trong {alignment.Name}:");
+                    ed.WriteMessage($"\n\n Các Profile trong {alignment.Name}:");
                     var profileIds = alignment.GetProfileIds();
                     var profiles = new List<(int Index, ObjectId Id, string Name)>();
                     
@@ -323,7 +323,7 @@ namespace MyFirstProject.VisualINFRA
 
                     // Tạo Profile mới bằng cách offset
                     // Lưu ý: Civil 3D không có hàm offset trực tiếp, cần tạo Layout Profile
-                    ed.WriteMessage($"\n\n⚠️ Tính năng này yêu cầu tạo Layout Profile.");
+                    ed.WriteMessage($"\n\n Tính năng này yêu cầu tạo Layout Profile.");
                     ed.WriteMessage($"\n   Profile gốc: {sourceProfile.Name}");
                     ed.WriteMessage($"\n   Offset: {offset:F3}m");
                     ed.WriteMessage($"\n   → Sử dụng Civil 3D UI để tạo Offset Profile.");
@@ -333,7 +333,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -358,7 +358,7 @@ namespace MyFirstProject.VisualINFRA
                 var corridorIds = civilDoc.CorridorCollection;
                 if (corridorIds.Count == 0)
                 {
-                    ed.WriteMessage("\n❌ Không có Corridor.");
+                    ed.WriteMessage("\n Không có Corridor.");
                     return;
                 }
 
@@ -406,7 +406,7 @@ namespace MyFirstProject.VisualINFRA
                         var s = tr.GetObject(sid, OpenMode.ForRead) as TinSurface;
                         if (s != null && s.Name == surfaceName)
                         {
-                            ed.WriteMessage($"\n⚠️ Surface '{surfaceName}' đã tồn tại.");
+                            ed.WriteMessage($"\n Surface '{surfaceName}' đã tồn tại.");
                             tr.Commit();
                             return;
                         }
@@ -423,18 +423,18 @@ namespace MyFirstProject.VisualINFRA
                             var newCorSurf = corSurfaces[surfaceName];
                             
                             // Thông báo cho người dùng cấu hình surface qua UI
-                            ed.WriteMessage($"\n   ⚠️ Surface '{surfaceName}' đã được tạo.");
+                            ed.WriteMessage($"\n    Surface '{surfaceName}' đã được tạo.");
                             ed.WriteMessage($"\n   → Sử dụng Properties để thêm Point Codes/Links vào Surface.");
                         }
                         catch (System.Exception ex)
                         {
-                            ed.WriteMessage($"\n⚠️ Không thể thêm Surface: {ex.Message}");
+                            ed.WriteMessage($"\n Không thể thêm Surface: {ex.Message}");
                         }
                     }
 
                     corridor.Rebuild();
                     
-                    ed.WriteMessage($"\n✅ Đã tạo Surface từ Corridor: {surfaceName}");
+                    ed.WriteMessage($"\n Đã tạo Surface từ Corridor: {surfaceName}");
                     ed.WriteMessage("\n   → Cập nhật Corridor Surface trong Properties.");
 
                     tr.Commit();
@@ -442,7 +442,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -462,7 +462,7 @@ namespace MyFirstProject.VisualINFRA
                 var corridorIds = civilDoc.CorridorCollection;
                 if (corridorIds.Count == 0)
                 {
-                    ed.WriteMessage("\n❌ Không có Corridor.");
+                    ed.WriteMessage("\n Không có Corridor.");
                     return;
                 }
 
@@ -476,17 +476,17 @@ namespace MyFirstProject.VisualINFRA
                         {
                             cor.Rebuild();
                             rebuilt++;
-                            ed.WriteMessage($"\n  ✅ Rebuild: {cor.Name}");
+                            ed.WriteMessage($"\n   Rebuild: {cor.Name}");
                         }
                     }
                     tr.Commit();
                 }
 
-                ed.WriteMessage($"\n\n✅ Đã rebuild {rebuilt} Corridor.");
+                ed.WriteMessage($"\n\n Đã rebuild {rebuilt} Corridor.");
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -506,7 +506,7 @@ namespace MyFirstProject.VisualINFRA
                 var corridorIds = civilDoc.CorridorCollection;
                 
                 ed.WriteMessage($"\n\n{'=',-70}");
-                ed.WriteMessage($"\n📊 THÔNG TIN CORRIDOR");
+                ed.WriteMessage($"\n THÔNG TIN CORRIDOR");
                 ed.WriteMessage($"\n{'=',-70}");
                 ed.WriteMessage($"\n{"Tên",-25} {"Baselines",-10} {"Regions",-10} {"Surfaces",-15}");
                 ed.WriteMessage($"\n{new string('-', 70)}");
@@ -536,7 +536,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 

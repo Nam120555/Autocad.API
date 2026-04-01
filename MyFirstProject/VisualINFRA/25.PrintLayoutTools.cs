@@ -110,13 +110,13 @@ namespace MyFirstProject.VisualINFRA
                     tr.Commit();
                 }
 
-                ed.WriteMessage($"\n✅ Đã tạo khung tuyến:");
+                ed.WriteMessage($"\n Đã tạo khung tuyến:");
                 ed.WriteMessage($"\n   Kích thước: {realWidth:F2}m x {realHeight:F2}m");
                 ed.WriteMessage($"\n   Tỷ lệ: 1:{scale:F0}");
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -139,7 +139,7 @@ namespace MyFirstProject.VisualINFRA
                 // Chuyển sang Layout nếu đang ở Model
                 if (doc.Database.TileMode)
                 {
-                    ed.WriteMessage("\n⚠️ Đang ở Model Space. Chuyển sang Layout để tạo Viewport.");
+                    ed.WriteMessage("\n Đang ở Model Space. Chuyển sang Layout để tạo Viewport.");
                     return;
                 }
 
@@ -175,13 +175,13 @@ namespace MyFirstProject.VisualINFRA
                     tr.AddNewlyCreatedDBObject(vp, true);
                     vp.On = true;
 
-                    ed.WriteMessage($"\n✅ Đã tạo Viewport với tỷ lệ 1:{scale:F0}");
+                    ed.WriteMessage($"\n Đã tạo Viewport với tỷ lệ 1:{scale:F0}");
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -268,11 +268,11 @@ namespace MyFirstProject.VisualINFRA
                     tr.Commit();
                 }
 
-                ed.WriteMessage($"\n✅ Đã tạo {count} khung trắc ngang ({(count + cols - 1) / cols} hàng x {cols} cột)");
+                ed.WriteMessage($"\n Đã tạo {count} khung trắc ngang ({(count + cols - 1) / cols} hàng x {cols} cột)");
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -300,7 +300,7 @@ namespace MyFirstProject.VisualINFRA
 
                 if (svResult.Status != PromptStatus.OK || svResult.Value.Count == 0)
                 {
-                    ed.WriteMessage("\n❌ Không chọn được Section View.");
+                    ed.WriteMessage("\n Không chọn được Section View.");
                     return;
                 }
 
@@ -352,12 +352,12 @@ namespace MyFirstProject.VisualINFRA
                     }
 
                     tr.Commit();
-                    ed.WriteMessage($"\n✅ Đã fit {count} Section View vào khung in.");
+                    ed.WriteMessage($"\n Đã fit {count} Section View vào khung in.");
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -394,19 +394,19 @@ namespace MyFirstProject.VisualINFRA
                         if (sv != null && sv.Name.ToUpper().Contains(searchName))
                         {
                             VIUtilities.ZoomToEntity(sv.ObjectId);
-                            ed.WriteMessage($"\n✅ Đã zoom đến Section View: {sv.Name}");
+                            ed.WriteMessage($"\n Đã zoom đến Section View: {sv.Name}");
                             tr.Commit();
                             return;
                         }
                     }
 
-                    ed.WriteMessage($"\n❌ Không tìm thấy Section View chứa '{searchName}'.");
+                    ed.WriteMessage($"\n Không tìm thấy Section View chứa '{searchName}'.");
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -431,7 +431,7 @@ namespace MyFirstProject.VisualINFRA
 
                 if (currentLayout == "Model")
                 {
-                    ed.WriteMessage("\n❌ Không thể copy Model Space.");
+                    ed.WriteMessage("\n Không thể copy Model Space.");
                     return;
                 }
 
@@ -442,7 +442,7 @@ namespace MyFirstProject.VisualINFRA
 
                 if (string.IsNullOrWhiteSpace(newName))
                 {
-                    ed.WriteMessage("\n❌ Tên Layout không hợp lệ.");
+                    ed.WriteMessage("\n Tên Layout không hợp lệ.");
                     return;
                 }
 
@@ -454,7 +454,7 @@ namespace MyFirstProject.VisualINFRA
                     var layoutDict = tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead) as DBDictionary;
                     if (layoutDict!.Contains(newName))
                     {
-                        ed.WriteMessage($"\n❌ Layout '{newName}' đã tồn tại.");
+                        ed.WriteMessage($"\n Layout '{newName}' đã tồn tại.");
                         tr.Commit();
                         return;
                     }
@@ -462,13 +462,13 @@ namespace MyFirstProject.VisualINFRA
                     // Copy layout
                     layoutMgr.CopyLayout(currentLayout, newName);
 
-                    ed.WriteMessage($"\n✅ Đã copy Layout '{currentLayout}' thành '{newName}'.");
+                    ed.WriteMessage($"\n Đã copy Layout '{currentLayout}' thành '{newName}'.");
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -493,7 +493,7 @@ namespace MyFirstProject.VisualINFRA
                     var layoutDict = tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead) as DBDictionary;
 
                     ed.WriteMessage($"\n\n{'=',-50}");
-                    ed.WriteMessage($"\n📋 DANH SÁCH LAYOUT");
+                    ed.WriteMessage($"\n DANH SÁCH LAYOUT");
                     ed.WriteMessage($"\n{'=',-50}");
 
                     int stt = 1;
@@ -514,7 +514,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 

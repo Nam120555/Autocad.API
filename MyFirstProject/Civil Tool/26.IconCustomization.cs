@@ -17,7 +17,7 @@ namespace MyFirstProject
     /// <summary>
     /// Form cho phép đổi icon của từng lệnh
     /// </summary>
-    public class IconCustomizationForm : Form
+    public class IconCustomizationForm : CivilFormBase
     {
         private ListView listViewCommands = null!;
         private Panel panelIconPicker = null!;
@@ -49,7 +49,6 @@ namespace MyFirstProject
             "★", "☆", "✦", "✧", "✪", "✫", "✬", "✭",
             "✓", "✔", "✕", "✖", "✗", "✘", "✚", "✛",
             // Công cụ và biểu tượng
-            "⚙", "⚡", "⚠", "⚑", "⚐", "⛏", "⛨", "⛫",
             "⌂", "⌘", "⌥", "⎔", "⎖", "⏏", "⏚", "⏛",
             // Bảng và danh sách
             "▤", "▥", "▦", "▧", "▨", "▩", "▭", "▬",
@@ -72,17 +71,14 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.Text = "🎨 Thiết kế Giao diện - Civil Tool Professional";
-            this.Size = new Size(950, 700);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = Color.White;
-            this.Font = new Font("Segoe UI", 9);
+            InitBaseTheme("Thiết kế Giao diện - Civil Tool Professional", 950, 700);
 
             var mainContainer = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 Padding = new Padding(20),
+                BackColor = BgWhite
             };
             mainContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             mainContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
@@ -94,7 +90,7 @@ namespace MyFirstProject
             {
                 Text = "DANH SÁCH CÔNG CỤ",
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                ForeColor = Color.FromArgb(33, 150, 243),
+                ForeColor = NavyMedium,
                 Dock = DockStyle.Top,
                 Height = 35
             };
@@ -104,7 +100,10 @@ namespace MyFirstProject
                 Dock = DockStyle.Top,
                 Height = 30,
                 Font = new Font("Segoe UI", 10),
-                PlaceholderText = "🔍 Tìm nhanh lệnh thiết kế..."
+                PlaceholderText = "Tìm nhanh lệnh thiết kế...",
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                BorderStyle = BorderStyle.FixedSingle
             };
             txtSearch.TextChanged += TxtSearch_TextChanged;
 
@@ -115,7 +114,9 @@ namespace MyFirstProject
                 FullRowSelect = true,
                 GridLines = false,
                 Font = new Font("Segoe UI", 10),
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             listViewCommands.Columns.Add("Icon", 60);
             listViewCommands.Columns.Add("Lệnh", 150);
@@ -134,7 +135,7 @@ namespace MyFirstProject
             {
                 Text = "CÁ NHÂN HÓA BIỂU TƯỢNG",
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                ForeColor = Color.FromArgb(76, 175, 80),
+                ForeColor = NavyMedium,
                 Dock = DockStyle.Top,
                 Height = 35
             };
@@ -143,7 +144,7 @@ namespace MyFirstProject
             {
                 Dock = DockStyle.Top,
                 Height = 120,
-                BackColor = Color.FromArgb(245, 247, 250),
+                BackColor = BgPanel,
                 Padding = new Padding(15),
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -159,11 +160,11 @@ namespace MyFirstProject
 
             lblPreview = new Label
             {
-                Text = "⚡",
+                Text = "*",
                 Font = new Font("Segoe UI Symbol", 42),
                 TextAlign = ContentAlignment.MiddleCenter,
                 Dock = DockStyle.Fill,
-                ForeColor = Color.Black
+                ForeColor = TextDark
             };
 
             panelPreview.Controls.Add(lblPreview);
@@ -173,7 +174,7 @@ namespace MyFirstProject
             {
                 Dock = DockStyle.Fill,
                 AutoScroll = true,
-                BackColor = Color.White,
+                BackColor = BgWhite,
                 Padding = new Padding(5, 15, 5, 5)
             };
 
@@ -187,7 +188,9 @@ namespace MyFirstProject
                     FlatStyle = FlatStyle.Flat,
                     Margin = new Padding(4),
                     Tag = emoji,
-                    BackColor = Color.FromArgb(250, 250, 250)
+                    BackColor = BgInput,
+                    ForeColor = TextDark,
+                    Cursor = Cursors.Hand
                 };
                 btn.FlatAppearance.BorderSize = 1;
                 btn.FlatAppearance.BorderColor = Color.LightGray;
@@ -195,32 +198,14 @@ namespace MyFirstProject
                 panelIconPicker.Controls.Add(btn);
             }
 
-            var panelFooter = new Panel { Dock = DockStyle.Bottom, Height = 60, Padding = new Padding(0, 10, 0, 0) };
+            var panelFooter = CreateBottomBar();
+            panelFooter.Padding = new Padding(0, 10, 0, 0);
             
-            btnApply = new Button
-            {
-                Text = "ÁP DỤNG THAY ĐỔI",
-                Size = new Size(220, 40),
-                Location = new Point(0, 10),
-                BackColor = Color.FromArgb(33, 150, 243),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
-            };
+            btnApply = CreatePrimaryButton("ÁP DỤNG THAY ĐỔI", 0, 10, 220, 40, panelFooter);
             btnApply.Click += BtnApply_Click;
 
-            btnClose = new Button
-            {
-                Text = "ĐÓNG",
-                Size = new Size(100, 40),
-                Location = new Point(230, 10),
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10)
-            };
+            btnClose = CreateButton("ĐÓNG", 230, 10, 100, 40, panelFooter);
             btnClose.Click += (s, e) => this.Close();
-
-            panelFooter.Controls.Add(btnApply);
-            panelFooter.Controls.Add(btnClose);
 
             panelRight.Controls.Add(panelIconPicker);
             panelRight.Controls.Add(panelPreview);
@@ -289,7 +274,7 @@ namespace MyFirstProject
                 ("CTDS_SaveClean", "◎ Lưu sạch"),
                 ("CTDS_PrintAllLayouts", "▤ In tất cả"),
                 ("CTDS_PrintCurrentLayout", "▤ In hiện tại"),
-                ("CTDS_ExportPDF", "⬇ Xuất PDF"),
+                ("CTDS_ExportPDF", "Xuất PDF"),
                 ("CTDS_ConvertMM2M", "◈ mm → m"),
                 ("CTDS_ConvertCM2M", "◈ cm → m"),
                 
@@ -308,7 +293,7 @@ namespace MyFirstProject
                 // Common Utilities
                 ("CTU_MakePointFromText", "⊕ Tạo Point từ Text"),
                 ("CTU_TotalLength", "━ Tổng chiều dài"),
-                ("CTU_ExportTextCoords", "⬇ Xuất tọa độ Text"),
+                ("CTU_ExportTextCoords", "Xuất tọa độ Text"),
                 ("CTU_TextToMText", "▭ Text → MText"),
                 ("CTU_FindIntersections", "◎ Tìm điểm giao"),
                 ("CTU_AddPolylineVertices", "⊕ Thêm đỉnh Polyline"),
@@ -319,12 +304,12 @@ namespace MyFirstProject
                 ("CTC_TraCuuDuongCong", "◎ Tra cứu thông số"),
                 ("CTC_ThongSoDuongCong_4054", "▤ Bảng TCVN 4054"),
                 ("CTC_ThongSoDuongCong_13592", "▤ Bảng TCVN 13592"),
-                ("CTC_KiemTraDuongCong_4054", "⚙ Kiểm tra theo 4054"),
-                ("CTC_KiemTraDuongCong_13592", "⚙ Kiểm tra theo 13592"),
+                ("CTC_KiemTraDuongCong_4054", "Kiểm tra theo 4054"),
+                ("CTC_KiemTraDuongCong_13592", "Kiểm tra theo 13592"),
                 
                 // Volume Calculation
                 ("CTSV_XuatKhoiLuong", "◈ Xuất khối lượng"),
-                ("CTSV_CaiDat", "⚙ Cài đặt"),
+                ("CTSV_CaiDat", "Cài đặt"),
                 ("CTSV_Taskbar", "▤ Taskbar")
             ];
         }
@@ -406,10 +391,10 @@ namespace MyFirstProject
         private System.Drawing.Color GetThemeColorForCommand(string command)
         {
             if (command.StartsWith("CTS_") || command.StartsWith("CTPo_")) return ColorTranslator.FromHtml("#4CAF50");
-            if (command.StartsWith("CTPv_") || command.StartsWith("CTP_")) return ColorTranslator.FromHtml("#2196F3");
+            if (command.StartsWith("CTPv_") || command.StartsWith("CTP_")) return NavyMedium;
             if (command.StartsWith("CTSv_") || command.StartsWith("CTC_")) return ColorTranslator.FromHtml("#FFC107");
-            if (command.StartsWith("CTL_")) return ColorTranslator.FromHtml("#424242");
-            return ColorTranslator.FromHtml("#00BCD4");
+            if (command.StartsWith("CTL_")) return TextDark;
+            return NavyDark;
         }
 
         private void BtnApply_Click(object? sender, EventArgs e)
@@ -499,7 +484,7 @@ namespace MyFirstProject
                 ("CTDS_SaveClean", "◎ Lưu sạch"),
                 ("CTDS_PrintAllLayouts", "▤ In tất cả"),
                 ("CTDS_PrintCurrentLayout", "▤ In hiện tại"),
-                ("CTDS_ExportPDF", "⬇ Xuất PDF"),
+                ("CTDS_ExportPDF", "Xuất PDF"),
                 ("CTDS_ConvertMM2M", "◈ mm → m"),
                 ("CTDS_ConvertCM2M", "◈ cm → m"),
                 ("CTL_ToText", "T Sang Text"),
@@ -514,7 +499,7 @@ namespace MyFirstProject
                 ("CTL_ToPhantom", "┅ Sang Phantom"),
                 ("CTU_MakePointFromText", "⊕ Tạo Point từ Text"),
                 ("CTU_TotalLength", "━ Tổng chiều dài"),
-                ("CTU_ExportTextCoords", "⬇ Xuất tọa độ Text"),
+                ("CTU_ExportTextCoords", "Xuất tọa độ Text"),
                 ("CTU_TextToMText", "▭ Text → MText"),
                 ("CTU_FindIntersections", "◎ Tìm điểm giao"),
                 ("CTU_AddPolylineVertices", "⊕ Thêm đỉnh Polyline"),
@@ -523,13 +508,13 @@ namespace MyFirstProject
                 ("CTC_TraCuuDuongCong", "◎ Tra cứu thông số"),
                 ("CTC_ThongSoDuongCong_4054", "▤ Bảng TCVN 4054"),
                 ("CTC_ThongSoDuongCong_13592", "▤ Bảng TCVN 13592"),
-                ("CTC_KiemTraDuongCong_4054", "⚙ Kiểm tra theo 4054"),
-                ("CTC_KiemTraDuongCong_13592", "⚙ Kiểm tra theo 13592"),
+                ("CTC_KiemTraDuongCong_4054", "Kiểm tra theo 4054"),
+                ("CTC_KiemTraDuongCong_13592", "Kiểm tra theo 13592"),
                 ("CTSV_XuatKhoiLuong", "◈ Xuất khối lượng"),
-                ("CTSV_CaiDat", "⚙ Cài đặt"),
+                ("CTSV_CaiDat", "Cài đặt"),
                 ("CTSV_Taskbar", "▤ Taskbar"),
-                ("CT_DoiIcon", "🎨 Đổi Icon lệnh"),
-                ("CT_DanhSachLenh", "📋 Danh sách lệnh"),
+                ("CT_DoiIcon", "Đổi Icon lệnh"),
+                ("CT_DanhSachLenh", "Danh sách lệnh"),
                 ("show_menu", "▤ Hiện Ribbon Menu")
             ];
         }

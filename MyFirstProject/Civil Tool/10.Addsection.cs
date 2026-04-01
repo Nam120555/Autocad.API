@@ -37,18 +37,8 @@ namespace MyFirstProject
     /// Form tùy chọn cho lệnh CTC_AddAllSection
     /// Dark theme giống các form khác trong project
     /// </summary>
-    public class AddSectionForm : Form
+    public class AddSectionForm : CivilFormBase
     {
-        // ─── Theme Colors (Navy / White) ───
-        private static readonly Color BgDark = Color.FromArgb(255, 255, 255);
-        private static readonly Color BgPanel = Color.FromArgb(245, 247, 250);
-        private static readonly Color BgInput = Color.FromArgb(255, 255, 255);
-        private static readonly Color AccentBlue = Color.FromArgb(27, 42, 74);
-        private static readonly Color HeaderBlue = Color.FromArgb(27, 42, 74);
-        private static readonly Color TextWhite = Color.FromArgb(61, 61, 61);
-        private static readonly Color TextDim = Color.FromArgb(122, 122, 122);
-        private static readonly Color BorderColor = Color.FromArgb(208, 213, 221);
-        private static readonly Color GreenOk = Color.FromArgb(46, 160, 67);
 
         // ─── Controls ───
         private ComboBox cboCorridor = null!;
@@ -145,43 +135,25 @@ namespace MyFirstProject
         private void InitializeUI()
         {
             // ── Form ──
-            this.Text = "THÊM SECTION VÀO CORRIDOR — Civil Tool";
-            this.Size = new Size(750, 700);
-            this.StartPosition = FormStartPosition.CenterScreen;
+            InitBaseTheme("THÊM SECTION VÀO CORRIDOR", 750, 700);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.BackColor = BgDark;
-            this.ForeColor = TextWhite;
-            this.Font = new Font("Segoe UI", 9.5f);
 
             // ── HEADER ──
-            var header = new Panel { Dock = DockStyle.Top, Height = 52, BackColor = HeaderBlue };
-            var lblTitle = new WinLabel
-            {
-                Text = "📐  THÊM SECTION VÀO CORRIDOR",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.White,
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Dock = DockStyle.Fill,
-                Padding = new Padding(16, 0, 0, 0)
-            };
-            header.Controls.Add(lblTitle);
+            var header = CreateHeader("THÊM SECTION VÀO CORRIDOR");
             this.Controls.Add(header);
 
             // ── SUBTITLE ──
             var subtitle = new WinLabel
             {
                 Text = "Thêm section tại vị trí SampleLine hoặc vị trí Polyline giao cắt alignment.",
-                Font = new Font("Segoe UI", 8.5f),
-                ForeColor = TextDim,
+                Font = new Font("Segoe UI", 9.5f),
+                ForeColor = TextDark,
                 AutoSize = false,
-                Height = 26,
+                Height = 35,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Top,
-                Padding = new Padding(18, 0, 0, 0),
-                BackColor = Color.FromArgb(245, 247, 250)
+                Padding = new Padding(15, 0, 0, 0),
+                BackColor = BgPanel
             };
             this.Controls.Add(subtitle);
             subtitle.BringToFront();
@@ -201,17 +173,17 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 1: CHỌN CORRIDOR
             // ═══════════════════════════════════════════════════
-            var grpCorridor = CreateGroupBox("🛣  Chọn Corridor", 0, y, 700, 85);
+            var grpCorridor = CreateSection("Chọn Corridor", 0, y, 700, 85);
             mainPanel.Controls.Add(grpCorridor);
 
-            grpCorridor.Controls.Add(CreateLabel("Corridor:", 12, 30));
+            grpCorridor.Controls.Add(CreateLabel("Corridor:", 12, 33));
             cboCorridor = new ComboBox
             {
-                Location = new Point(100, 27),
+                Location = new Point(100, 29),
                 Size = new Size(350, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 9.5f)
             };
@@ -221,25 +193,24 @@ namespace MyFirstProject
             cboCorridor.SelectedIndexChanged += (s, e) => OnCorridorChanged();
             grpCorridor.Controls.Add(cboCorridor);
 
-            lblCorridorInfo = CreateLabel("", 470, 30);
-            lblCorridorInfo.ForeColor = TextDim;
+            lblCorridorInfo = CreateLabel("", 470, 33);
             lblCorridorInfo.AutoSize = true;
             grpCorridor.Controls.Add(lblCorridorInfo);
 
-            y += 95;
+            y += 100;
 
             // ═══════════════════════════════════════════════════
             // SECTION 2: CHẾ ĐỘ THÊM SECTION
             // ═══════════════════════════════════════════════════
-            var grpMode = CreateGroupBox("⚙  Chế độ thêm Section", 0, y, 700, 180);
+            var grpMode = CreateSection("Chế độ thêm Section", 0, y, 700, 190);
             mainPanel.Controls.Add(grpMode);
 
             rdoSampleLine = new RadioButton
             {
-                Text = "📏 Từ SampleLine — Lấy station từ nhóm cọc có sẵn",
-                Location = new Point(15, 28),
+                Text = "Từ SampleLine — Lấy station từ nhóm cọc có sẵn",
+                Location = new Point(15, 30),
                 Size = new Size(500, 24),
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9.5f),
                 Checked = true,
                 FlatStyle = FlatStyle.Flat
@@ -249,10 +220,10 @@ namespace MyFirstProject
 
             rdoPolyline = new RadioButton
             {
-                Text = "✏️ Từ Polyline — Chọn polyline giao cắt corridor, thêm section tại giao điểm",
-                Location = new Point(15, 55),
+                Text = "Từ Polyline — Chọn polyline giao cắt corridor, thêm section tại giao điểm",
+                Location = new Point(15, 60),
                 Size = new Size(650, 24),
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9.5f),
                 FlatStyle = FlatStyle.Flat
             };
@@ -261,9 +232,9 @@ namespace MyFirstProject
             // ── Panel SampleLine ──
             pnlSampleLine = new Panel
             {
-                Location = new Point(10, 85),
+                Location = new Point(10, 95),
                 Size = new Size(680, 45),
-                BackColor = Color.FromArgb(245, 247, 250)
+                BackColor = BgPanel
             };
             grpMode.Controls.Add(pnlSampleLine);
 
@@ -274,7 +245,7 @@ namespace MyFirstProject
                 Size = new Size(350, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 9.5f)
             };
@@ -283,27 +254,15 @@ namespace MyFirstProject
             // ── Panel Polyline ──
             pnlPolyline = new Panel
             {
-                Location = new Point(10, 85),
+                Location = new Point(10, 95),
                 Size = new Size(680, 80),
-                BackColor = Color.FromArgb(245, 247, 250),
+                BackColor = BgPanel,
                 Visible = false
             };
             grpMode.Controls.Add(pnlPolyline);
 
-            btnSelectPolylines = new Button
-            {
-                Text = "🖱  Chọn Polyline trên bản vẽ...",
-                Location = new Point(5, 8),
-                Size = new Size(250, 32),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = AccentBlue,
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f),
-                Cursor = Cursors.Hand
-            };
-            btnSelectPolylines.FlatAppearance.BorderColor = Color.FromArgb(16, 28, 52);
+            btnSelectPolylines = CreateButton("Chọn Polyline trên bản vẽ...", 5, 8, 250, 32, pnlPolyline);
             btnSelectPolylines.Click += BtnSelectPolylines_Click;
-            pnlPolyline.Controls.Add(btnSelectPolylines);
 
             lblPolylineCount = CreateLabel("Chưa chọn polyline nào", 270, 14);
             lblPolylineCount.ForeColor = TextDim;
@@ -321,42 +280,40 @@ namespace MyFirstProject
                 DecimalPlaces = 2,
                 Increment = (decimal)0.1,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             pnlPolyline.Controls.Add(numTolerance);
 
             var lblToleranceInfo = CreateLabel("(Khoảng cách tối đa từ polyline đến alignment để coi là giao cắt)", 210, 50);
-            lblToleranceInfo.ForeColor = TextDim;
-            lblToleranceInfo.AutoSize = true;
-            lblToleranceInfo.Font = new Font("Segoe UI", 8f);
+            lblToleranceInfo.Font = new Font("Segoe UI", 8.5f);
             pnlPolyline.Controls.Add(lblToleranceInfo);
 
-            y += 190;
+            y += 205;
 
             // ── Checkbox Clear ──
             chkClearOld = new CheckBox
             {
-                Text = "🗑  Xóa các station bổ sung cũ trước khi thêm mới (ClearAdditionalStations)",
+                Text = "Xóa các station bổ sung cũ trước khi thêm mới (ClearAdditionalStations)",
                 Location = new Point(15, y),
                 Size = new Size(600, 24),
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f),
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f),
                 Checked = true,
                 FlatStyle = FlatStyle.Flat
             };
             mainPanel.Controls.Add(chkClearOld);
-            y += 35;
+            y += 40;
 
             // ═══════════════════════════════════════════════════
             // SECTION 3: PREVIEW
             // ═══════════════════════════════════════════════════
-            var grpPreview = CreateGroupBox("📋  Preview danh sách Station sẽ thêm", 0, y, 700, 200);
+            var grpPreview = CreateSection("Preview danh sách Station sẽ thêm", 0, y, 700, 200);
             mainPanel.Controls.Add(grpPreview);
 
             dgvPreview = new DataGridView
             {
-                Location = new Point(10, 25),
-                Size = new Size(680, 140),
+                Location = new Point(10, 30),
+                Size = new Size(680, 130),
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
@@ -368,20 +325,21 @@ namespace MyFirstProject
                 DefaultCellStyle = new DataGridViewCellStyle
                 {
                     BackColor = BgInput,
-                    ForeColor = TextWhite,
-                    SelectionBackColor = AccentBlue,
-                    SelectionForeColor = TextWhite,
+                    ForeColor = TextDark,
+                    SelectionBackColor = NavyMedium,
+                    SelectionForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f)
                 },
                 ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
                 {
-                    BackColor = Color.FromArgb(245, 247, 250),
-                    ForeColor = TextWhite,
+                    BackColor = NavyDark,
+                    ForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f, FontStyle.Bold),
                     Alignment = DataGridViewContentAlignment.MiddleCenter
                 },
                 EnableHeadersVisualStyles = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                ColumnHeadersHeight = 32
             };
             dgvPreview.Columns.Add("STT", "STT");
             dgvPreview.Columns.Add("Baseline", "Baseline");
@@ -393,33 +351,22 @@ namespace MyFirstProject
             grpPreview.Controls.Add(dgvPreview);
 
             lblTotal = CreateLabel("Tổng: 0 station", 10, 170);
-            lblTotal.ForeColor = TextDim;
-            lblTotal.AutoSize = true;
+            lblTotal.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
             grpPreview.Controls.Add(lblTotal);
-
-            y += 210;
 
             // ═══════════════════════════════════════════════════
             // BOTTOM BUTTONS
             // ═══════════════════════════════════════════════════
-            var pnlBottom = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 55,
-                BackColor = Color.FromArgb(245, 247, 250),
-                Padding = new Padding(12, 8, 12, 8)
-            };
+            var pnlBottom = CreateBottomBar();
             this.Controls.Add(pnlBottom);
 
-            btnPreview = CreateButton("🔍 Preview", 350, 8, 120, 36, pnlBottom);
+            btnPreview = CreateButton("Preview", 380, 8, 110, 36, pnlBottom);
             btnPreview.Click += BtnPreview_Click;
 
-            btnCancel = CreateButton("✖ Hủy", 490, 8, 100, 36, pnlBottom);
+            btnCancel = CreateButton("Hủy", 500, 8, 100, 36, pnlBottom);
             btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
 
-            btnExecute = CreateButton("✅ Thực hiện", 605, 8, 120, 36, pnlBottom);
-            btnExecute.BackColor = GreenOk;
-            btnExecute.FlatAppearance.BorderColor = Color.FromArgb(35, 134, 54);
+            btnExecute = CreatePrimaryButton("Thực hiện", 610, 8, 120, 36, pnlBottom);
             btnExecute.Click += BtnExecute_Click;
 
             // Initialize
@@ -525,7 +472,6 @@ namespace MyFirstProject
             // Hiện lại form
             this.Show();
             lblPolylineCount.Text = $"Đã chọn {selectedPolylineIds.Count} polyline";
-            lblPolylineCount.ForeColor = selectedPolylineIds.Count > 0 ? GreenOk : TextDim;
         }
 
         private void BtnPreview_Click(object? sender, EventArgs e)
@@ -571,7 +517,6 @@ namespace MyFirstProject
                 dgvPreview.Rows.Add(item.STT, item.BaselineName, Math.Round(item.Station, 3), item.Nguon);
             }
             lblTotal.Text = $"Tổng: {previewStations.Count} station";
-            lblTotal.ForeColor = previewStations.Count > 0 ? GreenOk : TextDim;
         }
 
         private void PreviewSampleLineMode(Transaction tr, Corridor corridor)
@@ -755,77 +700,6 @@ namespace MyFirstProject
             }
         }
 
-        // ═══════════════════════════════════════════════════
-        // UI HELPERS
-        // ═══════════════════════════════════════════════════
-
-        private Panel CreateGroupBox(string title, int x, int y, int w, int h)
-        {
-            var panel = new Panel
-            {
-                Location = new Point(x, y),
-                Size = new Size(w, h),
-                BackColor = BgPanel,
-                BorderStyle = BorderStyle.FixedSingle
-            };
-
-            var lbl = new WinLabel
-            {
-                Text = title,
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ForeColor = AccentBlue,
-                Location = new Point(10, 5),
-                AutoSize = true
-            };
-            panel.Controls.Add(lbl);
-
-            return panel;
-        }
-
-        private WinLabel CreateLabel(string text, int x, int y)
-        {
-            return new WinLabel
-            {
-                Text = text,
-                Location = new Point(x, y),
-                AutoSize = true,
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9.5f)
-            };
-        }
-
-        private Button CreateButton(string text, int x, int y, int w, int h, Control parent)
-        {
-            var btn = new Button
-            {
-                Text = text,
-                Location = new Point(x, y),
-                Size = new Size(w, h),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f),
-                Cursor = Cursors.Hand,
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            btn.FlatAppearance.BorderColor = BorderColor;
-            btn.FlatAppearance.MouseOverBackColor = AccentBlue;
-            parent.Controls.Add(btn);
-            return btn;
-        }
-
-        private CheckBox CreateCheckBox(string text, int x, int y, bool isChecked)
-        {
-            return new CheckBox
-            {
-                Text = text,
-                Location = new Point(x, y),
-                Size = new Size(600, 24),
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f),
-                Checked = isChecked,
-                FlatStyle = FlatStyle.Flat
-            };
-        }
+        // (Removed UI helpers)
     }
 }

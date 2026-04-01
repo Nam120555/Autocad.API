@@ -141,7 +141,7 @@ namespace MyFirstProject
     /// <summary>
     /// Form chọn Alignments để tính khối lượng
     /// </summary>
-    public class FormChonAlignment : Form
+    public class FormChonAlignment : CivilFormBase
     {
         private CheckedListBox checkedListBox;
         private Button btnOK;
@@ -161,65 +161,34 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.Text = "Chọn Alignments để tính khối lượng";
-            this.Size = new System.Drawing.Size(450, 400);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            InitBaseTheme("Chọn Alignments để tính khối lượng", 450, 400);
 
-            FormLabel lblTitle = new()
-            {
-                Text = "Chọn các Alignment có SampleLineGroup:",
-                Location = new System.Drawing.Point(12, 12),
-                Size = new System.Drawing.Size(400, 20)
-            };
+            FormLabel lblTitle = CreateLabel("Chọn các Alignment có SampleLineGroup:", 12, 12);
             this.Controls.Add(lblTitle);
 
             checkedListBox = new CheckedListBox
             {
                 Location = new System.Drawing.Point(12, 35),
                 Size = new System.Drawing.Size(410, 250),
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                BorderStyle = BorderStyle.FixedSingle,
                 CheckOnClick = true
             };
             checkedListBox.ItemCheck += CheckedListBox_ItemCheck;
             this.Controls.Add(checkedListBox);
 
-            btnSelectAll = new Button
-            {
-                Text = "Chọn tất cả",
-                Location = new System.Drawing.Point(12, 295),
-                Size = new System.Drawing.Size(100, 28)
-            };
+            btnSelectAll = CreateButton("Chọn tất cả", 12, 295, 100, 28, this);
             btnSelectAll.Click += (s, e) => SelectAll(true);
-            this.Controls.Add(btnSelectAll);
 
-            btnDeselectAll = new Button
-            {
-                Text = "Bỏ chọn tất cả",
-                Location = new System.Drawing.Point(120, 295),
-                Size = new System.Drawing.Size(100, 28)
-            };
+            btnDeselectAll = CreateButton("Bỏ chọn tất cả", 120, 295, 120, 28, this);
             btnDeselectAll.Click += (s, e) => SelectAll(false);
-            this.Controls.Add(btnDeselectAll);
 
-            btnOK = new Button
-            {
-                Text = "OK",
-                Location = new System.Drawing.Point(240, 330),
-                Size = new System.Drawing.Size(85, 28),
-                DialogResult = DialogResult.OK
-            };
-            this.Controls.Add(btnOK);
+            btnOK = CreatePrimaryButton("OK", 240, 330, 85, 28, this);
+            btnOK.DialogResult = DialogResult.OK;
 
-            btnCancel = new Button
-            {
-                Text = "Hủy",
-                Location = new System.Drawing.Point(335, 330),
-                Size = new System.Drawing.Size(85, 28),
-                DialogResult = DialogResult.Cancel
-            };
-            this.Controls.Add(btnCancel);
+            btnCancel = CreateButton("Hủy", 335, 330, 85, 28, this);
+            btnCancel.DialogResult = DialogResult.Cancel;
 
             this.AcceptButton = btnOK;
             this.CancelButton = btnCancel;
@@ -251,7 +220,7 @@ namespace MyFirstProject
     /// <summary>
     /// Form sắp xếp thứ tự vật liệu
     /// </summary>
-    public class FormSapXepVatLieu : Form
+    public class FormSapXepVatLieu : CivilFormBase
     {
         private ListView listViewMaterials;
         private Button btnMoveUp;
@@ -271,69 +240,32 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.Text = "Sắp xếp thứ tự vật liệu";
-            this.Size = new System.Drawing.Size(500, 450);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            InitBaseTheme("Sắp xếp thứ tự vật liệu", 500, 450);
 
-            FormLabel lblTitle = new()
-            {
-                Text = "Sắp xếp thứ tự các vật liệu (cột trong Excel):",
-                Location = new System.Drawing.Point(12, 12),
-                Size = new System.Drawing.Size(450, 20)
-            };
+            FormLabel lblTitle = CreateLabel("Sắp xếp thứ tự các vật liệu (cột trong Excel):", 12, 12);
             this.Controls.Add(lblTitle);
 
-            listViewMaterials = new ListView
-            {
-                Location = new System.Drawing.Point(12, 35),
-                Size = new System.Drawing.Size(380, 320),
-                View = View.Details,
-                FullRowSelect = true,
-                MultiSelect = false,
-                HideSelection = false
-            };
+            listViewMaterials = CreateListView(12, 35, 380, 320);
+            listViewMaterials.View = View.Details;
+            listViewMaterials.FullRowSelect = true;
+            listViewMaterials.MultiSelect = false;
+            listViewMaterials.HideSelection = false;
+
             listViewMaterials.Columns.Add("STT", 50);
             listViewMaterials.Columns.Add("Tên vật liệu", 300);
             this.Controls.Add(listViewMaterials);
 
-            btnMoveUp = new Button
-            {
-                Text = "▲ Lên",
-                Location = new System.Drawing.Point(405, 100),
-                Size = new System.Drawing.Size(70, 35)
-            };
+            btnMoveUp = CreateButton("▲ Lên", 405, 100, 70, 35, this);
             btnMoveUp.Click += BtnMoveUp_Click;
-            this.Controls.Add(btnMoveUp);
 
-            btnMoveDown = new Button
-            {
-                Text = "▼ Xuống",
-                Location = new System.Drawing.Point(405, 145),
-                Size = new System.Drawing.Size(70, 35)
-            };
+            btnMoveDown = CreateButton("▼ Xuống", 405, 145, 70, 35, this);
             btnMoveDown.Click += BtnMoveDown_Click;
-            this.Controls.Add(btnMoveDown);
 
-            btnOK = new Button
-            {
-                Text = "OK",
-                Location = new System.Drawing.Point(290, 370),
-                Size = new System.Drawing.Size(85, 28),
-                DialogResult = DialogResult.OK
-            };
-            this.Controls.Add(btnOK);
+            btnOK = CreatePrimaryButton("OK", 290, 370, 85, 28, this);
+            btnOK.DialogResult = DialogResult.OK;
 
-            btnCancel = new Button
-            {
-                Text = "Hủy",
-                Location = new System.Drawing.Point(385, 370),
-                Size = new System.Drawing.Size(85, 28),
-                DialogResult = DialogResult.Cancel
-            };
-            this.Controls.Add(btnCancel);
+            btnCancel = CreateButton("Hủy", 385, 370, 85, 28, this);
+            btnCancel.DialogResult = DialogResult.Cancel;
 
             this.AcceptButton = btnOK;
             this.CancelButton = btnCancel;
@@ -384,7 +316,7 @@ namespace MyFirstProject
     /// <summary>
     /// Form cài đặt bảng khối lượng với giao diện đồ họa
     /// </summary>
-    public class TableSettingsForm : Form
+    public class TableSettingsForm : CivilFormBase
     {
         private NumericUpDown nudTextHeight = null!;
         private NumericUpDown nudRowHeight = null!;
@@ -410,41 +342,19 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            this.Text = "Cài đặt Bảng Khối Lượng";
-            this.Size = new System.Drawing.Size(350, 320);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
-            this.ForeColor = System.Drawing.Color.White;
+            InitBaseTheme("Cài đặt Bảng Khối Lượng", 370, 360);
+
+            var header = CreateHeader("CÀI ĐẶT BẢNG KHỐI LƯỢNG");
+            this.Controls.Add(header);
 
             int labelWidth = 150;
             int inputWidth = 100;
             int rowHeight = 35;
             int margin = 20;
-            int y = 20;
-
-            // Title
-            var lblTitle = new FormLabel
-            {
-                Text = "⚙ CÀI ĐẶT BẢNG KHỐI LƯỢNG",
-                Location = new System.Drawing.Point(margin, y),
-                Size = new System.Drawing.Size(300, 25),
-                Font = new System.Drawing.Font("Segoe UI", 11, System.Drawing.FontStyle.Bold),
-                ForeColor = System.Drawing.Color.FromArgb(0, 122, 204)
-            };
-            this.Controls.Add(lblTitle);
-            y += 35;
+            int y = 55;
 
             // 1. Chiều cao text
-            var lblTextHeight = new FormLabel
-            {
-                Text = "Chiều cao chữ (mm):",
-                Location = new System.Drawing.Point(margin, y + 3),
-                Size = new System.Drawing.Size(labelWidth, 20),
-                ForeColor = System.Drawing.Color.White
-            };
+            var lblTextHeight = CreateLabel("Chiều cao chữ (mm):", margin, y + 3);
             this.Controls.Add(lblTextHeight);
 
             nudTextHeight = new NumericUpDown
@@ -456,20 +366,14 @@ namespace MyFirstProject
                 Maximum = 50M,
                 Increment = 0.5M,
                 Value = 3.0M,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             this.Controls.Add(nudTextHeight);
             y += rowHeight;
 
             // 2. Chiều cao hàng
-            var lblRowHeight = new FormLabel
-            {
-                Text = "Chiều cao hàng (mm):",
-                Location = new System.Drawing.Point(margin, y + 3),
-                Size = new System.Drawing.Size(labelWidth, 20),
-                ForeColor = System.Drawing.Color.White
-            };
+            var lblRowHeight = CreateLabel("Chiều cao hàng (mm):", margin, y + 3);
             this.Controls.Add(lblRowHeight);
 
             nudRowHeight = new NumericUpDown
@@ -481,20 +385,14 @@ namespace MyFirstProject
                 Maximum = 100M,
                 Increment = 0.5M,
                 Value = 5.0M,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             this.Controls.Add(nudRowHeight);
             y += rowHeight;
 
             // 3. Chiều rộng cột
-            var lblColWidth = new FormLabel
-            {
-                Text = "Chiều rộng cột (mm):",
-                Location = new System.Drawing.Point(margin, y + 3),
-                Size = new System.Drawing.Size(labelWidth, 20),
-                ForeColor = System.Drawing.Color.White
-            };
+            var lblColWidth = CreateLabel("Chiều rộng cột (mm):", margin, y + 3);
             this.Controls.Add(lblColWidth);
 
             nudColWidth = new NumericUpDown
@@ -506,20 +404,14 @@ namespace MyFirstProject
                 Maximum = 200M,
                 Increment = 5M,
                 Value = 20.0M,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             this.Controls.Add(nudColWidth);
             y += rowHeight;
 
             // 4. Khoảng cách giữa các bảng
-            var lblSpacing = new FormLabel
-            {
-                Text = "Khoảng cách bảng (mm):",
-                Location = new System.Drawing.Point(margin, y + 3),
-                Size = new System.Drawing.Size(labelWidth, 20),
-                ForeColor = System.Drawing.Color.White
-            };
+            var lblSpacing = CreateLabel("Khoảng cách bảng (mm):", margin, y + 3);
             this.Controls.Add(lblSpacing);
 
             nudTableSpacingX = new NumericUpDown
@@ -531,20 +423,14 @@ namespace MyFirstProject
                 Maximum = 500M,
                 Increment = 10M,
                 Value = 50M,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             this.Controls.Add(nudTableSpacingX);
             y += rowHeight;
 
             // 5. Số chữ số thập phân
-            var lblDecimal = new FormLabel
-            {
-                Text = "Số chữ số thập phân:",
-                Location = new System.Drawing.Point(margin, y + 3),
-                Size = new System.Drawing.Size(labelWidth, 20),
-                ForeColor = System.Drawing.Color.White
-            };
+            var lblDecimal = CreateLabel("Số chữ số thập phân:", margin, y + 3);
             this.Controls.Add(lblDecimal);
 
             nudDecimalPlaces = new NumericUpDown
@@ -556,61 +442,25 @@ namespace MyFirstProject
                 Maximum = 6M,
                 Increment = 1M,
                 Value = 3M,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White
+                BackColor = BgInput,
+                ForeColor = TextDark
             };
             this.Controls.Add(nudDecimalPlaces);
             y += rowHeight + 10;
 
             // Buttons
-            int btnWidth = 80;
-            int btnHeight = 30;
-            int btnSpacing = 10;
-            int totalBtnWidth = btnWidth * 3 + btnSpacing * 2;
-            int btnStartX = (this.ClientSize.Width - totalBtnWidth) / 2;
+            var pnlBottom = CreateBottomBar();
+            this.Controls.Add(pnlBottom);
 
-            btnOK = new Button
-            {
-                Text = "✓ Lưu",
-                Location = new System.Drawing.Point(btnStartX, y),
-                Size = new System.Drawing.Size(btnWidth, btnHeight),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(0, 122, 204),
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand,
-                DialogResult = DialogResult.OK
-            };
-            btnOK.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(0, 100, 180);
-            btnOK.Click += BtnOK_Click;
-            this.Controls.Add(btnOK);
-
-            btnReset = new Button
-            {
-                Text = "↺ Reset",
-                Location = new System.Drawing.Point(btnStartX + btnWidth + btnSpacing, y),
-                Size = new System.Drawing.Size(btnWidth, btnHeight),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(200, 150, 50),
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand
-            };
-            btnReset.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(180, 130, 40);
+            btnReset = CreateButton("↺ Reset", 10, 8, 90, 36, pnlBottom);
             btnReset.Click += BtnReset_Click;
-            this.Controls.Add(btnReset);
 
-            btnCancel = new Button
-            {
-                Text = "✕ Hủy",
-                Location = new System.Drawing.Point(btnStartX + (btnWidth + btnSpacing) * 2, y),
-                Size = new System.Drawing.Size(btnWidth, btnHeight),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(100, 100, 105),
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand,
-                DialogResult = DialogResult.Cancel
-            };
-            btnCancel.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(80, 80, 85);
-            this.Controls.Add(btnCancel);
+            btnCancel = CreateButton("Hủy", this.Width - 210, 8, 85, 36, pnlBottom);
+            btnCancel.DialogResult = DialogResult.Cancel;
+
+            btnOK = CreatePrimaryButton("Lưu", this.Width - 110, 8, 85, 36, pnlBottom);
+            btnOK.DialogResult = DialogResult.OK;
+            btnOK.Click += BtnOK_Click;
 
             this.AcceptButton = btnOK;
             this.CancelButton = btnCancel;
@@ -664,7 +514,7 @@ namespace MyFirstProject
     /// <summary>
     /// Form Taskbar nhỏ gọn cho các chức năng tính khối lượng
     /// </summary>
-    public class VolumeTaskbar : Form
+    public class VolumeTaskbar : CivilFormBase
     {
         private Button btnSettings = null!;
         private Button btnExportExcel = null!;
@@ -692,96 +542,38 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            // Form settings
-            this.Text = "Khối Lượng";
-            this.Size = new System.Drawing.Size(180, 200);
-            this.FormBorderStyle = FormBorderStyle.FixedToolWindow;
+            InitBaseTheme("Khối Lượng", 180, 180);
             this.TopMost = true;
             this.StartPosition = FormStartPosition.Manual;
             this.Location = new System.Drawing.Point(100, 100);
             this.ShowInTaskbar = false;
-            this.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
+
+            var header = CreateHeader("KHỐI LƯỢNG", 30);
+            this.Controls.Add(header);
 
             int btnWidth = 150;
             int btnHeight = 32;
-            int margin = 10;
-            int y = 10;
-
-            // Title
-            lblTitle = new FormLabel
-            {
-                Text = "⚡ KHỐI LƯỢNG",
-                Location = new System.Drawing.Point(margin, y),
-                Size = new System.Drawing.Size(btnWidth, 20),
-                ForeColor = System.Drawing.Color.White,
-                Font = new System.Drawing.Font("Segoe UI", 9, System.Drawing.FontStyle.Bold),
-                TextAlign = System.Drawing.ContentAlignment.MiddleCenter
-            };
-            this.Controls.Add(lblTitle);
-            y += 25;
+            int margin = 15;
+            int y = 40;
 
             // Button Cài đặt
-            btnSettings = new Button
-            {
-                Text = "⚙ Cài đặt",
-                Location = new System.Drawing.Point(margin, y),
-                Size = new System.Drawing.Size(btnWidth, btnHeight),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(60, 60, 65),
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand
-            };
-            btnSettings.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(80, 80, 85);
+            btnSettings = CreateButton("⚙ Cài đặt", margin, y, btnWidth, btnHeight, this);
             btnSettings.Click += (s, e) => { TableSettingsForm.ShowSettings(); };
-            this.Controls.Add(btnSettings);
             y += btnHeight + 5;
 
             // Button Xuất Excel
-            btnExportExcel = new Button
-            {
-                Text = "📊 Xuất Excel + CAD",
-                Location = new System.Drawing.Point(margin, y),
-                Size = new System.Drawing.Size(btnWidth, btnHeight),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(0, 122, 204),
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand
-            };
-            btnExportExcel.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(0, 100, 180);
+            btnExportExcel = CreatePrimaryButton("📊 Xuất Excel + CAD", margin, y, btnWidth, btnHeight, this);
             btnExportExcel.Click += (s, e) => { this.Hide(); TinhKhoiLuongExcel._REMOVED_CTSVXuatKhoiLuong(); this.Show(); };
-            this.Controls.Add(btnExportExcel);
             y += btnHeight + 5;
 
             // Button Xuất CAD riêng
-            btnExportCad = new Button
-            {
-                Text = "📐 Chỉ xuất CAD",
-                Location = new System.Drawing.Point(margin, y),
-                Size = new System.Drawing.Size(btnWidth, btnHeight),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(40, 167, 69),
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand
-            };
-            btnExportCad.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(30, 140, 55);
+            btnExportCad = CreateButton("📐 Chỉ xuất CAD", margin, y, btnWidth, btnHeight, this);
             btnExportCad.Click += (s, e) => { this.Hide(); TinhKhoiLuongExcel.CTSVXuatCadOnly(); this.Show(); };
-            this.Controls.Add(btnExportCad);
             y += btnHeight + 5;
 
             // Button Đóng
-            btnClose = new Button
-            {
-                Text = "✕ Đóng",
-                Location = new System.Drawing.Point(margin, y),
-                Size = new System.Drawing.Size(btnWidth, btnHeight),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = System.Drawing.Color.FromArgb(100, 100, 105),
-                ForeColor = System.Drawing.Color.White,
-                Cursor = Cursors.Hand
-            };
-            btnClose.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(80, 80, 85);
+            btnClose = CreateButton("✕ Đóng", margin, y, btnWidth, btnHeight, this);
             btnClose.Click += (s, e) => this.Close();
-            this.Controls.Add(btnClose);
         }
     }
 

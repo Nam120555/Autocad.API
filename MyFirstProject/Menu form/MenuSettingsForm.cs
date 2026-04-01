@@ -61,7 +61,7 @@ namespace MyFirstProject
 
     #region Settings Form
 
-    public class MenuSettingsForm : Form
+    public class MenuSettingsForm : CivilFormBase
     {
         // ─── Data ───
         private MenuConfig _config = new();
@@ -111,59 +111,42 @@ namespace MyFirstProject
         private void InitUI()
         {
             // Form
-            this.Text = "⚙ Civil Tool — Cài Đặt Menu";
-            this.Size = new Size(1050, 680);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.Font = new Font("Segoe UI", 9.5f);
-            this.BackColor = Color.FromArgb(30, 30, 40);
-            this.ForeColor = Color.White;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
+            InitBaseTheme("Civil Tool — Cài Đặt Menu", 1050, 680);
 
             // ─── HEADER ───
-            var header = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.FromArgb(27, 42, 74) };
-            var lblTitle = new Label
-            {
-                Text = "⚙  CÀI ĐẶT MENU LỆNH",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.White,
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Dock = DockStyle.Fill,
-                Padding = new Padding(15, 0, 0, 0)
-            };
-            header.Controls.Add(lblTitle);
+            var header = CreateHeader("CÀI ĐẶT MENU LỆNH");
             this.Controls.Add(header);
 
             // ─── MAIN CONTENT ───
             var mainPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(12)
+                Padding = new Padding(12),
+                BackColor = BgWhite
             };
             this.Controls.Add(mainPanel);
             mainPanel.BringToFront();
 
             // 3-column layout
             // Col1: Nhóm lệnh (Groups)
-            pnlGroups = CreateSection("📁 NHÓM LỆNH", 10, 10, 250, 480, mainPanel);
+            pnlGroups = CreateSection("NHÓM LỆNH", 10, 10, 250, 480, mainPanel);
             lstGroups = CreateListBox(pnlGroups, 5, 30, 240, 340);
             lstGroups.SelectedIndexChanged += (s, e) => RefreshCommandList();
 
-            btnAddGroup = CreateButton("➕ Thêm nhóm", 5, 380, 115, 32, pnlGroups, BtnAddGroup_Click);
-            btnRemoveGroup = CreateButton("🗑 Xóa nhóm", 125, 380, 115, 32, pnlGroups, BtnRemoveGroup_Click);
-            btnRenameGroup = CreateButton("✏ Đổi tên", 5, 418, 115, 32, pnlGroups, BtnRenameGroup_Click);
-            btnMoveUp = CreateButton("▲ Lên", 125, 418, 55, 32, pnlGroups, BtnGroupUp_Click);
-            btnMoveDown = CreateButton("▼ Xuống", 185, 418, 55, 32, pnlGroups, BtnGroupDown_Click);
+            btnAddGroup = CreateButtonLocal("Thêm nhóm", 5, 380, 115, 32, pnlGroups, BtnAddGroup_Click);
+            btnRemoveGroup = CreateButtonLocal("Xóa nhóm", 125, 380, 115, 32, pnlGroups, BtnRemoveGroup_Click);
+            btnRenameGroup = CreateButtonLocal("Đổi tên", 5, 418, 115, 32, pnlGroups, BtnRenameGroup_Click);
+            btnMoveUp = CreateButtonLocal("▲ Lên", 125, 418, 55, 32, pnlGroups, BtnGroupUp_Click);
+            btnMoveDown = CreateButtonLocal("▼ Xuống", 185, 418, 55, 32, pnlGroups, BtnGroupDown_Click);
 
             // Col2: Lệnh trong nhóm
-            pnlCmds = CreateSection("📋 LỆNH TRONG NHÓM", 270, 10, 270, 480, mainPanel);
+            pnlCmds = CreateSection("LỆNH TRONG NHÓM", 270, 10, 270, 480, mainPanel);
             lstCommands = new CheckedListBox
             {
                 Location = new Point(5, 30),
                 Size = new Size(260, 320),
-                BackColor = Color.FromArgb(40, 40, 55),
-                ForeColor = Color.White,
+                BackColor = BgInput,
+                ForeColor = TextDark,
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Segoe UI", 9),
                 IntegralHeight = false,
@@ -174,17 +157,17 @@ namespace MyFirstProject
             pnlCmds.Controls.Add(lstCommands);
 
             // Nút Chọn tất cả / Bỏ chọn tất cả
-            var btnCheckAll = CreateButton("☑ Tất cả", 5, 355, 128, 28, pnlCmds, BtnCheckAll_Click);
-            var btnUncheckAll = CreateButton("☐ Bỏ tất cả", 137, 355, 128, 28, pnlCmds, BtnUncheckAll_Click);
+            var btnCheckAll = CreateButtonLocal("Tất cả", 5, 355, 128, 28, pnlCmds, BtnCheckAll_Click);
+            var btnUncheckAll = CreateButtonLocal("Bỏ tất cả", 137, 355, 128, 28, pnlCmds, BtnUncheckAll_Click);
 
-            btnCmdUp = CreateButton("▲", 5, 390, 40, 32, pnlCmds, BtnCmdUp_Click);
-            btnCmdDown = CreateButton("▼", 50, 390, 40, 32, pnlCmds, BtnCmdDown_Click);
-            btnRemoveCmd = CreateButton("◀ Xóa khỏi nhóm", 95, 390, 165, 32, pnlCmds, BtnRemoveCmd_Click);
+            btnCmdUp = CreateButtonLocal("▲", 5, 390, 40, 32, pnlCmds, BtnCmdUp_Click);
+            btnCmdDown = CreateButtonLocal("▼", 50, 390, 40, 32, pnlCmds, BtnCmdDown_Click);
+            btnRemoveCmd = CreateButtonLocal("Xóa khỏi nhóm", 95, 390, 165, 32, pnlCmds, BtnRemoveCmd_Click);
 
             // ───── ICON LỆNH (với preview) ─────
             var lblCmdIcon = new Label
             {
-                Text = "🎨 Icon lệnh:",
+                Text = "Icon lệnh:",
                 Location = new Point(5, 432),
                 AutoSize = true,
                 ForeColor = Color.White,
@@ -239,27 +222,20 @@ namespace MyFirstProject
             pnlCmds.Controls.Add(picCmdIconPreview);
 
             // Col3: Tất cả lệnh (để thêm vào nhóm)
-            pnlAll = CreateSection("📦 TẤT CẢ LỆNH CÓ SẴN", 550, 10, 270, 480, mainPanel);
+            pnlAll = CreateSection("TẤT CẢ LỆNH CÓ SẴN", 550, 10, 270, 480, mainPanel);
             lstAllCommands = CreateListBox(pnlAll, 5, 30, 260, 340);
 
-            btnAddCmd = CreateButton("▶ Thêm vào nhóm", 5, 380, 165, 32, pnlAll, BtnAddCmd_Click);
+            btnAddCmd = CreateButtonLocal("Thêm vào nhóm", 5, 380, 165, 32, pnlAll, BtnAddCmd_Click);
 
             // Search box
-            var txtSearch = new TextBox
-            {
-                Location = new Point(5, 418),
-                Size = new Size(260, 26),
-                BackColor = Color.FromArgb(40, 40, 55),
-                ForeColor = Color.White,
-                PlaceholderText = "🔍 Tìm lệnh...",
-                BorderStyle = BorderStyle.FixedSingle
-            };
+            var txtSearch = CreateTextBox(5, 418, 260);
+            txtSearch.PlaceholderText = "Tìm lệnh...";
             txtSearch.TextChanged += (s, e) => FilterAllCommands(txtSearch.Text);
             pnlAll.Controls.Add(txtSearch);
 
             // Col4: Separator + Add separator button (Khôi phục vị trí X=830)
-            pnlSep = CreateSection("➖ NGĂN CÁCH", 830, 10, 190, 200, mainPanel);
-            var btnAddSep = CreateButton("Thêm vạch ngăn cách", 5, 30, 180, 32, pnlSep, BtnAddSeparator_Click);
+            pnlSep = CreateSection("NGĂN CÁCH", 830, 10, 190, 200, mainPanel);
+            var btnAddSep = CreateButtonLocal("Thêm vạch ngăn cách", 5, 30, 180, 32, pnlSep, BtnAddSeparator_Click);
             var lblHint = new Label
             {
                 Text = "Vạch ngăn cách (---) giúp\nphân chia lệnh trong 1 nhóm\nthành các phần nhỏ hơn.",
@@ -270,7 +246,7 @@ namespace MyFirstProject
             pnlSep.Controls.Add(lblHint);
 
             // ───── ICON NHÓM (với preview) ─────
-            pnlIcon = CreateSection("🎨 ICON NHÓM", 830, 220, 190, 140, mainPanel);
+            pnlIcon = CreateSection("ICON NHÓM", 830, 220, 190, 140, mainPanel);
             var cmbIcon = new ComboBox
             {
                 Location = new Point(5, 30),
@@ -318,22 +294,14 @@ namespace MyFirstProject
             pnlIcon.Controls.Add(lblIconHint);
 
             // Tab thứ 3: Quản lý lệnh tắt (Alias) full form width
-            pnlAliasTab = CreateSection("⌨ LỆNH TẮT TOÀN DỰ ÁN", 10, 10, 1010, 480, mainPanel);
+            pnlAliasTab = CreateSection("LỆNH TẮT TOÀN DỰ ÁN", 10, 10, 1010, 480, mainPanel);
             pnlAliasTab.Visible = false; // Hide on default tab
             
-            var dgvAliases = new DataGridView
-            {
-                Location = new Point(10, 35),
-                Size = new Size(990, 430),
-                BackgroundColor = Color.FromArgb(40, 40, 55),
-                ForeColor = Color.Black,
-                AllowUserToAddRows = false,
-                AllowUserToDeleteRows = false,
-                RowHeadersVisible = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                SelectionMode = DataGridViewSelectionMode.CellSelect,
-                MultiSelect = false
-            };
+            var dgvAliases = CreateDataGrid(10, 35, 990, 430);
+            dgvAliases.AllowUserToAddRows = false;
+            dgvAliases.AllowUserToDeleteRows = false;
+            dgvAliases.SelectionMode = DataGridViewSelectionMode.CellSelect;
+            dgvAliases.MultiSelect = false;
             
             dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColLabel", HeaderText = "Danh sách lệnh", ReadOnly = true, FillWeight = 30 });
             dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColCmd", HeaderText = "Cú pháp triển khai gốc", ReadOnly = true, FillWeight = 25 });
@@ -344,23 +312,23 @@ namespace MyFirstProject
             _dgvAliases = dgvAliases;
 
             // ─── BOTTOM buttons ───
-            var pnlBottom = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 55,
-                BackColor = Color.FromArgb(22, 22, 32),
-                Padding = new Padding(12, 8, 12, 8)
-            };
+            var pnlBottom = CreateBottomBar();
             this.Controls.Add(pnlBottom);
 
-            btnImport = CreateButton("📂 Import", 5, 8, 100, 36, pnlBottom, BtnImport_Click);
-            btnExport = CreateButton("💾 Export", 110, 8, 100, 36, pnlBottom, BtnExport_Click);
-            btnReset = CreateButton("🔄 Reset mặc định", 220, 8, 150, 36, pnlBottom, BtnReset_Click);
+            btnImport = CreateButton("Import", 5, 8, 100, 36, pnlBottom);
+            btnImport.Click += BtnImport_Click;
+            
+            btnExport = CreateButton("Export", 110, 8, 100, 36, pnlBottom);
+            btnExport.Click += BtnExport_Click;
+            
+            btnReset = CreateButton("Reset mặc định", 220, 8, 150, 36, pnlBottom);
+            btnReset.Click += BtnReset_Click;
 
-            btnCancel = CreateButton("✖ Hủy", 750, 8, 100, 36, pnlBottom, (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); });
-            btnSave = CreateButton("✅ Lưu & Áp dụng", 860, 8, 150, 36, pnlBottom, BtnSave_Click);
-            btnSave.BackColor = Color.FromArgb(27, 42, 74);
-            btnSave.FlatAppearance.BorderColor = Color.FromArgb(16, 28, 52);
+            btnCancel = CreateButton("Hủy", 750, 8, 100, 36, pnlBottom);
+            btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
+            
+            btnSave = CreatePrimaryButton("Lưu & Áp dụng", 860, 8, 150, 36, pnlBottom);
+            btnSave.Click += BtnSave_Click;
 
             // Tab for Civil/Acad/Alias
             tabMain = new TabControl
@@ -400,14 +368,14 @@ namespace MyFirstProject
             {
                 Location = new Point(x, y + 35), // offset for tab
                 Size = new Size(w, h),
-                BackColor = Color.FromArgb(38, 38, 50),
+                BackColor = BgPanel,
                 BorderStyle = BorderStyle.FixedSingle
             };
             var lbl = new Label
             {
                 Text = title,
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                ForeColor = Color.White,
+                ForeColor = NavyDark,
                 Location = new Point(5, 5),
                 AutoSize = true
             };
@@ -422,8 +390,8 @@ namespace MyFirstProject
             {
                 Location = new Point(x, y),
                 Size = new Size(w, h),
-                BackColor = Color.FromArgb(40, 40, 55),
-                ForeColor = Color.White,
+                BackColor = BgInput,
+                ForeColor = TextDark,
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Segoe UI", 9),
                 IntegralHeight = false,
@@ -433,24 +401,10 @@ namespace MyFirstProject
             return lb;
         }
 
-        private Button CreateButton(string text, int x, int y, int w, int h, Control parent, EventHandler onClick)
+        private Button CreateButtonLocal(string text, int x, int y, int w, int h, Control parent, EventHandler onClick)
         {
-            var btn = new Button
-            {
-                Text = text,
-                Location = new Point(x, y),
-                Size = new Size(w, h),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(50, 50, 65),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 8.5f),
-                Cursor = Cursors.Hand,
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(70, 70, 90);
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(46, 74, 122);
+            var btn = CreateButton(text, x, y, w, h, parent);
             btn.Click += onClick;
-            parent.Controls.Add(btn);
             return btn;
         }
 
@@ -611,255 +565,252 @@ namespace MyFirstProject
             var config = new MenuConfig();
 
             // ════════════════════════════════════════════════════════
-            // CIVIL TOOL — Sắp xếp theo WORKFLOW Civil 3D chuyên nghiệp
-            // Thứ tự: Thiết lập → Bề mặt → Tuyến → Trắc dọc → Corridor
-            //       → Cọc → Trắc ngang → Khối lượng → Điểm → Cống
-            //       → San nền → In ấn → Layer → Tiện ích
+            // CIVIL TOOL — Organized logically (English)
             // ════════════════════════════════════════════════════════
             config.CivilGroups = new List<MenuGroupItem>
             {
-                // ─── 1. THIẾT LẬP & BẢN VẼ ───
-                new() { GroupName = "⚙ Thiết Lập", IconType = "SETTINGS", Commands = ConvertCmds(new[]
+                // ─── 1. SETTINGS & STYLES ───
+                new() { GroupName = "Settings", IconType = "SETTINGS", Commands = ConvertCmds(new[]
                 {
-                    ("CTDS_ThietLap", "Thiết Lập Bản Vẽ", "SETTINGS"),
-                    ("CTDS_SaveClean", "Lưu & Dọn File", "UTILITY"),
-                    ("CT_StyleSettings", "Quản Lý Style", "SETTINGS"),
-                    ("CT_StyleInfo", "Thông Tin Style", "INFO"),
+                    ("CTDS_ThietLap", "Drawing Setup", "SETTINGS"),
+                    ("CTDS_SaveClean", "Save & Purge", "UTILITY"),
+                    ("CT_StyleSettings", "Style Manager", "SETTINGS"),
+                    ("CT_StyleInfo", "Style Info", "INFO"),
                     ("---", "", ""),
-                    ("CTDS_ConvertMM2M", "Chuyển MM → M", "CALCULATE"),
-                    ("CTDS_ConvertCM2M", "Chuyển CM → M", "CALCULATE"),
+                    ("CTDS_ConvertMM2M", "Convert MM → M", "CALCULATE"),
+                    ("CTDS_ConvertCM2M", "Convert CM → M", "CALCULATE"),
                     ("---", "", ""),
                     ("CTL_Hub", "Layer Hub", "VIEW"),
                 }) },
 
-                // ─── 2. BỀ MẶT (SURFACE) ───
-                new() { GroupName = "🗺 Bề Mặt", IconType = "SURFACE", Commands = ConvertCmds(new[]
+                // ─── 2. SURFACES ───
+                new() { GroupName = "Surfaces", IconType = "SURFACE", Commands = ConvertCmds(new[]
                 {
-                    ("CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation Tại Tim", "ADD"),
+                    ("CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation at Center", "ADD"),
                     ("CTS_RebuildSurface", "Rebuild Surface", "SYNC"),
                     ("---", "", ""),
-                    ("CTSV_DaoDap", "Đào Đắp Surface", "VOLUME"),
-                    ("CTSV_HienThiMaterialList", "Hiển Thị Material List", "INFO"),
-                    ("CTSV_ChiTietMaterialSection", "Chi Tiết Material Section", "INFO"),
-                    ("CTSV_PhanTichArea", "Phân Tích Area", "CALCULATE"),
-                    ("CTSV_KiemTraKhoiLuong", "Kiểm Tra Khối Lượng", "CALCULATE"),
+                    ("CTSV_DaoDap", "Cut/Fill Heatmap", "VOLUME"),
+                    ("CTSV_HienThiMaterialList", "Show Material List", "INFO"),
+                    ("CTSV_ChiTietMaterialSection", "Material Section Details", "INFO"),
+                    ("CTSV_PhanTichArea", "Analyze Section Area", "CALCULATE"),
+                    ("CTSV_KiemTraKhoiLuong", "Verify Volumes", "CALCULATE"),
                 }) },
 
-                // ─── 3. TUYẾN (ALIGNMENT) ───
-                new() { GroupName = "📏 Tuyến", IconType = "ALIGN", Commands = ConvertCmds(new[]
+                // ─── 3. ALIGNMENTS ───
+                new() { GroupName = "Alignments", IconType = "ALIGN", Commands = ConvertCmds(new[]
                 {
-                    ("CTC_ThongSoDuongCong_4054", "Đường Cong TCVN 4054", "CALCULATE"),
-                    ("CTC_ThongSoDuongCong_13592", "Đường Cong TCVN 13592", "CALCULATE"),
-                    ("CTC_KiemTraDuongCong_4054", "Kiểm Tra DC 4054", "INFO"),
-                    ("CTC_KiemTraDuongCong_13592", "Kiểm Tra DC 13592", "INFO"),
-                    ("CTC_TraCuuDuongCong", "Tra Cứu Đường Cong", "INFO"),
-                    ("CTC_ThietLapDuongCong", "Thiết Lập Đường Cong", "SETTINGS"),
+                    ("CTC_ThongSoDuongCong_4054", "Curve Params (4054)", "CALCULATE"),
+                    ("CTC_ThongSoDuongCong_13592", "Curve Params (13592)", "CALCULATE"),
+                    ("CTC_KiemTraDuongCong_4054", "Check Curve (4054)", "INFO"),
+                    ("CTC_KiemTraDuongCong_13592", "Check Curve (13592)", "INFO"),
+                    ("CTC_TraCuuDuongCong", "Curve Lookup Table", "INFO"),
+                    ("CTC_ThietLapDuongCong", "Curve Form Settings", "SETTINGS"),
                 }) },
 
-                // ─── 4. TRẮC DỌC (PROFILE) ───
-                new() { GroupName = "📈 Trắc Dọc", IconType = "PROFILE", Commands = ConvertCmds(new[]
+                // ─── 4. PROFILES ───
+                new() { GroupName = "Profiles", IconType = "PROFILE", Commands = ConvertCmds(new[]
                 {
-                    ("CTP_VeTracDoc_TuNhien", "Vẽ Trắc Dọc TN", "DRAW"),
-                    ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ TN Tất Cả Tuyến", "DRAW"),
-                    ("CTP_Fix_DuongTuNhien_TheoCoc", "Fix Đường TN Theo Cọc", "SYNC"),
+                    ("CTP_VeTracDoc_TuNhien", "Draw Existing Ground", "DRAW"),
+                    ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "Draw EG Profile (All)", "DRAW"),
+                    ("CTP_Fix_DuongTuNhien_TheoCoc", "Fix EG Profile by Station", "SYNC"),
                     ("---", "", ""),
-                    ("CTP_GanNhanNutGiao_LenTracDoc", "Nhãn Nút Giao → Trắc Dọc", "ADD"),
-                    ("CTP_TaoCogoPointTuPVI", "Tạo Point Từ PVI", "POINT"),
-                    ("CTP_XuatBangCivil", "Xuất Bảng Civil", "EXPORT"),
-                    ("CTP_AddParcelLabels", "Thêm Parcel Labels", "ADD"),
+                    ("CTP_GanNhanNutGiao_LenTracDoc", "Intersection Labels → Profile", "ADD"),
+                    ("CTP_TaoCogoPointTuPVI", "Create Point from PVI", "POINT"),
+                    ("CTP_XuatBangCivil", "Export Profile Data", "EXPORT"),
+                    ("CTP_AddParcelLabels", "Add Parcel Labels", "ADD"),
                 }) },
 
-                // ─── 5. CORRIDOR ───
-                new() { GroupName = "🛤 Corridor", IconType = "CORRIDOR", Commands = ConvertCmds(new[]
+                // ─── 5. CORRIDORS ───
+                new() { GroupName = "Corridors", IconType = "CORRIDOR", Commands = ConvertCmds(new[]
                 {
-                    ("CTC_AddAllSection", "Thêm Tất Cả Section", "ADD"),
-                    ("CTC_TaoCooridor_DuongDoThi_RePhai", "Corridor Rẽ Phải", "DRAW"),
-                    ("CTC_TaoMViewTheoTuyen", "Tạo MView Theo Tuyến", "LAYOUT"),
+                    ("CTC_AddAllSection", "Add All Sections to Baselines", "ADD"),
+                    ("CTC_TaoCooridor_DuongDoThi_RePhai", "Right-Turn Corridor", "DRAW"),
+                    ("CTC_TaoMViewTheoTuyen", "Create Viewport by Alignment", "LAYOUT"),
                 }) },
 
-                // ─── 6. CỌC (SAMPLE LINE) ───
-                new() { GroupName = "📍 Lưới Cọc", IconType = "STATION", Commands = ConvertCmds(new[]
+                // ─── 6. SAMPLE LINES / STAKES ───
+                new() { GroupName = "Sample Lines", IconType = "STATION", Commands = ConvertCmds(new[]
                 {
-                    ("CTS_PhatSinhCoc", "⭐ Phát Sinh Cọc", "ADD"),
-                    ("CTS_DoiTenCoc", "Đổi Tên Cọc", "RENAME"),
+                    ("CTS_PhatSinhCoc", "Generate Stake / SL", "ADD"),
+                    ("CTS_DoiTenCoc", "Rename Stakes", "RENAME"),
                     ("---", "", ""),
-                    ("CTS_DichCoc_TinhTien", "Dịch Cọc Tịnh Tiến", "MOVE"),
-                    ("CTS_DichCoc_TinhTien40", "Dịch Cọc 40m", "MOVE"),
-                    ("CTS_DichCoc_TinhTien_20", "Dịch Cọc 20m", "MOVE"),
+                    ("CTS_DichCoc_TinhTien", "Translate Stakes", "MOVE"),
+                    ("CTS_DichCoc_TinhTien40", "Translate 40m", "MOVE"),
+                    ("CTS_DichCoc_TinhTien_20", "Translate 20m", "MOVE"),
                     ("---", "", ""),
-                    ("CTS_Copy_NhomCoc", "Sao Chép Nhóm Cọc", "COPY"),
-                    ("CTS_DongBo_2_NhomCoc", "Đồng Bộ Nhóm Cọc", "SYNC"),
-                    ("CTS_DongBo_2_NhomCoc_TheoDoan", "Đồng Bộ Theo Đoạn", "SYNC"),
+                    ("CTS_Copy_NhomCoc", "Copy Stake Group", "COPY"),
+                    ("CTS_DongBo_2_NhomCoc", "Sync 2 Stake Groups", "SYNC"),
+                    ("CTS_DongBo_2_NhomCoc_TheoDoan", "Sync SL by Segment", "SYNC"),
                     ("---", "", ""),
-                    ("CTS_Copy_BeRong_sampleLine", "Copy Bề Rộng SL", "COPY"),
-                    ("CTS_Thaydoi_BeRong_sampleLine", "Thay Đổi Bề Rộng SL", "SETTINGS"),
-                    ("CTS_Offset_BeRong_sampleLine", "Offset Bề Rộng SL", "MOVE"),
+                    ("CTS_Copy_BeRong_sampleLine", "Copy SL Swath Widths", "COPY"),
+                    ("CTS_Thaydoi_BeRong_sampleLine", "Modify SL Swath Widths", "SETTINGS"),
+                    ("CTS_Offset_BeRong_sampleLine", "Offset SL Swath Widths", "MOVE"),
                     ("---", "", ""),
-                    ("CTSV_ThongKeCoc", "Thống Kê Cọc (Excel)", "EXPORT"),
+                    ("CTSV_ThongKeCoc", "Export Stake Data to Excel", "EXPORT"),
                 }) },
 
-                // ─── 7. TRẮC NGANG (SECTION VIEW) ───
-                new() { GroupName = "📐 Trắc Ngang", IconType = "SECTION", Commands = ConvertCmds(new[]
+                // ─── 7. SECTION VIEWS ───
+                new() { GroupName = "Section Views", IconType = "SECTION", Commands = ConvertCmds(new[]
                 {
-                    ("CTSV_VeTracNgangThietKe", "Tạo Trắc Ngang TK", "DRAW"),
-                    ("CVSV_VeTatCa_TracNgangThietKe", "Vẽ Tất Cả TN", "DRAW"),
-                    ("CTSV_ChuyenDoi_TNTK_TNTN", "Chuyển TK → TN", "SYNC"),
+                    ("CTSV_VeTracNgangThietKe", "Draw Design Sections", "DRAW"),
+                    ("CVSV_VeTatCa_TracNgangThietKe", "Draw All Sections", "DRAW"),
+                    ("CTSV_ChuyenDoi_TNTK_TNTN", "Convert Design → Existing", "SYNC"),
                     ("---", "", ""),
-                    ("CTSV_DanhCap", "Đánh Cấp VHC", "SLOPE"),
-                    ("CTSV_DanhCap_XoaBo", "Xóa Đánh Cấp", "DELETE"),
-                    ("CTSV_DanhCap_VeThem", "Vẽ Thêm Đánh Cấp", "SLOPE"),
-                    ("CTSV_DanhCap_VeThem1", "Vẽ Thêm 1m", "ADD"),
-                    ("CTSV_DanhCap_VeThem2", "Vẽ Thêm 2m", "ADD"),
-                    ("CTSV_DanhCap_CapNhat", "Cập Nhật Đánh Cấp", "SYNC"),
+                    ("CTSV_DanhCap", "Slope Benching (VHC)", "SLOPE"),
+                    ("CTSV_DanhCap_XoaBo", "Remove Benching", "DELETE"),
+                    ("CTSV_DanhCap_VeThem", "Draw Extra Bench", "SLOPE"),
+                    ("CTSV_DanhCap_VeThem1", "Draw Extra 1m Bench", "ADD"),
+                    ("CTSV_DanhCap_VeThem2", "Draw Extra 2m Bench", "ADD"),
+                    ("CTSV_DanhCap_CapNhat", "Update Benching Area", "SYNC"),
                     ("---", "", ""),
-                    ("CTSV_ThemVatLieu_TrenCatNgang", "Điền Vật Liệu TN", "VOLUME"),
-                    ("CTSV_ThayDoi_MSS_Min_Max", "Hiệu Chỉnh MSS", "SETTINGS"),
-                    ("CTSV_ThayDoi_GioiHan_traiPhai", "Giới Hạn T/P", "SETTINGS"),
-                    ("CTSV_KhoaCatNgang_AddPoint", "Khóa TN + Add Point", "ADD"),
+                    ("CTSV_ThemVatLieu_TrenCatNgang", "Hatch Section Materials", "VOLUME"),
+                    ("CTSV_ThayDoi_MSS_Min_Max", "Modify Section Extents", "SETTINGS"),
+                    ("CTSV_ThayDoi_GioiHan_traiPhai", "Trim Section Left/Right", "SETTINGS"),
+                    ("CTSV_KhoaCatNgang_AddPoint", "Lock Section & Add Point", "ADD"),
                     ("---", "", ""),
-                    ("CTSV_ThayDoi_KhungIn", "Dàn Khung In", "VIEW"),
-                    ("CTSV_fit_KhungIn", "Fit Khung In", "VIEW"),
-                    ("CTSV_fit_KhungIn_5_5_top", "Fit 5×5", "VIEW"),
-                    ("CTSV_fit_KhungIn_5_10_top", "Fit 5×10", "VIEW"),
+                    ("CTSV_ThayDoi_KhungIn", "Arrange Viewport Frames", "VIEW"),
+                    ("CTSV_fit_KhungIn", "Fit Viewport Frame", "VIEW"),
+                    ("CTSV_fit_KhungIn_5_5_top", "Fit Frame 5×5", "VIEW"),
+                    ("CTSV_fit_KhungIn_5_10_top", "Fit Frame 5×10", "VIEW"),
                     ("---", "", ""),
-                    ("CTSV_An_DuongDiaChat", "Ẩn Đường Địa Chất", "VIEW"),
-                    ("CTSV_HieuChinh_Section", "Hiệu Chỉnh (Static)", "SETTINGS"),
-                    ("CTSV_HieuChinh_Section_Dynamic", "Hiệu Chỉnh (Dynamic)", "SETTINGS"),
+                    ("CTSV_An_DuongDiaChat", "Hide Geotech Profile", "VIEW"),
+                    ("CTSV_HieuChinh_Section", "Fix Section Heights (Static)", "SETTINGS"),
+                    ("CTSV_HieuChinh_Section_Dynamic", "Fix Section Heights (Dyn)", "SETTINGS"),
                 }) },
 
-                // ─── 8. KHỐI LƯỢNG (VOLUME) ─── ⭐ ĐÃ GỘP
-                new() { GroupName = "📊 Khối Lượng", IconType = "VOLUME", Commands = ConvertCmds(new[]
+                // ─── 8. QUANTITIES & VOLUMES ───
+                new() { GroupName = "Quantities", IconType = "VOLUME", Commands = ConvertCmds(new[]
                 {
-                    ("CTSV_TinhKhoiLuongTracNgang", "⭐ Tính KL Trắc Ngang", "CALCULATE"),
+                    ("CTSV_TinhKhoiLuongTracNgang", "Compute Sec. Volumes", "CALCULATE"),
                     ("---", "", ""),
-                    ("CTSV_Taskbar", "Taskbar Khối Lượng", "VOLUME"),
-                    ("CTSV_CaiDatBang", "Cài Đặt Bảng KL", "SETTINGS"),
-                    ("CTSV_XuatCad", "Xuất KL → CAD", "CAD"),
+                    ("CTSV_Taskbar", "Volume Taskbar", "VOLUME"),
+                    ("CTSV_CaiDatBang", "Volume Table Settings", "SETTINGS"),
+                    ("CTSV_XuatCad", "Export Volumes to CAD", "CAD"),
                     ("---", "", ""),
-                    ("CTSV_SoSanhSurface", "So Sánh Bề Mặt", "CALCULATE"),
-                    ("CTSV_PolyArea", "KL Từ Polyline", "CALCULATE"),
-                    ("CTSV_TinhDienTichPoly", "Tính DT Polyline", "CALCULATE"),
-                    ("CTSV_TinhKhoiLuongPoly", "Tính KL Polyline", "CALCULATE"),
-                    ("CTSV_TinhDienTichPolyExcel", "DT Poly → Excel", "EXCEL"),
-                    ("CTSV_GhiDienTichPoly", "Ghi DT Poly Lên Bản Vẽ", "DRAW"),
+                    ("CTSV_SoSanhSurface", "Surface Volume Compare", "CALCULATE"),
+                    ("CTSV_PolyArea", "Area from Polyline", "CALCULATE"),
+                    ("CTSV_TinhDienTichPoly", "Calculate Poly Areas", "CALCULATE"),
+                    ("CTSV_TinhKhoiLuongPoly", "Calculate Poly Volumes", "CALCULATE"),
+                    ("CTSV_TinhDienTichPolyExcel", "Export Poly Area to Excel", "EXCEL"),
+                    ("CTSV_GhiDienTichPoly", "Label Poly Area to CAD", "DRAW"),
                 }) },
 
-                // ─── 9. ĐIỂM (POINT) ───
-                new() { GroupName = "📌 Điểm", IconType = "POINT", Commands = ConvertCmds(new[]
+                // ─── 9. COGO POINTS ───
+                new() { GroupName = "Points", IconType = "POINT", Commands = ConvertCmds(new[]
                 {
-                    ("CTPO_NhapToaDoTrucTiep", "⭐ Nhập Tọa Độ Trực Tiếp", "ADD"),
-                    ("CTPO_TaoPointTheoBang", "Tạo Point Từ Bảng Excel", "EXCEL"),
+                    ("CTPO_NhapToaDoTrucTiep", "Direct Point Entry", "ADD"),
+                    ("CTPO_TaoPointTheoBang", "Import Points from Excel", "EXCEL"),
                     ("---", "", ""),
-                    ("CTPO_TaoCogoPoint_CaoDo_FromSurface", "Point Từ Surface", "SURFACE"),
-                    ("CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Point Từ Spot Elevation", "ADD"),
-                    ("CTPO_CreateCogopointFromText", "Point Từ Text", "ADD"),
-                    ("CTU_MakePointFromText", "Utility: Point Từ Text", "ADD"),
+                    ("CTPO_TaoCogoPoint_CaoDo_FromSurface", "Points from Surface Elev", "SURFACE"),
+                    ("CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Points from Spot Elevs", "ADD"),
+                    ("CTPO_CreateCogopointFromText", "Create Point from Text", "ADD"),
+                    ("CTU_MakePointFromText", "CogoPoint from Text(Util)", "ADD"),
                     ("---", "", ""),
-                    ("CTPO_An_CogoPoint", "Ẩn CogoPoint", "VIEW"),
-                    ("CTPO_UpdateAllPointGroup", "Cập Nhật Point Group", "SYNC"),
-                    ("CTPO_CPTT", "Chuyển Point → Text", "EXPORT"),
-                    ("CTPo_ReorderPoints", "Sắp Xếp Lại Points", "SYNC"),
+                    ("CTPO_An_CogoPoint", "Hide Cogo Points", "VIEW"),
+                    ("CTPO_UpdateAllPointGroup", "Update Point Groups", "SYNC"),
+                    ("CTPO_CPTT", "Convert Point to Text", "EXPORT"),
+                    ("CTPo_ReorderPoints", "Reorder Point Numbers", "SYNC"),
                 }) },
 
-                // ─── 10. CỐNG (PIPE & STRUCTURES) ───
-                new() { GroupName = "🔧 Cống", IconType = "PIPE", Commands = ConvertCmds(new[]
+                // ─── 10. PIPE NETWORKS ───
+                new() { GroupName = "Pipe Networks", IconType = "PIPE", Commands = ConvertCmds(new[]
                 {
-                    ("CTPI_ThayDoi_DuongKinhCong", "Thay Đổi ĐK Cống", "SETTINGS"),
-                    ("CTPI_ThayDoi_MatPhangRef_Cong", "Mặt Phẳng Ref Cống", "SETTINGS"),
-                    ("CTPI_ThayDoi_DoanDocCong", "Thay Đổi Dốc Cống", "SETTINGS"),
+                    ("CTPI_ThayDoi_DuongKinhCong", "Modify Pipe Diameter", "SETTINGS"),
+                    ("CTPI_ThayDoi_MatPhangRef_Cong", "Set Pipe Ref Surface", "SETTINGS"),
+                    ("CTPI_ThayDoi_DoanDocCong", "Modify Pipe Slope", "SETTINGS"),
                     ("---", "", ""),
-                    ("CTPI_BangCaoDo_TuNhienHoThu", "Bảng CĐ Tự Nhiên Hố Thu", "TABLE"),
-                    ("CTPI_XoayHoThu_Theo2diem", "Xoay Hố Thu", "SYNC"),
-                    ("CT_VTOADOHG", "Tọa Độ Hố Ga (DLL)", "POINT"),
+                    ("CTPI_BangCaoDo_TuNhienHoThu", "Catch Basin EG Table", "TABLE"),
+                    ("CTPI_XoayHoThu_Theo2diem", "Rotate Catch Basin via 2Pts", "SYNC"),
+                    ("CT_VTOADOHG", "Catch Basin Coords (DLL)", "POINT"),
                 }) },
 
-                // ─── 11. SAN NỀN (GRADING) ───
-                new() { GroupName = "▦ San Nền", IconType = "GRADING", Commands = ConvertCmds(new[]
+                // ─── 11. GRADING ───
+                new() { GroupName = "Grading", IconType = "GRADING", Commands = ConvertCmds(new[]
                 {
-                    ("CTSN_Taskbar", "Mở Taskbar SN", "VOLUME"),
+                    ("CTSN_Taskbar", "Grading Taskbar", "VOLUME"),
                     ("---", "", ""),
-                    ("CTSN_TaoLuoi", "Quản Lý Lưới", "GRADING"),
-                    ("CTSN_NhapCaoDo", "Điền Cao Độ Lưới", "ADD"),
-                    ("CTSN_Surface", "Lấy CĐ Surface", "SURFACE"),
-                    ("CTSN_TinhKL", "Tính KL San Nền", "VOLUME"),
-                    ("CTSN_XuatBang", "Xuất Bảng KL → CAD", "CAD"),
+                    ("CTSN_TaoLuoi", "Grid Generation", "GRADING"),
+                    ("CTSN_NhapCaoDo", "Import Grid Elevations", "ADD"),
+                    ("CTSN_Surface", "Get Surface Elevations", "SURFACE"),
+                    ("CTSN_TinhKL", "Compute Grading Volumes", "VOLUME"),
+                    ("CTSN_XuatBang", "Export Grading Grid to CAD", "CAD"),
                 }) },
 
-                // ─── 12. IN ẤN & LAYOUT ───
-                new() { GroupName = "🖨 In Ấn", IconType = "LAYOUT", Commands = ConvertCmds(new[]
+                // ─── 12. PLOT & LAYOUT ───
+                new() { GroupName = "Plot & Layout", IconType = "LAYOUT", Commands = ConvertCmds(new[]
                 {
-                    ("CT_PrintCenter", "In Trung Tâm", "DRAW"),
-                    ("CTSV_TaoTrangInTD", "Tạo Trang In Trắc Dọc", "LAYOUT"),
+                    ("CT_PrintCenter", "Print Center", "DRAW"),
+                    ("CTSV_TaoTrangInTD", "Profile Plot Sheets", "LAYOUT"),
                     ("---", "", ""),
-                    ("CTDS_PrintAllLayouts", "In Tất Cả Layout", "EXPORT"),
-                    ("CTDS_PrintCurrentLayout", "In Layout Hiện Tại", "EXPORT"),
-                    ("CTDS_ExportPDF", "Xuất PDF", "EXPORT"),
+                    ("CTDS_PrintAllLayouts", "Print All Layouts", "EXPORT"),
+                    ("CTDS_PrintCurrentLayout", "Print Current Layout", "EXPORT"),
+                    ("CTDS_ExportPDF", "Export to PDF", "EXPORT"),
                 }) },
 
-                // ─── 13. TIỆN ÍCH ───
-                new() { GroupName = "🔧 Tiện Ích", IconType = "UTILITY", Commands = ConvertCmds(new[]
+                // ─── 13. UTILITIES ───
+                new() { GroupName = "Utilities", IconType = "UTILITY", Commands = ConvertCmds(new[]
                 {
-                    ("CTU_ExportCAD2007", "Export CAD 2007", "EXPORT"),
-                    ("CTU_ExplodeAEC", "Explode AEC Object", "DELETE"),
-                    ("CTU_TextToMText", "Text → MText", "SYNC"),
-                    ("CTU_TotalLength", "Tổng Chiều Dài", "CALCULATE"),
-                    ("CTU_ExportTextCoords", "Export Tọa Độ Text", "EXPORT"),
-                    ("CTU_FindIntersections", "Tìm Giao Điểm", "CALCULATE"),
-                    ("CTU_AddPolylineVertices", "Thêm Đỉnh Polyline", "ADD"),
-                    ("CTU_DrawTaluy", "Vẽ Ta-luy", "DRAW"),
+                    ("CTU_ExportCAD2007", "Export to CAD 2007", "EXPORT"),
+                    ("CTU_ExplodeAEC", "Explode AEC Objects", "DELETE"),
+                    ("CTU_TextToMText", "Convert Text → MText", "SYNC"),
+                    ("CTU_TotalLength", "Total Entity Length", "CALCULATE"),
+                    ("CTU_ExportTextCoords", "Export Text Coordinates", "EXPORT"),
+                    ("CTU_FindIntersections", "Find Intersections", "CALCULATE"),
+                    ("CTU_AddPolylineVertices", "Add Polyline Vertices", "ADD"),
+                    ("CTU_DrawTaluy", "Draw Embankment Slope", "DRAW"),
                     ("---", "", ""),
-                    ("CTU_StyleAutoOff", "Style Auto Off", "SETTINGS"),
-                    ("CTU_StyleAutoOn", "Style Auto On", "SETTINGS"),
-                    ("CTU_DumpObject", "Dump Object Info", "INFO"),
+                    ("CTU_StyleAutoOff", "Auto-Style Off", "SETTINGS"),
+                    ("CTU_StyleAutoOn", "Auto-Style On", "SETTINGS"),
+                    ("CTU_DumpObject", "Dump Object Properties", "INFO"),
                     ("---", "", ""),
-                    ("AT_Solid_Set_PropertySet", "Gán Property Set", "ADD"),
-                    ("AT_Solid_Show_Info", "Thông Tin Solid", "INFO"),
+                    ("AT_Solid_Set_PropertySet", "Assign Property Sets", "ADD"),
+                    ("AT_Solid_Show_Info", "Show 3D Solid Info", "INFO"),
                     ("---", "", ""),
-                    ("CT_DoiIcon", "Đổi Icon Lệnh", "SETTINGS"),
-                    ("CIVIL_RIBBON", "Reload Menu", "RELOAD"),
-                    ("CT_MENU_SETTINGS", "Cài Đặt Menu", "SETTINGS"),
+                    ("CT_DoiIcon", "Change Command Icons", "SETTINGS"),
+                    ("CIVIL_RIBBON", "Reload Civil Ribbon", "RELOAD"),
+                    ("CT_MENU_SETTINGS", "Menu Settings Panel", "SETTINGS"),
                 }) },
             };
 
             // ══ ACAD TOOL panels ══
             config.AcadGroups = new List<MenuGroupItem>
             {
-                new() { GroupName = "📏 Đo Lường", IconType = "MEASURE", Commands = ConvertCmds(new[]
+                new() { GroupName = "Measurements", IconType = "MEASURE", Commands = ConvertCmds(new[]
                 {
-                    ("AT_TongDoDai_Full", "Tổng Độ Dài (Full)", "CALCULATE"),
-                    ("AT_TongDoDai_Replace", "Tổng Độ Dài (Replace)", "CALCULATE"),
-                    ("AT_TongDoDai_Replace2", "Tổng Độ Dài (Replace2)", "CALCULATE"),
-                    ("AT_TongDoDai_Replace_CongThem", "Tổng Độ Dài (Cộng)", "CALCULATE"),
+                    ("AT_TongDoDai_Full", "Total Length (Full)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace", "Total Length (Replace)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace2", "Total Length (Replace 2)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace_CongThem", "Total Length (Add)", "CALCULATE"),
                     ("---", "", ""),
-                    ("AT_TongDienTich_Full", "Tổng Diện Tích (Full)", "CALCULATE"),
-                    ("AT_TongDienTich_Replace", "Tổng Diện Tích (Replace)", "CALCULATE"),
-                    ("AT_TongDienTich_Replace2", "Tổng Diện Tích (Replace2)", "CALCULATE"),
-                    ("AT_TongDienTich_Replace_CongThem", "Tổng Diện Tích (Cộng)", "CALCULATE"),
+                    ("AT_TongDienTich_Full", "Total Area (Full)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace", "Total Area (Replace)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace2", "Total Area (Replace 2)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace_CongThem", "Total Area (Add)", "CALCULATE"),
                 }) },
 
-                new() { GroupName = "✏ Chỉnh Sửa", IconType = "EDIT", Commands = ConvertCmds(new[]
+                new() { GroupName = "✏ Modifiers", IconType = "EDIT", Commands = ConvertCmds(new[]
                 {
-                    ("AT_TextLink", "Text Link", "ADD"),
-                    ("AT_DanhSoThuTu", "Đánh Số Thứ Tự", "ADD"),
-                    ("AT_XoaDoiTuong_CungLayer", "Xóa Cùng Layer", "DELETE"),
-                    ("AT_XoaDoiTuong_3DSolid_Body", "Xóa 3DSolid/Body", "DELETE"),
-                    ("AT_Offset_2Ben", "Offset 2 Bên", "COPY"),
-                    ("AT_annotive_scale_currentOnly", "Annotative Scale", "SETTINGS"),
+                    ("AT_TextLink", "Dynamic Text Link", "ADD"),
+                    ("AT_DanhSoThuTu", "Sequential Numbering", "ADD"),
+                    ("AT_XoaDoiTuong_CungLayer", "Delete on Layer", "DELETE"),
+                    ("AT_XoaDoiTuong_3DSolid_Body", "Delete 3D Solids/Bodies", "DELETE"),
+                    ("AT_Offset_2Ben", "Double Sided Offset", "COPY"),
+                    ("AT_annotive_scale_currentOnly", "Scale Current Annotative", "SETTINGS"),
                     ("---", "", ""),
-                    ("AT_XoayDoiTuong_TheoViewport", "Xoay Theo Viewport", "SYNC"),
-                    ("AT_XoayDoiTuong_Theo2Diem", "Xoay Theo 2 Điểm", "SYNC"),
+                    ("AT_XoayDoiTuong_TheoViewport", "Rotate w. Viewport", "SYNC"),
+                    ("AT_XoayDoiTuong_Theo2Diem", "Rotate via 2 Pts", "SYNC"),
                 }) },
 
-                new() { GroupName = "🔄 Layout", IconType = "LAYOUT", Commands = ConvertCmds(new[]
+                new() { GroupName = "Layout Tools", IconType = "LAYOUT", Commands = ConvertCmds(new[]
                 {
-                    ("AT_TextLayout", "Text Layout", "ADD"),
-                    ("AT_TaoMoi_TextLayout", "Tạo Mới Text Layout", "ADD"),
-                    ("AT_DimLayout", "Dim Layout", "ADD"),
-                    ("AT_DimLayout2", "Dim Layout 2", "ADD"),
+                    ("AT_TextLayout", "Text Layout Sync", "ADD"),
+                    ("AT_TaoMoi_TextLayout", "Create New Text Layout", "ADD"),
+                    ("AT_DimLayout", "Dimension Layout", "ADD"),
+                    ("AT_DimLayout2", "Dimension Layout 2", "ADD"),
                     ("AT_BlockLayout", "Block Layout", "ADD"),
-                    ("AT_Label_FromText", "Label From Text", "ADD"),
+                    ("AT_Label_FromText", "Label from Text", "ADD"),
                     ("---", "", ""),
-                    ("AT_UpdateLayout", "Update Layout", "SYNC"),
+                    ("AT_UpdateLayout", "Update Layout Sync", "SYNC"),
                 }) },
             };
 
@@ -1428,13 +1379,13 @@ namespace MyFirstProject
                     ApplyConfigToRibbon(config);
 
                     var ed = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
-                    ed?.WriteMessage("\n✅ Đã cập nhật menu theo cài đặt mới!");
+                    ed?.WriteMessage("\n Đã cập nhật menu theo cài đặt mới!");
                 }
             }
             catch (System.Exception ex)
             {
                 var ed = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
-                ed?.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed?.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 

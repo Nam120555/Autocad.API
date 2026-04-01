@@ -37,17 +37,9 @@ namespace MyFirstProject
     /// <summary>
     /// Form cấu hình tạo MView theo tuyến Alignment
     /// </summary>
-    public class TaoMViewForm : Form
+    public class TaoMViewForm : CivilFormBase
     {
         // ─── Theme Colors ───
-        private static readonly Color BgDark = Color.FromArgb(30, 30, 34);
-        private static readonly Color BgPanel = Color.FromArgb(40, 40, 45);
-        private static readonly Color BgInput = Color.FromArgb(50, 50, 58);
-        private static readonly Color AccentBlue = Color.FromArgb(0, 122, 204);
-        private static readonly Color HeaderBlue = Color.FromArgb(0, 93, 160);
-        private static readonly Color TextWhite = Color.White;
-        private static readonly Color TextDim = Color.FromArgb(160, 160, 170);
-        private static readonly Color BorderColor = Color.FromArgb(65, 65, 75);
         private static readonly Color GreenOk = Color.FromArgb(46, 160, 67);
 
         // ─── Controls ───
@@ -155,29 +147,11 @@ namespace MyFirstProject
         private void InitializeUI()
         {
             // ── Form ──
-            this.Text = "TẠO MVIEW THEO TUYẾN — Civil Tool";
-            this.Size = new Size(720, 820);
-            this.StartPosition = FormStartPosition.CenterScreen;
+            InitBaseTheme("TẠO MVIEW THEO TUYẾN — Civil Tool", 720, 820);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.BackColor = BgDark;
-            this.ForeColor = TextWhite;
-            this.Font = new Font("Segoe UI", 9.5f);
 
             // ── HEADER ──
-            var header = new Panel { Dock = DockStyle.Top, Height = 52, BackColor = HeaderBlue };
-            var lblTitle = new WinLabel
-            {
-                Text = "🖼  TẠO MVIEW THEO TUYẾN ALIGNMENT",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = TextWhite,
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Dock = DockStyle.Fill,
-                Padding = new Padding(16, 0, 0, 0)
-            };
-            header.Controls.Add(lblTitle);
+            var header = CreateHeader("TẠO MVIEW THEO TUYẾN ALIGNMENT");
             this.Controls.Add(header);
 
             var subtitle = new WinLabel
@@ -190,10 +164,14 @@ namespace MyFirstProject
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Top,
                 Padding = new Padding(18, 0, 0, 0),
-                BackColor = Color.FromArgb(35, 35, 40)
+                BackColor = BgPanel
             };
             this.Controls.Add(subtitle);
             subtitle.BringToFront();
+
+            // ── BOTTOM BAR ──
+            var pnlBottom = CreateBottomBar();
+            this.Controls.Add(pnlBottom);
 
             // ── MAIN CONTENT ──
             var mainPanel = new Panel
@@ -210,7 +188,7 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 1: CHỌN ALIGNMENT
             // ═══════════════════════════════════════════════════
-            var grpAlign = CreateGroupBox("🛣  Chọn Alignment", 0, y, 670, 55);
+            var grpAlign = CreateGroupBox("Chọn Alignment", 0, y, 670, 55);
             mainPanel.Controls.Add(grpAlign);
 
             grpAlign.Controls.Add(CreateLabel("Tuyến:", 12, 28));
@@ -220,7 +198,7 @@ namespace MyFirstProject
                 Size = new Size(320, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 9.5f)
             };
@@ -240,7 +218,7 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 1B: PHÂN ĐOẠN LÝ TRÌNH (NHIỀU ĐOẠN)
             // ═══════════════════════════════════════════════════
-            var grpRanges = CreateGroupBox("📏  Phân đoạn lý trình (có thể thêm nhiều đoạn)", 0, y, 670, 170);
+            var grpRanges = CreateGroupBox("Phân đoạn lý trình (có thể thêm nhiều đoạn)", 0, y, 670, 170);
             mainPanel.Controls.Add(grpRanges);
 
             dgvRanges = new DataGridView
@@ -257,15 +235,15 @@ namespace MyFirstProject
                 DefaultCellStyle = new DataGridViewCellStyle
                 {
                     BackColor = BgInput,
-                    ForeColor = TextWhite,
-                    SelectionBackColor = AccentBlue,
-                    SelectionForeColor = TextWhite,
+                    ForeColor = TextDark,
+                    SelectionBackColor = NavyMedium,
+                    SelectionForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f)
                 },
                 ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
                 {
-                    BackColor = Color.FromArgb(45, 48, 55),
-                    ForeColor = TextWhite,
+                    BackColor = NavyDark,
+                    ForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f, FontStyle.Bold),
                     Alignment = DataGridViewContentAlignment.MiddleCenter
                 },
@@ -281,12 +259,12 @@ namespace MyFirstProject
                 Name = "PickFrom",
                 HeaderText = "",
                 Width = 30,
-                Text = "📍",
+                Text = "Pick",
                 UseColumnTextForButtonValue = true,
                 FlatStyle = FlatStyle.Flat
             };
-            colPickFrom.DefaultCellStyle.BackColor = Color.FromArgb(55, 55, 62);
-            colPickFrom.DefaultCellStyle.ForeColor = TextWhite;
+            colPickFrom.DefaultCellStyle.BackColor = BgPanel;
+            colPickFrom.DefaultCellStyle.ForeColor = TextDark;
             colPickFrom.DefaultCellStyle.Padding = new Padding(0);
             colPickFrom.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
 
@@ -297,12 +275,12 @@ namespace MyFirstProject
                 Name = "PickTo",
                 HeaderText = "",
                 Width = 30,
-                Text = "📍",
+                Text = "Pick",
                 UseColumnTextForButtonValue = true,
                 FlatStyle = FlatStyle.Flat
             };
-            colPickTo.DefaultCellStyle.BackColor = Color.FromArgb(55, 55, 62);
-            colPickTo.DefaultCellStyle.ForeColor = TextWhite;
+            colPickTo.DefaultCellStyle.BackColor = BgPanel;
+            colPickTo.DefaultCellStyle.ForeColor = TextDark;
             colPickTo.DefaultCellStyle.Padding = new Padding(0);
             colPickTo.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
 
@@ -323,13 +301,14 @@ namespace MyFirstProject
                 Location = new Point(545, 28),
                 Size = new Size(110, 32),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
+                BackColor = BgPanel,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9f),
                 Cursor = Cursors.Hand
             };
             btnAddRange.FlatAppearance.BorderColor = BorderColor;
-            btnAddRange.FlatAppearance.MouseOverBackColor = AccentBlue;
+            btnAddRange.FlatAppearance.MouseOverBackColor = NavyMedium;
+            btnAddRange.FlatAppearance.MouseOverForeColor = Color.White;
             btnAddRange.Click += BtnAddRange_Click;
             grpRanges.Controls.Add(btnAddRange);
 
@@ -340,13 +319,14 @@ namespace MyFirstProject
                 Location = new Point(545, 66),
                 Size = new Size(110, 32),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
+                BackColor = BgPanel,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9f),
                 Cursor = Cursors.Hand
             };
             btnRemoveRange.FlatAppearance.BorderColor = BorderColor;
             btnRemoveRange.FlatAppearance.MouseOverBackColor = Color.FromArgb(180, 50, 50);
+            btnRemoveRange.FlatAppearance.MouseOverForeColor = Color.White;
             btnRemoveRange.Click += BtnRemoveRange_Click;
             grpRanges.Controls.Add(btnRemoveRange);
 
@@ -357,13 +337,14 @@ namespace MyFirstProject
                 Location = new Point(545, 104),
                 Size = new Size(110, 32),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
+                BackColor = BgPanel,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9f),
                 Cursor = Cursors.Hand
             };
             btnSplitEqual.FlatAppearance.BorderColor = BorderColor;
-            btnSplitEqual.FlatAppearance.MouseOverBackColor = AccentBlue;
+            btnSplitEqual.FlatAppearance.MouseOverBackColor = NavyMedium;
+            btnSplitEqual.FlatAppearance.MouseOverForeColor = Color.White;
             btnSplitEqual.Click += BtnSplitEqual_Click;
             grpRanges.Controls.Add(btnSplitEqual);
 
@@ -372,7 +353,7 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 2: KÍCH THƯỚC VIEWPORT
             // ═══════════════════════════════════════════════════
-            var grpSize = CreateGroupBox("📐  Kích thước Viewport (trên giấy mm)", 0, y, 670, 160);
+            var grpSize = CreateGroupBox("Kích thước Viewport (trên giấy mm)", 0, y, 670, 160);
             mainPanel.Controls.Add(grpSize);
 
             // Chiều rộng
@@ -386,7 +367,7 @@ namespace MyFirstProject
                 Value = 420,
                 Increment = 10,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             grpSize.Controls.Add(numWidth);
             grpSize.Controls.Add(CreateDimLabel("(A3 ngang = 420, A4 = 297)", 270, 35));
@@ -402,7 +383,7 @@ namespace MyFirstProject
                 Value = 297,
                 Increment = 10,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             grpSize.Controls.Add(numHeight);
             grpSize.Controls.Add(CreateDimLabel("(A3 ngang = 297, A4 = 210)", 270, 70));
@@ -418,7 +399,7 @@ namespace MyFirstProject
                 Value = 1000,
                 Increment = 100,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             grpSize.Controls.Add(numScale);
             grpSize.Controls.Add(CreateDimLabel("(VD: 1000 → tỉ lệ 1:1000)", 270, 105));
@@ -434,7 +415,7 @@ namespace MyFirstProject
                 Value = 10,
                 Increment = 5,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             grpSize.Controls.Add(numOverlap);
 
@@ -444,7 +425,7 @@ namespace MyFirstProject
                 Text = "Tự động chia tuyến thành nhiều view",
                 Location = new Point(380, 70),
                 Size = new Size(280, 24),
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9f),
                 Checked = true,
                 FlatStyle = FlatStyle.Flat
@@ -459,7 +440,7 @@ namespace MyFirstProject
                 Size = new Size(80, 28),
                 Minimum = 1, Maximum = 50,
                 Value = 10, Increment = 1,
-                BackColor = BgInput, ForeColor = TextWhite
+                BackColor = BgInput, ForeColor = TextDark
             };
             grpSize.Controls.Add(numMaxVpPerLayout);
 
@@ -486,15 +467,15 @@ namespace MyFirstProject
                 DefaultCellStyle = new DataGridViewCellStyle
                 {
                     BackColor = BgInput,
-                    ForeColor = TextWhite,
-                    SelectionBackColor = AccentBlue,
-                    SelectionForeColor = TextWhite,
+                    ForeColor = TextDark,
+                    SelectionBackColor = NavyMedium,
+                    SelectionForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f)
                 },
                 ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
                 {
-                    BackColor = Color.FromArgb(45, 48, 55),
-                    ForeColor = TextWhite,
+                    BackColor = NavyDark,
+                    ForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f, FontStyle.Bold),
                     Alignment = DataGridViewContentAlignment.MiddleCenter
                 },
@@ -520,22 +501,13 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // BOTTOM BUTTONS
             // ═══════════════════════════════════════════════════
-            var pnlBottom = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 55,
-                BackColor = Color.FromArgb(38, 38, 42),
-                Padding = new Padding(12, 8, 12, 8)
-            };
-            this.Controls.Add(pnlBottom);
-
             var btnPreview = CreateButton("🔍 Preview", 340, 8, 120, 36, pnlBottom);
             btnPreview.Click += BtnPreview_Click;
 
-            var btnCancel = CreateButton("✖ Hủy", 475, 8, 100, 36, pnlBottom);
+            var btnCancel = CreateButton("Hủy", 475, 8, 100, 36, pnlBottom);
             btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
 
-            var btnExecute = CreateButton("✅ Tạo MView", 590, 8, 120, 36, pnlBottom);
+            var btnExecute = CreatePrimaryButton("Tạo MView", 590, 8, 120, 36, pnlBottom);
             btnExecute.BackColor = GreenOk;
             btnExecute.FlatAppearance.BorderColor = Color.FromArgb(35, 134, 54);
             btnExecute.Click += BtnExecute_Click;
@@ -778,7 +750,7 @@ namespace MyFirstProject
                             if (stt > MAX_SEGMENTS)
                             {
                                 MessageBox.Show(
-                                    $"⚠️ Đã đạt giới hạn tối đa {MAX_SEGMENTS} segments.\n\n" +
+                                    $"Đã đạt giới hạn tối đa {MAX_SEGMENTS} segments.\n\n" +
                                     $"Gợi ý:\n" +
                                     $"• Tăng kích thước viewport (Chiều rộng)\n" +
                                     $"• Giảm số phân đoạn lý trình\n" +
@@ -819,7 +791,7 @@ namespace MyFirstProject
             if (ViewSegments.Count > 50)
             {
                 MessageBox.Show(
-                    $"⚠️ Số lượng view khá lớn ({ViewSegments.Count} views).\n\n" +
+                    $"Số lượng view khá lớn ({ViewSegments.Count} views).\n\n" +
                     $"Lệnh sẽ xử lý từng phân đoạn (batch {BATCH_SIZE} segments)\n" +
                     $"để tránh crash AutoCAD.\n\n" +
                     $"Quá trình có thể mất vài phút.",
@@ -907,7 +879,7 @@ namespace MyFirstProject
             {
                 Text = title,
                 Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ForeColor = AccentBlue,
+                ForeColor = NavyMedium,
                 Location = new Point(10, 5),
                 AutoSize = true
             };
@@ -922,7 +894,7 @@ namespace MyFirstProject
                 Text = text,
                 Location = new Point(x, y),
                 AutoSize = true,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9.5f)
             };
         }
@@ -941,21 +913,8 @@ namespace MyFirstProject
 
         private Button CreateButton(string text, int x, int y, int w, int h, Control parent)
         {
-            var btn = new Button
-            {
-                Text = text,
-                Location = new Point(x, y),
-                Size = new Size(w, h),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f),
-                Cursor = Cursors.Hand,
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            btn.FlatAppearance.BorderColor = BorderColor;
-            btn.FlatAppearance.MouseOverBackColor = AccentBlue;
-            parent.Controls.Add(btn);
+            var btn = base.CreateButton(text, x, y, w, h, parent);
+            btn.TextAlign = ContentAlignment.MiddleCenter;
             return btn;
         }
     }
@@ -991,7 +950,7 @@ namespace MyFirstProject
                     string label = (form.PickTargetColumn == "RangeFrom") ? "Từ Station" : "Đến Station";
 
                     var ppo = new PromptPointOptions(
-                        $"\n📍 Chọn điểm trên tuyến cho [{label}] (hoặc ESC để hủy): ");
+                        $"\nChọn điểm trên tuyến cho [{label}] (hoặc ESC để hủy): ");
                     ppo.AllowNone = true;
                     var ppr = ed.GetPoint(ppo);
 
@@ -1030,7 +989,7 @@ namespace MyFirstProject
                                 {
                                     form.SetPickedStation(station);
                                     ed.WriteMessage(
-                                        $"\n✅ Đã chọn Station = {station:F2} (offset = {offset:F2}m)");
+                                        $"\n Đã chọn Station = {station:F2} (offset = {offset:F2}m)");
                                 }
                                 else
                                 {
@@ -1123,7 +1082,7 @@ namespace MyFirstProject
 
             // ── Tạo khung polyline theo BATCH ──
             // Chia segments thành các batch nhỏ, mỗi batch 1 transaction riêng
-            ed.WriteMessage($"\n📐 Bắt đầu tạo {totalSegments} khung MView (batch {BATCH_SIZE} segments/lần)...");
+            ed.WriteMessage($"\n Bắt đầu tạo {totalSegments} khung MView (batch {BATCH_SIZE} segments/lần)...");
 
             // Progress meter
             using var progress = new Autodesk.AutoCAD.Runtime.ProgressMeter();
@@ -1202,11 +1161,11 @@ namespace MyFirstProject
                         }
 
                         tr.Commit();
-                        ed.WriteMessage($"\n   ✅ Batch khung {batchStart + 1}~{batchEnd}/{totalSegments} hoàn tất");
+                        ed.WriteMessage($"\n   Hoàn tất batch khung {batchStart + 1}~{batchEnd}/{totalSegments}");
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception ex)
                     {
-                        ed.WriteMessage($"\n   ❌ Lỗi batch khung {batchStart + 1}~{batchEnd}: {ex.Message}");
+                        ed.WriteMessage($"\n   Lỗi batch khung {batchStart + 1}~{batchEnd}: {ex.Message}");
                     }
                 }
 
@@ -1215,7 +1174,7 @@ namespace MyFirstProject
             }
 
             progress.Stop();
-            ed.WriteMessage($"\n✅ Đã tạo {created}/{totalSegments} khung MView trong Model Space (tỉ lệ 1:{scale:F0})");
+            ed.WriteMessage($"\n Đã tạo {created}/{totalSegments} khung MView trong Model Space (tỉ lệ 1:{scale:F0})");
 
             if (created == 0) return;
 
@@ -1234,7 +1193,7 @@ namespace MyFirstProject
             int segIndex = 0;
             int totalVpCreated = 0;
 
-            ed.WriteMessage($"\n📐 Bắt đầu tạo {totalLayouts} layout, mỗi layout tối đa {maxVpPerLayout} viewport...");
+            ed.WriteMessage($"\n Bắt đầu tạo {totalLayouts} layout, mỗi layout tối đa {maxVpPerLayout} viewport...");
 
             using var progressVp = new Autodesk.AutoCAD.Runtime.ProgressMeter();
             progressVp.Start($"Đang tạo viewport trong Layout...");
@@ -1271,7 +1230,7 @@ namespace MyFirstProject
                     }
                     catch
                     {
-                        ed.WriteMessage($"\n⚠️ Không thể tạo Layout '{layoutName}'.");
+                        ed.WriteMessage($"\n Không thể tạo Layout '{layoutName}'.");
                         continue;
                     }
                 }
@@ -1354,7 +1313,7 @@ namespace MyFirstProject
                         }
                         catch (Autodesk.AutoCAD.Runtime.Exception ex)
                         {
-                            ed.WriteMessage($"\n   ❌ Lỗi tạo VP batch: {ex.Message}");
+                            ed.WriteMessage($"\n   Lỗi tạo VP batch: {ex.Message}");
                             continue;
                         }
                     }
@@ -1388,7 +1347,7 @@ namespace MyFirstProject
                             }
                             catch (Autodesk.AutoCAD.Runtime.Exception ex)
                             {
-                                ed.WriteMessage($"\n   ❌ Lỗi set view: {ex.Message}");
+                                ed.WriteMessage($"\n   Lỗi set view: {ex.Message}");
                             }
                         }
                     }
@@ -1401,14 +1360,14 @@ namespace MyFirstProject
                 }
 
                 segIndex += vpInThisLayout;
-                ed.WriteMessage($"\n✅ Layout '{layoutName}': {vpInThisLayout} viewport hoàn tất");
+                ed.WriteMessage($"\n Layout '{layoutName}': {vpInThisLayout} viewport hoàn tất");
             }
 
             progressVp.Stop();
 
             // Chuyển về paper space để xem layout
             db.TileMode = false;
-            ed.WriteMessage($"\n✅ Tổng: {totalVpCreated} viewport trong {totalLayouts} layout (1:1, khung theo CAD)");
+            ed.WriteMessage($"\n Tổng: {totalVpCreated} viewport trong {totalLayouts} layout (1:1, khung theo CAD)");
         }
 
         private static void CreateLayerIfNotExist(string name, short color)

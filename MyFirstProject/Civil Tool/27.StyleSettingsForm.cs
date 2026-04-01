@@ -197,17 +197,7 @@ namespace MyFirstProject
     /// Form quản lý style cho toàn bộ dự án
     /// Dark theme giống MenuSettingsForm
     /// </summary>
-    public class StyleSettingsForm : Form
-    {
-        // ─── Theme Colors (Navy / White) ───
-        private static readonly Color BgDark = Color.FromArgb(255, 255, 255);
-        private static readonly Color BgPanel = Color.FromArgb(245, 247, 250);
-        private static readonly Color BgInput = Color.FromArgb(255, 255, 255);
-        private static readonly Color AccentBlue = Color.FromArgb(27, 42, 74);
-        private static readonly Color HeaderBlue = Color.FromArgb(27, 42, 74);
-        private static readonly Color TextWhite = Color.FromArgb(61, 61, 61);
-        private static readonly Color TextDim = Color.FromArgb(122, 122, 122);
-        private static readonly Color BorderColor = Color.FromArgb(208, 213, 221);
+    public class StyleSettingsForm : CivilFormBase
 
         // ─── Data ───
         private StyleConfig _config;
@@ -223,15 +213,15 @@ namespace MyFirstProject
         // Danh sách categories
         private readonly string[] _categories = new[]
         {
-            "🛣  Alignment (Tuyến)",
-            "📈  Profile (Trắc dọc)",
-            "📊  ProfileView (Khung TD)",
-            "📏  SampleLine (Cọc)",
-            "📐  SectionView (Trắc ngang)",
-            "🗺  Surface (Bề mặt)",
-            "🔧  Pipe & Structure (Ống)",
-            "📌  Point (Điểm)",
-            "⚙  Chung (General)"
+            "Alignment (Tuyến)",
+            "Profile (Trắc dọc)",
+            "ProfileView (Khung TD)",
+            "SampleLine (Cọc)",
+            "SectionView (Trắc ngang)",
+            "Surface (Bề mặt)",
+            "Pipe & Structure (Ống)",
+            "Point (Điểm)",
+            "Chung (General)"
         };
 
         private class StyleRow
@@ -259,29 +249,10 @@ namespace MyFirstProject
 
         private void InitializeUI()
         {
-            // ── Form ──
-            this.Text = "🎨 Civil Tool — Cài Đặt Style";
-            this.Size = new Size(920, 620);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.Font = new Font("Segoe UI", 9.5f);
-            this.BackColor = BgDark;
-            this.ForeColor = TextWhite;
+            InitBaseTheme("Civil Tool — Cài Đặt Style", 920, 620);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
 
-            // ── HEADER ──
-            var header = new Panel { Dock = DockStyle.Top, Height = 52, BackColor = HeaderBlue };
-            var lblTitle = new WinLabel
-            {
-                Text = "🎨  CÀI ĐẶT STYLE — CIVIL 3D",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.White,
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Dock = DockStyle.Fill,
-                Padding = new Padding(16, 0, 0, 0)
-            };
-            header.Controls.Add(lblTitle);
+            var header = CreateHeader("CÀI ĐẶT STYLE — CIVIL 3D");
             this.Controls.Add(header);
 
             // ── SUBTITLE ──
@@ -295,22 +266,16 @@ namespace MyFirstProject
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Top,
                 Padding = new Padding(18, 0, 0, 0),
-                BackColor = Color.FromArgb(245, 247, 250)
+                BackColor = BgPanel
             };
             this.Controls.Add(subtitle);
             subtitle.BringToFront();
 
             // ── BOTTOM BAR ──
-            var pnlBottom = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 55,
-                BackColor = Color.FromArgb(245, 247, 250),
-                Padding = new Padding(12, 8, 12, 8)
-            };
+            var pnlBottom = CreateBottomBar();
             this.Controls.Add(pnlBottom);
 
-            var btnReset = CreateButton("🔄 Reset mặc định", 12, 8, 155, 36, pnlBottom);
+            var btnReset = CreateButton("Reset mặc định", 12, 8, 155, 36, pnlBottom);
             btnReset.Click += (s, e) =>
             {
                 if (MessageBox.Show("Xóa tất cả cài đặt style và quay về mặc định?",
@@ -324,35 +289,32 @@ namespace MyFirstProject
                 }
             };
 
-            var btnCancel = CreateButton("✖ Hủy", 640, 8, 100, 36, pnlBottom);
+            var btnCancel = CreateButton("Hủy", 640, 8, 100, 36, pnlBottom);
             btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
 
-            var btnSave = CreateButton("✅ Lưu & Áp dụng", 752, 8, 150, 36, pnlBottom);
-            btnSave.BackColor = AccentBlue;
-            btnSave.ForeColor = Color.White;
-            btnSave.FlatAppearance.BorderColor = Color.FromArgb(16, 28, 52);
+            var btnSave = CreatePrimaryButton("Lưu & Áp dụng", 752, 8, 150, 36, pnlBottom);
             btnSave.Click += BtnSave_Click;
 
-            // ── MAIN CONTENT ──
-            var mainPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
-            this.Controls.Add(mainPanel);
-            mainPanel.BringToFront();
+            // ── BACKGROUND PANEL for layout stability ──
+            var mainContainer = CreateSection("", 10, 85, 885, 460);
+            this.Controls.Add(mainContainer);
+            mainContainer.BringToFront();
 
             // ── LEFT: Category List ──
             var pnlLeft = new Panel
             {
                 Location = new Point(10, 10),
-                Size = new Size(240, 445),
+                Size = new Size(240, 440),
                 BackColor = BgPanel,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.None
             };
-            mainPanel.Controls.Add(pnlLeft);
+            mainContainer.Controls.Add(pnlLeft);
 
             var lblCatHeader = new WinLabel
             {
-                Text = "📂  LOẠI ĐỐI TƯỢNG",
+                Text = "LOẠI ĐỐI TƯỢNG",
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
-                ForeColor = AccentBlue,
+                ForeColor = NavyMedium,
                 Location = new Point(8, 8),
                 AutoSize = true
             };
@@ -361,9 +323,9 @@ namespace MyFirstProject
             lstCategories = new ListBox
             {
                 Location = new Point(5, 32),
-                Size = new Size(228, 405),
-                BackColor = BgInput,
-                ForeColor = TextWhite,
+                Size = new Size(228, 400),
+                BackColor = BgPanel,
+                ForeColor = TextDark,
                 BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 10f),
                 IntegralHeight = false,
@@ -378,22 +340,31 @@ namespace MyFirstProject
             };
             pnlLeft.Controls.Add(lstCategories);
 
+            // Vertical separator
+            var vLine = new Panel
+            {
+                Location = new Point(255, 10),
+                Size = new Size(1, 440),
+                BackColor = BorderColor
+            };
+            mainContainer.Controls.Add(vLine);
+
             // ── RIGHT: Detail Panel ──
             var pnlRight = new Panel
             {
-                Location = new Point(260, 10),
-                Size = new Size(630, 445),
+                Location = new Point(265, 10),
+                Size = new Size(610, 440),
                 BackColor = BgPanel,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.None
             };
-            mainPanel.Controls.Add(pnlRight);
+            mainContainer.Controls.Add(pnlRight);
 
             lblCategoryTitle = new WinLabel
             {
                 Text = "",
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                ForeColor = AccentBlue,
-                Location = new Point(15, 10),
+                ForeColor = NavyMedium,
+                Location = new Point(10, 8),
                 AutoSize = true
             };
             pnlRight.Controls.Add(lblCategoryTitle);
@@ -401,8 +372,8 @@ namespace MyFirstProject
             // Separator line
             var separator = new Panel
             {
-                Location = new Point(15, 38),
-                Size = new Size(598, 1),
+                Location = new Point(10, 38),
+                Size = new Size(590, 1),
                 BackColor = BorderColor
             };
             pnlRight.Controls.Add(separator);
@@ -410,7 +381,7 @@ namespace MyFirstProject
             pnlDetail = new Panel
             {
                 Location = new Point(10, 45),
-                Size = new Size(608, 390),
+                Size = new Size(590, 390),
                 BackColor = BgPanel,
                 AutoScroll = true
             };
@@ -423,8 +394,8 @@ namespace MyFirstProject
             e.DrawBackground();
 
             bool isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-            Color bgColor = isSelected ? AccentBlue : BgInput;
-            Color fgColor = isSelected ? Color.White : TextWhite;
+            Color bgColor = isSelected ? NavyMedium : BgPanel;
+            Color fgColor = isSelected ? Color.White : TextDark;
 
             using var bgBrush = new SolidBrush(bgColor);
             e.Graphics.FillRectangle(bgBrush, e.Bounds);
@@ -474,7 +445,7 @@ namespace MyFirstProject
             int y = 10;
             AddStyleCombo("Alignment Style:", "AlignmentStyle", _cdoc.Styles.AlignmentStyles, _config.AlignmentStyle, ref y);
             AddStyleCombo("Label Set Style:", "AlignmentLabelSet", _cdoc.Styles.LabelSetStyles.AlignmentLabelSetStyles, _config.AlignmentLabelSet, ref y);
-            AddInfoLabel("💡 Style mặc định sẽ áp dụng cho: CTA_TaoTuyenHangLoat, CTA_TaoTuyenNhanh", ref y);
+            AddInfoLabel("Style mặc định sẽ áp dụng cho: CTA_TaoTuyenHangLoat, CTA_TaoTuyenNhanh", ref y);
         }
 
         // ── PROFILE ──
@@ -483,7 +454,7 @@ namespace MyFirstProject
             int y = 10;
             AddStyleCombo("Profile Style:", "ProfileStyle", _cdoc.Styles.ProfileStyles, _config.ProfileStyle, ref y);
             AddStyleCombo("Label Set Style:", "ProfileLabelSet", _cdoc.Styles.LabelSetStyles.ProfileLabelSetStyles, _config.ProfileLabelSet, ref y);
-            AddInfoLabel("💡 Áp dụng cho: CTP_VeTracDoc_TuNhien, CTP_VeTracDoc_TuNhien_TatCaTuyen", ref y);
+            AddInfoLabel("Áp dụng cho: CTP_VeTracDoc_TuNhien, CTP_VeTracDoc_TuNhien_TatCaTuyen", ref y);
         }
 
         // ── PROFILE VIEW ──
@@ -492,7 +463,7 @@ namespace MyFirstProject
             int y = 10;
             AddStyleCombo("ProfileView Style:", "ProfileViewStyle", _cdoc.Styles.ProfileViewStyles, _config.ProfileViewStyle, ref y);
             AddStyleCombo("Band Set Style:", "ProfileViewBandSet", _cdoc.Styles.ProfileViewBandSetStyles, _config.ProfileViewBandSet, ref y);
-            AddInfoLabel("💡 Áp dụng cho: CTP_VeTracDoc_TuNhien, CTPV_TaoProfileView", ref y);
+            AddInfoLabel("Áp dụng cho: CTP_VeTracDoc_TuNhien, CTPV_TaoProfileView", ref y);
         }
 
         // ── SAMPLELINE ──
@@ -501,7 +472,7 @@ namespace MyFirstProject
             int y = 10;
             AddStyleCombo("SampleLine Style:", "SampleLineStyle", _cdoc.Styles.SampleLineStyles, _config.SampleLineStyle, ref y);
             AddStyleCombo("Label Style:", "SampleLineLabelStyle", _cdoc.Styles.LabelStyles.SampleLineLabelStyles.LabelStyles, _config.SampleLineLabelStyle, ref y);
-            AddInfoLabel("💡 Áp dụng cho: CTS_PhatSinhCoc, CTS_DoiTenCoc", ref y);
+            AddInfoLabel("Áp dụng cho: CTS_PhatSinhCoc, CTS_DoiTenCoc", ref y);
         }
 
         // ── SECTION VIEW ──
@@ -510,7 +481,7 @@ namespace MyFirstProject
             int y = 10;
             AddStyleCombo("SectionView Style:", "SectionViewStyle", _cdoc.Styles.SectionViewStyles, _config.SectionViewStyle, ref y);
             AddStyleCombo("Band Set Style:", "SectionViewBandSet", _cdoc.Styles.SectionViewBandSetStyles, _config.SectionViewBandSet, ref y);
-            AddInfoLabel("💡 Áp dụng cho: CTSV_VeTracNgangThietKe, CVSV_VeTatCa_TracNgangThietKe", ref y);
+            AddInfoLabel("Áp dụng cho: CTSV_VeTracNgangThietKe, CVSV_VeTatCa_TracNgangThietKe", ref y);
         }
 
         // ── SURFACE ──
@@ -518,7 +489,7 @@ namespace MyFirstProject
         {
             int y = 10;
             AddStyleCombo("Surface Style:", "SurfaceStyle", _cdoc.Styles.SurfaceStyles, _config.SurfaceStyle, ref y);
-            AddInfoLabel("💡 Áp dụng cho: CTSu_TaoSpotElevation_OnSurface_TaiTim", ref y);
+            AddInfoLabel("Áp dụng cho: CTSu_TaoSpotElevation_OnSurface_TaiTim", ref y);
         }
 
         // ── PIPE & STRUCTURE ──
@@ -527,7 +498,7 @@ namespace MyFirstProject
             int y = 10;
             AddStyleCombo("Pipe Style:", "PipeStyle", _cdoc.Styles.PipeStyles, _config.PipeStyle, ref y);
             AddStyleCombo("Structure Style:", "StructureStyle", _cdoc.Styles.StructureStyles, _config.StructureStyle, ref y);
-            AddInfoLabel("💡 Áp dụng cho: CTPS_TaoBangThongKePipe, CTPS_TaoBangThongKeStructure", ref y);
+            AddInfoLabel("Áp dụng cho: CTPS_TaoBangThongKePipe, CTPS_TaoBangThongKeStructure", ref y);
         }
 
         // ── POINT ──
@@ -536,7 +507,7 @@ namespace MyFirstProject
             int y = 10;
             AddStyleCombo("Point Style:", "PointStyle", _cdoc.Styles.PointStyles, _config.PointStyle, ref y);
             AddStyleCombo("Point Label Style:", "PointLabelStyle", _cdoc.Styles.LabelStyles.PointLabelStyles.LabelStyles, _config.PointLabelStyle, ref y);
-            AddInfoLabel("💡 Áp dụng cho: CTPo_TaoPointTheoBang, CTPo_ThayDoiStyle", ref y);
+            AddInfoLabel("Áp dụng cho: CTPo_TaoPointTheoBang, CTPo_ThayDoiStyle", ref y);
         }
 
         // ── GENERAL ──
@@ -545,7 +516,7 @@ namespace MyFirstProject
             int y = 10;
 
             // Site selection
-            AddLabel("📍 Site mặc định:", ref y);
+            AddLabel("Site mặc định:", ref y);
             var cmbSite = new ComboBox
             {
                 Location = new Point(180, y - 22),
@@ -581,13 +552,13 @@ namespace MyFirstProject
             y += 15;
 
             // Default Layer
-            AddLabel("🏷 Layer mặc định:", ref y);
+            AddLabel("Layer mặc định:", ref y);
             var txtLayer = new TextBox
             {
                 Location = new Point(180, y - 22),
                 Size = new Size(380, 28),
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9.5f),
                 BorderStyle = BorderStyle.FixedSingle,
                 Text = _config.DefaultLayer
@@ -596,14 +567,14 @@ namespace MyFirstProject
             pnlDetail.Controls.Add(txtLayer);
             y += 15;
 
-            AddInfoLabel("💡 Site và Layer sẽ áp dụng khi tạo Alignment, Profile mới.", ref y);
+            AddInfoLabel("Site và Layer sẽ áp dụng khi tạo Alignment, Profile mới.", ref y);
 
             // Thông tin config hiện tại
             y += 10;
             var lblConfigInfo = new WinLabel
             {
-                Text = $"📁 Config: {Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CivilTool", "style_config.json")}\n" +
-                       $"📅 Cập nhật: {_config.LastModified:dd/MM/yyyy HH:mm}",
+                Text = $"Config: {Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CivilTool", "style_config.json")}\n" +
+                       $"Cập nhật: {_config.LastModified:dd/MM/yyyy HH:mm}",
                 Location = new Point(10, y),
                 Size = new Size(570, 45),
                 ForeColor = TextDim,
@@ -618,13 +589,12 @@ namespace MyFirstProject
 
         private void AddStyleCombo(string label, string configKey, System.Collections.IEnumerable styleCollection, string currentValue, ref int y)
         {
-            // Label
             var lbl = new WinLabel
             {
                 Text = label,
                 Location = new Point(10, y + 3),
                 Size = new Size(160, 22),
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
             };
             pnlDetail.Controls.Add(lbl);
@@ -636,7 +606,7 @@ namespace MyFirstProject
                 Size = new Size(380, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9.5f),
                 FlatStyle = FlatStyle.Flat
             };
@@ -697,7 +667,7 @@ namespace MyFirstProject
                 Text = text,
                 Location = new Point(10, y + 3),
                 Size = new Size(160, 22),
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
             };
             pnlDetail.Controls.Add(lbl);
@@ -730,21 +700,8 @@ namespace MyFirstProject
 
         private Button CreateButton(string text, int x, int y, int w, int h, Control parent)
         {
-            var btn = new Button
-            {
-                Text = text,
-                Location = new Point(x, y),
-                Size = new Size(w, h),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(245, 247, 250),
-                ForeColor = Color.FromArgb(61, 61, 61),
-                Font = new Font("Segoe UI", 9f),
-                Cursor = Cursors.Hand,
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            btn.FlatAppearance.BorderColor = BorderColor;
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(46, 74, 122);
-            parent.Controls.Add(btn);
+            var btn = base.CreateButton(text, x, y, w, h, parent);
+            btn.TextAlign = ContentAlignment.MiddleCenter;
             return btn;
         }
 
@@ -756,7 +713,7 @@ namespace MyFirstProject
         {
             StyleSettings.Save(_config);
             MessageBox.Show(
-                "✅ Đã lưu cài đặt Style!\n\nCác lệnh Civil Tool sẽ sử dụng style đã chọn.",
+                "Đã lưu cài đặt Style!\n\nCác lệnh Civil Tool sẽ sử dụng style đã chọn.",
                 "Thành công",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -792,11 +749,11 @@ namespace MyFirstProject
 
                     if (result == DialogResult.OK)
                     {
-                        A.Ed.WriteMessage("\n✅ Đã cập nhật cài đặt Style thành công!");
+                        A.Ed.WriteMessage("\n Đã cập nhật cài đặt Style thành công!");
                     }
                     else
                     {
-                        A.Ed.WriteMessage("\n⚠️ Đã hủy cài đặt Style.");
+                        A.Ed.WriteMessage("\n Đã hủy cài đặt Style.");
                     }
 
                     tr.Commit();

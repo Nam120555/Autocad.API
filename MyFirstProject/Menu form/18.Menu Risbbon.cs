@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -80,7 +80,7 @@ namespace MyFirstProject
             var iconChars = new[] { "◎", "▸", "◈", "◊", "═", "▤", "□", "◻", "▢", "▣", 
                                     "⊙", "⊚", "⊕", "⊗", "★", "☆", "●", "○", "◐", "◑",
                                     "▶", "◀", "▲", "▼", "◄", "►", "◆", "◇", "⬇", "⬆",
-                                    "━", "─", "│", "║", "╱", "╲", "⚙", "⚡", "▭", "╋", "△", "⊞", "▥" };
+                                    "━", "─", "│", "║", "╱", "╲", "▭", "╋", "△", "⊞", "▥" };
             
             foreach (var c in iconChars) if (text.Contains(c)) return c;
             foreach (char c in text) if (char.IsLetterOrDigit(c)) return c.ToString().ToUpper();

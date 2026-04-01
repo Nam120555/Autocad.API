@@ -75,7 +75,7 @@ namespace MyFirstProject.VisualINFRA
                     var slgIds = alignment.GetSampleLineGroupIds();
                     if (slgIds.Count == 0)
                     {
-                        ed.WriteMessage("\n❌ Alignment chưa có Sample Line Group.");
+                        ed.WriteMessage("\n Alignment chưa có Sample Line Group.");
                         tr.Commit();
                         return;
                     }
@@ -109,7 +109,7 @@ namespace MyFirstProject.VisualINFRA
                     }
 
                     // Hiển thị thông tin Sample Line
-                    ed.WriteMessage($"\n\n📊 SAMPLE LINE - {alignment.Name}");
+                    ed.WriteMessage($"\n\n SAMPLE LINE - {alignment.Name}");
                     ed.WriteMessage($"\n{'=',-60}");
                     ed.WriteMessage($"\n{"STT",-5} {"Tên Cọc",-20} {"Lý Trình",-15} {"Station",-15}");
                     ed.WriteMessage($"\n{new string('-', 60)}");
@@ -122,7 +122,7 @@ namespace MyFirstProject.VisualINFRA
                     }
 
                     ed.WriteMessage($"\n{'=',-60}");
-                    ed.WriteMessage($"\n\n⚠️ Để tính khối lượng chính xác, sử dụng lệnh VI_VolumeNetwork");
+                    ed.WriteMessage($"\n\n Để tính khối lượng chính xác, sử dụng lệnh VI_VolumeNetwork");
                     ed.WriteMessage($"\n   hoặc xem QS trong Civil 3D Compute Materials.");
 
                     tr.Commit();
@@ -130,7 +130,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -155,12 +155,12 @@ namespace MyFirstProject.VisualINFRA
                     var sectionView = tr.GetObject(svResult.ObjectId, OpenMode.ForRead) as SectionView;
                     if (sectionView == null)
                     {
-                        ed.WriteMessage("\n❌ Đối tượng không phải Section View.");
+                        ed.WriteMessage("\n Đối tượng không phải Section View.");
                         tr.Commit();
                         return;
                     }
 
-                    ed.WriteMessage($"\n\n📊 THÔNG TIN SECTION VIEW");
+                    ed.WriteMessage($"\n\n THÔNG TIN SECTION VIEW");
                     ed.WriteMessage($"\n{'=',-50}");
                     ed.WriteMessage($"\n  Tên: {sectionView.Name}");
 
@@ -178,14 +178,14 @@ namespace MyFirstProject.VisualINFRA
                     }
 
                     ed.WriteMessage($"\n{'=',-50}");
-                    ed.WriteMessage($"\n\n  ⚠️ Để xem diện tích chi tiết, sử dụng Civil 3D Section Properties.");
+                    ed.WriteMessage($"\n\n  Để xem diện tích chi tiết, sử dụng Civil 3D Section Properties.");
 
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -210,7 +210,7 @@ namespace MyFirstProject.VisualINFRA
                 var surfaceIds = civilDoc.GetSurfaceIds();
                 if (surfaceIds.Count < 2)
                 {
-                    ed.WriteMessage("\n❌ Cần ít nhất 2 Surface để tính khối lượng.");
+                    ed.WriteMessage("\n Cần ít nhất 2 Surface để tính khối lượng.");
                     return;
                 }
 
@@ -249,7 +249,7 @@ namespace MyFirstProject.VisualINFRA
 
                 if (baseSurfaceId == compSurfaceId)
                 {
-                    ed.WriteMessage("\n❌ Phải chọn 2 Surface khác nhau.");
+                    ed.WriteMessage("\n Phải chọn 2 Surface khác nhau.");
                     return;
                 }
 
@@ -265,7 +265,7 @@ namespace MyFirstProject.VisualINFRA
                         return;
                     }
 
-                    ed.WriteMessage($"\n\n📊 TÍNH KHỐI LƯỢNG ĐÀO ĐẮP");
+                    ed.WriteMessage($"\n\n TÍNH KHỐI LƯỢNG ĐÀO ĐẮP");
                     ed.WriteMessage($"\n{'=',-50}");
                     ed.WriteMessage($"\n  Surface tự nhiên: {baseName}");
                     ed.WriteMessage($"\n  Surface thiết kế: {compName}");
@@ -296,7 +296,7 @@ namespace MyFirstProject.VisualINFRA
                         }
                         catch (System.Exception ex)
                         {
-                            ed.WriteMessage($"\n⚠️ Không thể tạo Volume Surface: {ex.Message}");
+                            ed.WriteMessage($"\n Không thể tạo Volume Surface: {ex.Message}");
                         }
                     }
 
@@ -308,7 +308,7 @@ namespace MyFirstProject.VisualINFRA
                         double fillVol = props.UnadjustedFillVolume;
                         double netVol = cutVol - fillVol;
                         
-                        ed.WriteMessage($"\n\n  📐 KẾT QUẢ:");
+                        ed.WriteMessage($"\n\n  KẾT QUẢ:");
                         ed.WriteMessage($"\n  {'-',-45}");
                         ed.WriteMessage($"\n  Khối lượng ĐÀO (Cut):  {cutVol:N2} m³");
                         ed.WriteMessage($"\n  Khối lượng ĐẮP (Fill): {fillVol:N2} m³");
@@ -321,7 +321,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -368,7 +368,7 @@ namespace MyFirstProject.VisualINFRA
                     var slgIds = alignment.GetSampleLineGroupIds();
                     if (slgIds.Count == 0)
                     {
-                        ed.WriteMessage("\n❌ Không có Sample Line Group.");
+                        ed.WriteMessage("\n Không có Sample Line Group.");
                         tr.Commit();
                         return;
                     }
@@ -399,14 +399,14 @@ namespace MyFirstProject.VisualINFRA
                     }
 
                     File.WriteAllText(sfd.FileName, sb.ToString(), Encoding.UTF8);
-                    ed.WriteMessage($"\n✅ Đã xuất {stt - 1} cọc ra file: {sfd.FileName}");
+                    ed.WriteMessage($"\n Đã xuất {stt - 1} cọc ra file: {sfd.FileName}");
 
                     tr.Commit();
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -430,7 +430,7 @@ namespace MyFirstProject.VisualINFRA
                 var surfaceIds = civilDoc.GetSurfaceIds();
                 
                 ed.WriteMessage($"\n\n{'=',-70}");
-                ed.WriteMessage($"\n📊 BẢNG SO SÁNH KHỐI LƯỢNG SURFACE");
+                ed.WriteMessage($"\n BẢNG SO SÁNH KHỐI LƯỢNG SURFACE");
                 ed.WriteMessage($"\n{'=',-70}");
 
                 // Lọc Volume Surface
@@ -449,7 +449,7 @@ namespace MyFirstProject.VisualINFRA
 
                     if (volSurfaces.Count == 0)
                     {
-                        ed.WriteMessage("\n❌ Không có Volume Surface. Hãy tạo bằng lệnh VI_VolumeNetwork.");
+                        ed.WriteMessage("\n Không có Volume Surface. Hãy tạo bằng lệnh VI_VolumeNetwork.");
                         tr.Commit();
                         return;
                     }
@@ -482,7 +482,7 @@ namespace MyFirstProject.VisualINFRA
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -495,7 +495,7 @@ namespace MyFirstProject.VisualINFRA
             var alignmentIds = civilDoc.GetAlignmentIds();
             if (alignmentIds.Count == 0)
             {
-                ed.WriteMessage("\n❌ Không có Alignment.");
+                ed.WriteMessage("\n Không có Alignment.");
                 return ObjectId.Null;
             }
 

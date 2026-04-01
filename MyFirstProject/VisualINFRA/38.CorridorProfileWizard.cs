@@ -116,7 +116,7 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            InitBaseTheme("🏗️  CORRIDOR & PROFILE WIZARD", 470, 520);
+            InitBaseTheme("CORRIDOR & PROFILE WIZARD", 470, 520);
 
             // ═══ HEADER ═══
             var header = CreateHeader("CORRIDOR & PROFILE WIZARD");
@@ -135,13 +135,13 @@ namespace MyFirstProject
             this.Controls.Add(tabControl);
 
             // ─── TAB PROFILE ───
-            tabProfile = new TabPage("📊 Profile");
+            tabProfile = new TabPage("Profile");
             tabProfile.BackColor = BgPanel;
             tabProfile.Padding = new Padding(10);
             tabControl.TabPages.Add(tabProfile);
 
             int py = 12;
-            tabProfile.Controls.Add(CreateLabel("📏 Alignment:", 10, py + 3));
+            tabProfile.Controls.Add(CreateLabel("Alignment:", 10, py + 3));
             cboAlignment = CreateComboBox(110, py, 290);
             foreach (var (name, _) in alignmentList)
                 cboAlignment.Items.Add(name);
@@ -149,7 +149,7 @@ namespace MyFirstProject
             tabProfile.Controls.Add(cboAlignment);
             py += 38;
 
-            tabProfile.Controls.Add(CreateLabel("🗺️ Surface:", 10, py + 3));
+            tabProfile.Controls.Add(CreateLabel("Surface:", 10, py + 3));
             cboSurface = CreateComboBox(110, py, 290);
             foreach (var (name, _) in surfaceList)
                 cboSurface.Items.Add(name);
@@ -158,13 +158,13 @@ namespace MyFirstProject
             py += 50;
 
             // Chức năng Profile
-            var grpProfile = CreateGroupBox("⚡ Chức năng Profile", 8, py, 390, 120);
+            var grpProfile = CreateGroupBox("Chức năng Profile", 8, py, 390, 120);
             tabProfile.Controls.Add(grpProfile);
 
             int ry = 26;
             rdoCreatePV = new RadioButton
             {
-                Text = "📊 Tạo Profile View (chọn điểm chèn)",
+                Text = "Tạo Profile View (chọn điểm chèn)",
                 Location = new Point(12, ry), AutoSize = true, Checked = true,
                 ForeColor = TextDark, Font = new Font("Segoe UI", 9.5f)
             };
@@ -173,7 +173,7 @@ namespace MyFirstProject
 
             rdoCreateSurfProf = new RadioButton
             {
-                Text = "🗺️ Tạo Surface Profile cho TẤT CẢ Alignment",
+                Text = "Tạo Surface Profile cho TẤT CẢ Alignment",
                 Location = new Point(12, ry), AutoSize = true,
                 ForeColor = TextDark, Font = new Font("Segoe UI", 9.5f)
             };
@@ -182,20 +182,20 @@ namespace MyFirstProject
 
             rdoOffsetProf = new RadioButton
             {
-                Text = "↕️ Tạo Offset Profile (chọn Profile View)",
+                Text = "Tạo Offset Profile (chọn Profile View)",
                 Location = new Point(12, ry), AutoSize = true,
                 ForeColor = TextDark, Font = new Font("Segoe UI", 9.5f)
             };
             grpProfile.Controls.Add(rdoOffsetProf);
 
             // ─── TAB CORRIDOR ───
-            tabCorridor = new TabPage("🏗️ Corridor");
+            tabCorridor = new TabPage("Corridor");
             tabCorridor.BackColor = BgPanel;
             tabCorridor.Padding = new Padding(10);
             tabControl.TabPages.Add(tabCorridor);
 
             int cy = 12;
-            tabCorridor.Controls.Add(CreateLabel("🏗️ Corridor:", 10, cy + 3));
+            tabCorridor.Controls.Add(CreateLabel("Corridor:", 10, cy + 3));
             cboCorridor = CreateComboBox(110, cy, 290);
             foreach (var (name, _) in corridorList)
                 cboCorridor.Items.Add(name);
@@ -203,13 +203,13 @@ namespace MyFirstProject
             tabCorridor.Controls.Add(cboCorridor);
             cy += 50;
 
-            var grpCorridor = CreateGroupBox("⚡ Chức năng Corridor", 8, cy, 390, 120);
+            var grpCorridor = CreateGroupBox("Chức năng Corridor", 8, cy, 390, 120);
             tabCorridor.Controls.Add(grpCorridor);
 
             ry = 26;
             rdoCreateSurfCorr = new RadioButton
             {
-                Text = "🗺️ Tạo Surface từ Corridor",
+                Text = "Tạo Surface từ Corridor",
                 Location = new Point(12, ry), AutoSize = true, Checked = true,
                 ForeColor = TextDark, Font = new Font("Segoe UI", 9.5f)
             };
@@ -218,7 +218,7 @@ namespace MyFirstProject
 
             rdoRebuildAll = new RadioButton
             {
-                Text = "🔄 Rebuild TẤT CẢ Corridor",
+                Text = "Rebuild TẤT CẢ Corridor",
                 Location = new Point(12, ry), AutoSize = true,
                 ForeColor = TextDark, Font = new Font("Segoe UI", 9.5f)
             };
@@ -227,7 +227,7 @@ namespace MyFirstProject
 
             rdoCorridorInfo = new RadioButton
             {
-                Text = "📊 Xem thông tin Corridor",
+                Text = "Xem thông tin Corridor",
                 Location = new Point(12, ry), AutoSize = true,
                 ForeColor = TextDark, Font = new Font("Segoe UI", 9.5f)
             };
@@ -245,7 +245,7 @@ namespace MyFirstProject
 
             var lblStats = new WinLabel
             {
-                Text = $"📊 Alignments: {alignmentList.Count}  |  Surfaces: {surfaceList.Count}  |  Corridors: {corridorList.Count}",
+                Text = $"Alignments: {alignmentList.Count}  |  Surfaces: {surfaceList.Count}  |  Corridors: {corridorList.Count}",
                 Location = new Point(10, 5),
                 AutoSize = true,
                 ForeColor = TextDark,
@@ -255,7 +255,7 @@ namespace MyFirstProject
 
             var lblHint = new WinLabel
             {
-                Text = "💡 Chọn tab → chức năng → bấm Thực Hiện",
+                Text = "Chọn tab → chức năng → bấm Thực Hiện",
                 Location = new Point(10, 30),
                 AutoSize = true,
                 ForeColor = TextHint,
@@ -267,10 +267,10 @@ namespace MyFirstProject
             var bottomBar = CreateBottomBar(56);
             this.Controls.Add(bottomBar);
 
-            var btnCancel = CreateButton("✕ Hủy", 10, 10, 200, 36, bottomBar);
+            var btnCancel = CreateButton("Hủy", 10, 10, 200, 36, bottomBar);
             btnCancel.Click += (s, e) => { IsConfirmed = false; this.Close(); };
 
-            var btnRun = CreateSuccessButton("▶ Thực Hiện", 220, 10, 210, 36, bottomBar);
+            var btnRun = CreateSuccessButton("Thực Hiện", 220, 10, 210, 36, bottomBar);
             btnRun.Click += (s, e) => { IsConfirmed = true; this.Close(); };
 
             this.AcceptButton = btnRun;

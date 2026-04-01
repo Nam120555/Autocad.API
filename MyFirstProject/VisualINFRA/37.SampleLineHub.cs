@@ -96,7 +96,7 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            InitBaseTheme("📐  SAMPLE LINE HUB", 440, 480);
+            InitBaseTheme("SAMPLE LINE HUB", 440, 480);
 
             // ═══ HEADER ═══
             var header = CreateHeader("SAMPLE LINE HUB");
@@ -106,7 +106,7 @@ namespace MyFirstProject
             this.Controls.Add(subtitle);
 
             // ═══ CHỌN ALIGNMENT ═══
-            var grpAlign = CreateGroupBox("📏 Chọn Alignment", 16, 82, 400, 60);
+            var grpAlign = CreateGroupBox("Chọn Alignment", 16, 82, 400, 60);
             this.Controls.Add(grpAlign);
 
             cboAlignment = CreateComboBox(12, 26, 376);
@@ -117,22 +117,22 @@ namespace MyFirstProject
             grpAlign.Controls.Add(cboAlignment);
 
             // ═══ CHỌN CHỨC NĂNG ═══
-            var grpFunc = CreateGroupBox("⚡ Chức năng", 16, 150, 400, 155);
+            var grpFunc = CreateGroupBox("Chức năng", 16, 150, 400, 155);
             this.Controls.Add(grpFunc);
 
             int ry = 26;
-            rdoCoordinate = CreateRadioBtn("📍 Xuất tọa độ cọc (Clipboard + Command Line)", 12, ry, grpFunc, true);
+            rdoCoordinate = CreateRadioBtn("Xuất tọa độ cọc (Clipboard + Command Line)", 12, ry, grpFunc, true);
             ry += 25;
-            rdoExport = CreateRadioBtn("📤 Xuất Sample Line ra CSV", 12, ry, grpFunc);
+            rdoExport = CreateRadioBtn("Xuất Sample Line ra CSV", 12, ry, grpFunc);
             ry += 25;
-            rdoImport = CreateRadioBtn("📥 Nhập Sample Line từ CSV", 12, ry, grpFunc);
+            rdoImport = CreateRadioBtn("Nhập Sample Line từ CSV", 12, ry, grpFunc);
             ry += 25;
-            rdoRename = CreateRadioBtn("✏️ Đổi tên Sample Line (theo lý trình)", 12, ry, grpFunc);
+            rdoRename = CreateRadioBtn("Đổi tên Sample Line (theo lý trình)", 12, ry, grpFunc);
             ry += 25;
-            rdoFilling = CreateRadioBtn("📝 Điền text lên vị trí cọc", 12, ry, grpFunc);
+            rdoFilling = CreateRadioBtn("Điền text lên vị trí cọc", 12, ry, grpFunc);
 
             // ═══ TÙY CHỌN THÊM ═══
-            pnlOptions = CreateGroupBox("🔧 Tùy chọn", 16, 313, 400, 72);
+            pnlOptions = CreateGroupBox("Tùy chọn", 16, 313, 400, 72);
             pnlOptions.Enabled = false;
             this.Controls.Add(pnlOptions);
 
@@ -168,10 +168,10 @@ namespace MyFirstProject
             var bottomBar = CreateBottomBar(56);
             this.Controls.Add(bottomBar);
 
-            var btnCancel = CreateButton("✕ Hủy", 10, 10, 190, 36, bottomBar);
+            var btnCancel = CreateButton("Hủy", 10, 10, 190, 36, bottomBar);
             btnCancel.Click += (s, e) => { IsConfirmed = false; this.Close(); };
 
-            var btnRun = CreateSuccessButton("▶ Thực Hiện", 210, 10, 190, 36, bottomBar);
+            var btnRun = CreateSuccessButton("Thực Hiện", 210, 10, 190, 36, bottomBar);
             btnRun.Click += (s, e) =>
             {
                 if (cboAlignment.SelectedIndex < 0)
@@ -227,7 +227,7 @@ namespace MyFirstProject
             var alignmentId = form.SelectedAlignmentId;
             if (alignmentId.IsNull)
             {
-                ed.WriteMessage("\n❌ Không chọn được Alignment.");
+                ed.WriteMessage("\n Không chọn được Alignment.");
                 return;
             }
 

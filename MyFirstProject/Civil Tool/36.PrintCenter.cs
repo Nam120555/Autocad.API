@@ -80,7 +80,7 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            InitBaseTheme("🖨️  PRINT CENTER", 480, 560);
+            InitBaseTheme("PRINT CENTER", 480, 560);
 
             // ═══ HEADER ═══
             var header = CreateHeader("PRINT CENTER — Trung Tâm In Ấn");

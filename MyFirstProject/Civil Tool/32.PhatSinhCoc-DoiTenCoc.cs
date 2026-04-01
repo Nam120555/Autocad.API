@@ -34,19 +34,8 @@ namespace MyFirstProject
     /// <summary>
     /// Form phát sinh cọc & đổi tên cọc — Dark Theme
     /// </summary>
-    public class CocTuyenDuongForm : Form
+    public class CocTuyenDuongForm : CivilFormBase
     {
-        // ─── Theme Colors ───
-        private static readonly Color BgDark = Color.FromArgb(30, 30, 34);
-        private static readonly Color BgPanel = Color.FromArgb(40, 40, 45);
-        private static readonly Color BgInput = Color.FromArgb(50, 50, 58);
-        private static readonly Color AccentBlue = Color.FromArgb(0, 122, 204);
-        private static readonly Color HeaderBlue = Color.FromArgb(0, 93, 160);
-        private static readonly Color TextWhite = Color.White;
-        private static readonly Color TextDim = Color.FromArgb(160, 160, 170);
-        private static readonly Color BorderColor = Color.FromArgb(65, 65, 75);
-        private static readonly Color GreenOk = Color.FromArgb(46, 160, 67);
-        private static readonly Color OrangeWarn = Color.FromArgb(210, 150, 40);
 
         // ─── Controls ───
         private RadioButton rdoPhatSinh = null!;
@@ -205,42 +194,24 @@ namespace MyFirstProject
         private void InitializeUI()
         {
             // ── Form ──
-            this.Text = "CỌC TUYẾN ĐƯỜNG — Civil Tool";
-            this.Size = new Size(780, 930);
-            this.StartPosition = FormStartPosition.CenterScreen;
+            InitBaseTheme("PHÁT SINH CỌC & ĐỔI TÊN CỌC", 780, 850);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.BackColor = BgDark;
-            this.ForeColor = TextWhite;
-            this.Font = new Font("Segoe UI", 9.5f);
 
             // ── HEADER ──
-            var header = new Panel { Dock = DockStyle.Top, Height = 52, BackColor = HeaderBlue };
-            var lblTitle = new WinLabel
-            {
-                Text = "📌  PHÁT SINH CỌC & ĐỔI TÊN CỌC",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = TextWhite,
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Dock = DockStyle.Fill,
-                Padding = new Padding(16, 0, 0, 0)
-            };
-            header.Controls.Add(lblTitle);
+            var header = CreateHeader("PHÁT SINH CỌC & ĐỔI TÊN CỌC");
             this.Controls.Add(header);
 
             var subtitle = new WinLabel
             {
                 Text = "Chọn chức năng: Phát sinh cọc mới hoặc Đổi tên cọc hiện có theo quy cách DT / 1~N / H / KM / CT",
-                Font = new Font("Segoe UI", 8.5f),
-                ForeColor = TextDim,
+                Font = new Font("Segoe UI", 9.5f),
+                ForeColor = TextDark,
                 AutoSize = false,
-                Height = 26,
+                Height = 35,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Top,
-                Padding = new Padding(18, 0, 0, 0),
-                BackColor = Color.FromArgb(35, 35, 40)
+                Padding = new Padding(15, 0, 0, 0),
+                BackColor = BgPanel
             };
             this.Controls.Add(subtitle);
             subtitle.BringToFront();
@@ -260,16 +231,16 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 1: CHỌN CHỨC NĂNG
             // ═══════════════════════════════════════════════════
-            var grpMode = CreateGroupBox("⚙  Chọn chức năng", 0, y, 730, 55);
+            var grpMode = CreateSection("Chọn chức năng", 0, y, 730, 60);
             mainPanel.Controls.Add(grpMode);
 
             rdoPhatSinh = new RadioButton
             {
-                Text = "🔨 Phát sinh cọc mới",
-                Location = new Point(15, 25),
+                Text = "Phát sinh cọc mới",
+                Location = new Point(15, 30),
                 AutoSize = true,
-                ForeColor = GreenOk,
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Checked = true
             };
             rdoPhatSinh.CheckedChanged += (s, e) => OnModeChanged();
@@ -277,52 +248,52 @@ namespace MyFirstProject
 
             rdoDoiTen = new RadioButton
             {
-                Text = "✏️ Đổi tên cọc",
-                Location = new Point(230, 25),
+                Text = "Đổi tên cọc",
+                Location = new Point(230, 30),
                 AutoSize = true,
-                ForeColor = OrangeWarn,
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold)
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
             };
             grpMode.Controls.Add(rdoDoiTen);
 
             rdoCogoPoint = new RadioButton
             {
-                Text = "📍 Từ CogoPoint",
-                Location = new Point(400, 25),
+                Text = "Từ CogoPoint",
+                Location = new Point(400, 30),
                 AutoSize = true,
-                ForeColor = Color.FromArgb(100, 200, 255),
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold)
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
             };
             rdoCogoPoint.CheckedChanged += (s, e) => OnModeChanged();
             grpMode.Controls.Add(rdoCogoPoint);
 
             rdoTable = new RadioButton
             {
-                Text = "📋 Từ Bảng",
-                Location = new Point(580, 25),
+                Text = "Từ Bảng",
+                Location = new Point(580, 30),
                 AutoSize = true,
-                ForeColor = Color.FromArgb(180, 130, 255),
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold)
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
             };
             rdoTable.CheckedChanged += (s, e) => OnModeChanged();
             grpMode.Controls.Add(rdoTable);
 
-            y += 62;
+            y += 75;
 
             // ═══════════════════════════════════════════════════
             // SECTION 2: CHỌN TUYẾN
             // ═══════════════════════════════════════════════════
-            var grpAlign = CreateGroupBox("🛣  Chọn Tuyến (Alignment)", 0, y, 730, 75);
+            var grpAlign = CreateSection("Chọn Tuyến (Alignment)", 0, y, 730, 75);
             mainPanel.Controls.Add(grpAlign);
 
-            grpAlign.Controls.Add(CreateLabel("Tuyến:", 12, 28));
+            grpAlign.Controls.Add(CreateLabel("Tuyến:", 12, 33));
             cboAlignment = new ComboBox
             {
-                Location = new Point(75, 24),
+                Location = new Point(75, 29),
                 Size = new Size(320, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 9.5f)
             };
@@ -332,22 +303,20 @@ namespace MyFirstProject
             cboAlignment.SelectedIndexChanged += (s, e) => OnAlignmentChanged();
             grpAlign.Controls.Add(cboAlignment);
 
-            lblAlignmentInfo = CreateLabel("", 410, 25);
-            lblAlignmentInfo.ForeColor = TextDim;
+            lblAlignmentInfo = CreateLabel("", 410, 30);
             lblAlignmentInfo.AutoSize = true;
             grpAlign.Controls.Add(lblAlignmentInfo);
 
-            lblGroupInfo = CreateLabel("", 410, 48);
-            lblGroupInfo.ForeColor = TextDim;
+            lblGroupInfo = CreateLabel("", 410, 50);
             lblGroupInfo.AutoSize = true;
             grpAlign.Controls.Add(lblGroupInfo);
 
-            y += 82;
+            y += 90;
 
             // ═══════════════════════════════════════════════════
             // SECTION 3: THÔNG SỐ PHÁT SINH (chỉ hiện khi PhatSinh)
             // ═══════════════════════════════════════════════════
-            pnlPhatSinh = CreateGroupBox("📏  Thông số phát sinh cọc", 0, y, 730, 220);
+            pnlPhatSinh = CreateSection("Thông số phát sinh cọc", 0, y, 730, 220);
             mainPanel.Controls.Add(pnlPhatSinh);
 
             // Row 1: Khoảng cách
@@ -362,7 +331,7 @@ namespace MyFirstProject
                 DecimalPlaces = 1,
                 Increment = 5,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             pnlPhatSinh.Controls.Add(numKhoangCach);
 
@@ -377,7 +346,7 @@ namespace MyFirstProject
                 DecimalPlaces = 1,
                 Increment = 1,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             pnlPhatSinh.Controls.Add(numKhoangCachCong);
 
@@ -393,7 +362,7 @@ namespace MyFirstProject
                 DecimalPlaces = 1,
                 Increment = 1,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             pnlPhatSinh.Controls.Add(numBeRongTrai);
 
@@ -408,7 +377,7 @@ namespace MyFirstProject
                 DecimalPlaces = 1,
                 Increment = 1,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             pnlPhatSinh.Controls.Add(numBeRongPhai);
 
@@ -420,7 +389,7 @@ namespace MyFirstProject
                 Size = new Size(230, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 9f)
             };
@@ -445,7 +414,7 @@ namespace MyFirstProject
                 Size = new Size(250, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 9f)
             };
@@ -463,29 +432,36 @@ namespace MyFirstProject
             pnlPhatSinh.Controls.Add(cboLabelStyle);
 
             // Row 4: Checkbox đường cong
-            chkCurve = CreateCheckBox("Phát sinh cọc trong đường cong (TĐ, P, TC)", 15, 145, true);
+            chkCurve = new CheckBox
+            {
+                Text = "Phát sinh cọc trong đường cong (TĐ, P, TC)",
+                Location = new Point(15, 145),
+                AutoSize = true,
+                Checked = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
             chkCurve.CheckedChanged += (s, e) => GeneratePreview();
             pnlPhatSinh.Controls.Add(chkCurve);
 
-            var lblStyleHint = CreateLabel("💡 Style được lưu tại CT_StyleSettings", 15, 175);
-            lblStyleHint.ForeColor = TextDim;
-            lblStyleHint.Font = new Font("Segoe UI", 8f, FontStyle.Italic);
+            var lblStyleHint = CreateLabel("Style được lưu tại CT_StyleSettings", 15, 175);
+            lblStyleHint.Font = new Font("Segoe UI", 8.5f, FontStyle.Italic);
             pnlPhatSinh.Controls.Add(lblStyleHint);
 
-            y += 228;
+            y += 235;
 
             // ═══════════════════════════════════════════════════
             // SECTION 3A: PANEL COGOPOINT
             // ═══════════════════════════════════════════════════
-            pnlCogoPoint = CreateGroupBox("📍  Từ CogoPoint — chọn nhóm điểm trên bản vẽ", 0, y, 730, 60);
+            pnlCogoPoint = CreateSection("Từ CogoPoint — chọn nhóm điểm trên bản vẽ", 0, y, 730, 60);
             pnlCogoPoint.Visible = false;
-            pnlCogoPoint.Controls.Add(CreateLabel("Chọn 1 CogoPoint thuộc nhóm cần phát sinh cọc → pick trên bản vẽ khi thực hiện", 15, 30));
+            pnlCogoPoint.Controls.Add(CreateLabel("Chọn 1 CogoPoint thuộc nhóm cần phát sinh cọc (pick trên bản vẽ khi thực hiện)", 15, 30));
             mainPanel.Controls.Add(pnlCogoPoint);
 
             // ═══════════════════════════════════════════════════
             // SECTION 3B: PANEL TABLE
             // ═══════════════════════════════════════════════════
-            pnlTable = CreateGroupBox("📋  Từ Bảng tọa độ (AutoCAD Table)", 0, y, 730, 100);
+            pnlTable = CreateSection("Từ Bảng tọa độ (AutoCAD Table)", 0, y, 730, 100);
             pnlTable.Visible = false;
             mainPanel.Controls.Add(pnlTable);
 
@@ -494,7 +470,7 @@ namespace MyFirstProject
             {
                 Location = new Point(120, 28), Size = new Size(60, 28),
                 Minimum = 1, Maximum = 20, Value = 1,
-                BackColor = BgInput, ForeColor = TextWhite
+                BackColor = BgInput, ForeColor = TextDark
             };
             pnlTable.Controls.Add(numColTenCoc);
 
@@ -503,7 +479,7 @@ namespace MyFirstProject
             {
                 Location = new Point(310, 28), Size = new Size(60, 28),
                 Minimum = 1, Maximum = 20, Value = 2,
-                BackColor = BgInput, ForeColor = TextWhite
+                BackColor = BgInput, ForeColor = TextDark
             };
             pnlTable.Controls.Add(numColLyTrinh);
 
@@ -512,31 +488,63 @@ namespace MyFirstProject
             {
                 Location = new Point(520, 28), Size = new Size(60, 28),
                 Minimum = 1, Maximum = 1000, Value = 2,
-                BackColor = BgInput, ForeColor = TextWhite
+                BackColor = BgInput, ForeColor = TextDark
             };
             pnlTable.Controls.Add(numRowStart);
 
             pnlTable.Controls.Add(CreateLabel("Chọn bảng tọa độ cọc (Table) và Alignment trên bản vẽ khi thực hiện", 15, 70));
 
             // ═══════════════════════════════════════════════════
-            // SECTION 3B: QUY CÁCH ĐẶT TÊN CỌC
+            // SECTION 4: QUY CÁCH ĐẶT TÊN CỌC
             // ═══════════════════════════════════════════════════
-            var grpNaming = CreateGroupBox("🏷  Quy cách đặt tên cọc", 0, y, 730, 95);
+            var grpNaming = CreateSection("Quy cách đặt tên cọc", 0, y, 730, 100);
             mainPanel.Controls.Add(grpNaming);
 
-            chkDT_CT = CreateCheckBox("DT / CT (Đầu Tuyến / Cuối Tuyến)", 15, 28, true);
+            chkDT_CT = new CheckBox 
+            {
+                Text = "DT / CT (Đầu Tuyến / Cuối Tuyến)",
+                Location = new Point(15, 30),
+                AutoSize = true,
+                Checked = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
             chkDT_CT.CheckedChanged += (s, e) => GeneratePreview();
             grpNaming.Controls.Add(chkDT_CT);
 
-            chkH = CreateCheckBox("H1, H2... (mỗi 100m)", 310, 28, true);
+            chkH = new CheckBox
+            {
+                Text = "H1, H2... (mỗi 100m)",
+                Location = new Point(310, 30),
+                AutoSize = true,
+                Checked = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
             chkH.CheckedChanged += (s, e) => GeneratePreview();
             grpNaming.Controls.Add(chkH);
 
-            chkKM = CreateCheckBox("KM1, KM2... (mỗi 1000m)", 520, 28, true);
+            chkKM = new CheckBox
+            {
+                Text = "KM1, KM2... (mỗi 1000m)",
+                Location = new Point(520, 30),
+                AutoSize = true,
+                Checked = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
             chkKM.CheckedChanged += (s, e) => GeneratePreview();
             grpNaming.Controls.Add(chkKM);
 
-            chkPrefix = CreateCheckBox("Tiền tố cọc thường:", 15, 58, false);
+            chkPrefix = new CheckBox
+            {
+                Text = "Tiền tố cọc thường:",
+                Location = new Point(15, 60),
+                AutoSize = true,
+                Checked = false,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
             chkPrefix.CheckedChanged += (s, e) =>
             {
                 txtPrefix.Enabled = chkPrefix.Checked;
@@ -546,10 +554,10 @@ namespace MyFirstProject
 
             txtPrefix = new TextBox
             {
-                Location = new Point(195, 56),
+                Location = new Point(195, 58),
                 Size = new Size(100, 28),
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 Font = new Font("Segoe UI", 9.5f),
                 Enabled = false,
                 Text = "C"
@@ -557,17 +565,17 @@ namespace MyFirstProject
             txtPrefix.TextChanged += (s, e) => GeneratePreview();
             grpNaming.Controls.Add(txtPrefix);
 
-            y += 105;
+            y += 115;
 
             // ═══════════════════════════════════════════════════
-            // SECTION 4: PREVIEW
+            // SECTION 5: PREVIEW
             // ═══════════════════════════════════════════════════
-            var grpPreview = CreateGroupBox("👁  Preview danh sách cọc", 0, y, 730, 310);
+            var grpPreview = CreateSection("Preview danh sách cọc", 0, y, 730, 310);
             mainPanel.Controls.Add(grpPreview);
 
             dgvPreview = new DataGridView
             {
-                Location = new Point(10, 28),
+                Location = new Point(10, 30),
                 Size = new Size(600, 240),
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
@@ -580,28 +588,21 @@ namespace MyFirstProject
                 DefaultCellStyle = new DataGridViewCellStyle
                 {
                     BackColor = BgInput,
-                    ForeColor = TextWhite,
-                    SelectionBackColor = AccentBlue,
-                    SelectionForeColor = TextWhite,
+                    ForeColor = TextDark,
+                    SelectionBackColor = NavyMedium,
+                    SelectionForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f)
-                },
-                AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
-                {
-                    BackColor = Color.FromArgb(55, 55, 62),
-                    ForeColor = TextWhite,
-                    SelectionBackColor = AccentBlue,
-                    SelectionForeColor = TextWhite
                 },
                 ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
                 {
-                    BackColor = Color.FromArgb(45, 48, 55),
-                    ForeColor = TextWhite,
+                    BackColor = NavyDark,
+                    ForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f, FontStyle.Bold),
                     Alignment = DataGridViewContentAlignment.MiddleCenter
                 },
                 EnableHeadersVisualStyles = false,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                ColumnHeadersHeight = 30
+                ColumnHeadersHeight = 32
             };
 
             dgvPreview.Columns.Add("colSTT", "STT");
@@ -612,45 +613,23 @@ namespace MyFirstProject
             dgvPreview.Columns["colTen"]!.Width = 120;
             grpPreview.Controls.Add(dgvPreview);
 
-            btnPreview = new Button
-            {
-                Text = "🔄 Preview",
-                Location = new Point(625, 28),
-                Size = new Size(95, 40),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = AccentBlue,
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                Cursor = Cursors.Hand
-            };
-            btnPreview.FlatAppearance.BorderColor = Color.FromArgb(0, 80, 160);
-            btnPreview.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 150, 230);
+            btnPreview = CreateButton("Preview", 625, 30, 95, 40, grpPreview);
             btnPreview.Click += (s, e) => GeneratePreview();
-            grpPreview.Controls.Add(btnPreview);
 
-            lblTotal = CreateLabel("Tổng: 0 cọc", 10, 278);
-            lblTotal.ForeColor = TextDim;
-            lblTotal.AutoSize = true;
+            lblTotal = CreateLabel("Tổng: 0 cọc", 10, 280);
+            lblTotal.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
             grpPreview.Controls.Add(lblTotal);
 
             // ═══════════════════════════════════════════════════
             // BOTTOM BUTTONS
             // ═══════════════════════════════════════════════════
-            var pnlBottom = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 55,
-                BackColor = Color.FromArgb(38, 38, 42),
-                Padding = new Padding(12, 8, 12, 8)
-            };
+            var pnlBottom = CreateBottomBar();
             this.Controls.Add(pnlBottom);
 
-            var btnCancel = CreateButton("✖ Hủy", 470, 8, 110, 36, pnlBottom);
+            var btnCancel = CreateButton("Hủy", 510, 8, 110, 36, pnlBottom);
             btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
 
-            var btnExecute = CreateButton("✅ Thực hiện", 600, 8, 130, 36, pnlBottom);
-            btnExecute.BackColor = GreenOk;
-            btnExecute.FlatAppearance.BorderColor = Color.FromArgb(35, 134, 54);
+            var btnExecute = CreatePrimaryButton("Thực hiện", 630, 8, 120, 36, pnlBottom);
             btnExecute.Click += BtnExecute_Click;
 
             // ── Initialize ──
@@ -744,19 +723,14 @@ namespace MyFirstProject
 
                 // Tô màu theo loại
                 if (item.TenCoc == "DT" || item.TenCoc == "CT")
-                    row.DefaultCellStyle.ForeColor = GreenOk;
+                    row.DefaultCellStyle.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
                 else if (item.TenCoc.StartsWith("KM"))
-                    row.DefaultCellStyle.ForeColor = Color.FromArgb(255, 180, 50);
+                    row.DefaultCellStyle.Font = new Font("Segoe UI", 9f, FontStyle.Italic);
                 else if (item.TenCoc.StartsWith("H"))
-                    row.DefaultCellStyle.ForeColor = Color.FromArgb(100, 200, 255);
-                else if (item.TenCoc.StartsWith("NĐ") || item.TenCoc.StartsWith("NC"))
-                    row.DefaultCellStyle.ForeColor = Color.FromArgb(255, 140, 200);
-                else if (item.TenCoc.StartsWith("TĐ") || item.TenCoc.StartsWith("TC") || item.TenCoc.StartsWith("P"))
-                    row.DefaultCellStyle.ForeColor = Color.FromArgb(255, 100, 100);
+                    row.DefaultCellStyle.Font = new Font("Segoe UI", 9f, FontStyle.Italic);
             }
 
             lblTotal.Text = $"Tổng: {PreviewItems.Count} cọc";
-            lblTotal.ForeColor = PreviewItems.Count > 0 ? GreenOk : TextDim;
         }
 
         /// <summary>
@@ -1026,76 +1000,7 @@ namespace MyFirstProject
             return $"Km{km}+{remainder:F3}";
         }
 
-        // ═══════════════════════════════════════════════════
-        // UI HELPERS
-        // ═══════════════════════════════════════════════════
-
-        private Panel CreateGroupBox(string title, int x, int y, int w, int h)
-        {
-            var panel = new Panel
-            {
-                Location = new Point(x, y),
-                Size = new Size(w, h),
-                BackColor = BgPanel,
-                BorderStyle = BorderStyle.FixedSingle
-            };
-            var lbl = new WinLabel
-            {
-                Text = title,
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ForeColor = AccentBlue,
-                Location = new Point(10, 5),
-                AutoSize = true
-            };
-            panel.Controls.Add(lbl);
-            return panel;
-        }
-
-        private WinLabel CreateLabel(string text, int x, int y)
-        {
-            return new WinLabel
-            {
-                Text = text,
-                Location = new Point(x, y),
-                AutoSize = true,
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9.5f)
-            };
-        }
-
-        private Button CreateButton(string text, int x, int y, int w, int h, Control parent)
-        {
-            var btn = new Button
-            {
-                Text = text,
-                Location = new Point(x, y),
-                Size = new Size(w, h),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9.5f),
-                Cursor = Cursors.Hand,
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            btn.FlatAppearance.BorderColor = BorderColor;
-            btn.FlatAppearance.MouseOverBackColor = AccentBlue;
-            parent.Controls.Add(btn);
-            return btn;
-        }
-
-        private CheckBox CreateCheckBox(string text, int x, int y, bool isChecked)
-        {
-            return new CheckBox
-            {
-                Text = text,
-                Location = new Point(x, y),
-                AutoSize = true,
-                Checked = isChecked,
-                ForeColor = GreenOk,
-                Font = new Font("Segoe UI", 9.5f),
-                FlatStyle = FlatStyle.Standard
-            };
-        }
+        // (Removed UI helpers)
     }
 
     #endregion

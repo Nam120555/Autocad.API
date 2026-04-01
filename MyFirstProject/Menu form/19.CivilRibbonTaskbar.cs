@@ -47,7 +47,7 @@ namespace MyFirstProject
                     ribbon = ComponentManager.Ribbon;
                     if (ribbon == null)
                     {
-                        doc?.Editor.WriteMessage("\n⚠ Không thể khởi tạo Ribbon. Vui lòng bật RIBBON và chạy lại.");
+                        doc?.Editor.WriteMessage("\n Không thể khởi tạo Ribbon. Vui lòng bật RIBBON và chạy lại.");
                         return;
                     }
                 }
@@ -62,12 +62,12 @@ namespace MyFirstProject
                 CreateSingleCivilTab(ribbon, config);
 
                 var ed = AcadApplication.DocumentManager.MdiActiveDocument?.Editor;
-                ed?.WriteMessage("\n✅ Civil Ribbon đã sẵn sàng!");
+                ed?.WriteMessage("\n Civil Ribbon đã sẵn sàng!");
             }
             catch (System.Exception ex)
             {
                 var ed = AcadApplication.DocumentManager.MdiActiveDocument?.Editor;
-                ed?.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                ed?.WriteMessage($"\n Lỗi: {ex.Message}");
             }
         }
 
@@ -89,7 +89,7 @@ namespace MyFirstProject
         {
             RibbonTab tab = new RibbonTab
             {
-                Title = "Civil Tool",
+                Title = "Civil N", // Changed from Civil Tool to Civil N
                 Id = "CivilTool.MainTab"
             };
             ribbon.Tabs.Add(tab);
@@ -1028,7 +1028,7 @@ namespace MyFirstProject
             catch (System.Exception ex)
             {
                 var ed = AcadApplication.DocumentManager.MdiActiveDocument?.Editor;
-                ed?.WriteMessage($"\n❌ Lỗi thực thi lệnh: {ex.Message}");
+                ed?.WriteMessage($"\n Lỗi thực thi lệnh: {ex.Message}");
             }
         }
     }

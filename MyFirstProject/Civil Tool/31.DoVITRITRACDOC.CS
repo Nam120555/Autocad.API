@@ -37,18 +37,8 @@ namespace MyFirstProject
     /// <summary>
     /// Form cấu hình tạo polyline vuông góc tại lý trình trên trắc dọc
     /// </summary>
-    public class DoViTriTracDocForm : Form
+    public class DoViTriTracDocForm : CivilFormBase
     {
-        // ─── Theme Colors ───
-        private static readonly Color BgDark = Color.FromArgb(30, 30, 34);
-        private static readonly Color BgPanel = Color.FromArgb(40, 40, 45);
-        private static readonly Color BgInput = Color.FromArgb(50, 50, 58);
-        private static readonly Color AccentBlue = Color.FromArgb(0, 122, 204);
-        private static readonly Color HeaderBlue = Color.FromArgb(0, 93, 160);
-        private static readonly Color TextWhite = Color.White;
-        private static readonly Color TextDim = Color.FromArgb(160, 160, 170);
-        private static readonly Color BorderColor = Color.FromArgb(65, 65, 75);
-        private static readonly Color GreenOk = Color.FromArgb(46, 160, 67);
 
         // ─── Controls ───
         private ComboBox cboAlignment = null!;
@@ -123,42 +113,24 @@ namespace MyFirstProject
         private void InitializeUI()
         {
             // ── Form ──
-            this.Text = "TẠO POLYLINE VUÔNG GÓC TẠI LÝ TRÌNH — Civil Tool";
-            this.Size = new Size(750, 680);
-            this.StartPosition = FormStartPosition.CenterScreen;
+            InitBaseTheme("TẠO POLYLINE VUÔNG GÓC TẠI LÝ TRÌNH", 750, 680);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.BackColor = BgDark;
-            this.ForeColor = TextWhite;
-            this.Font = new Font("Segoe UI", 9.5f);
 
             // ── HEADER ──
-            var header = new Panel { Dock = DockStyle.Top, Height = 52, BackColor = HeaderBlue };
-            var lblTitle = new WinLabel
-            {
-                Text = "📐  TẠO POLYLINE VUÔNG GÓC TẠI LÝ TRÌNH",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = TextWhite,
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Dock = DockStyle.Fill,
-                Padding = new Padding(16, 0, 0, 0)
-            };
-            header.Controls.Add(lblTitle);
+            var header = CreateHeader("TẠO POLYLINE VUÔNG GÓC TẠI LÝ TRÌNH");
             this.Controls.Add(header);
 
             var subtitle = new WinLabel
             {
                 Text = "Chọn tim tuyến → Chọn vị trí trên trắc dọc → Tạo polyline vuông góc với tuyến tại lý trình đó.",
-                Font = new Font("Segoe UI", 8.5f),
-                ForeColor = TextDim,
+                Font = new Font("Segoe UI", 9.5f),
+                ForeColor = TextDark,
                 AutoSize = false,
-                Height = 26,
+                Height = 35,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Top,
-                Padding = new Padding(18, 0, 0, 0),
-                BackColor = Color.FromArgb(35, 35, 40)
+                Padding = new Padding(15, 0, 0, 0),
+                BackColor = BgPanel
             };
             this.Controls.Add(subtitle);
             subtitle.BringToFront();
@@ -178,17 +150,17 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 1: CHỌN ALIGNMENT
             // ═══════════════════════════════════════════════════
-            var grpAlign = CreateGroupBox("🛣  Chọn Tim Tuyến (Alignment)", 0, y, 700, 55);
+            var grpAlign = CreateSection("Chọn Tim Tuyến (Alignment)", 0, y, 700, 75);
             mainPanel.Controls.Add(grpAlign);
 
-            grpAlign.Controls.Add(CreateLabel("Tuyến:", 12, 28));
+            grpAlign.Controls.Add(CreateLabel("Tuyến:", 12, 33));
             cboAlignment = new ComboBox
             {
-                Location = new Point(75, 24),
+                Location = new Point(75, 29),
                 Size = new Size(350, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
-                ForeColor = TextWhite,
+                ForeColor = TextDark,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 9.5f)
             };
@@ -198,22 +170,21 @@ namespace MyFirstProject
             cboAlignment.SelectedIndexChanged += (s, e) => OnAlignmentChanged();
             grpAlign.Controls.Add(cboAlignment);
 
-            lblAlignmentInfo = CreateLabel("", 440, 28);
-            lblAlignmentInfo.ForeColor = TextDim;
+            lblAlignmentInfo = CreateLabel("", 440, 33);
             lblAlignmentInfo.AutoSize = true;
             grpAlign.Controls.Add(lblAlignmentInfo);
 
-            y += 60;
+            y += 90;
 
             // ═══════════════════════════════════════════════════
             // SECTION 2: CHỌN LÝ TRÌNH TRÊN TRẮC DỌC
             // ═══════════════════════════════════════════════════
-            var grpStations = CreateGroupBox("📍  Danh sách lý trình (chọn trên trắc dọc)", 0, y, 700, 250);
+            var grpStations = CreateSection("Danh sách lý trình (chọn trên trắc dọc)", 0, y, 700, 250);
             mainPanel.Controls.Add(grpStations);
 
             dgvStations = new DataGridView
             {
-                Location = new Point(10, 28),
+                Location = new Point(10, 30),
                 Size = new Size(530, 175),
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
@@ -226,20 +197,21 @@ namespace MyFirstProject
                 DefaultCellStyle = new DataGridViewCellStyle
                 {
                     BackColor = BgInput,
-                    ForeColor = TextWhite,
-                    SelectionBackColor = AccentBlue,
-                    SelectionForeColor = TextWhite,
+                    ForeColor = TextDark,
+                    SelectionBackColor = NavyMedium,
+                    SelectionForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f)
                 },
                 ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
                 {
-                    BackColor = Color.FromArgb(45, 48, 55),
-                    ForeColor = TextWhite,
+                    BackColor = NavyDark,
+                    ForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f, FontStyle.Bold),
                     Alignment = DataGridViewContentAlignment.MiddleCenter
                 },
                 EnableHeadersVisualStyles = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                ColumnHeadersHeight = 32
             };
 
             dgvStations.Columns.Add("STT", "STT");
@@ -251,100 +223,46 @@ namespace MyFirstProject
             grpStations.Controls.Add(dgvStations);
 
             // Nút Chọn trên trắc dọc (Pick trên Profile View)
-            var btnPickOnProfile = new Button
-            {
-                Text = "📍 Chọn trên\ntrắc dọc",
-                Location = new Point(555, 28),
-                Size = new Size(130, 45),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = AccentBlue,
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                Cursor = Cursors.Hand
-            };
-            btnPickOnProfile.FlatAppearance.BorderColor = Color.FromArgb(0, 80, 160);
-            btnPickOnProfile.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 150, 230);
+            var btnPickOnProfile = CreatePrimaryButton("Chọn trên\ntrắc dọc", 555, 30, 130, 45, grpStations);
             btnPickOnProfile.Click += BtnPickOnProfile_Click;
-            grpStations.Controls.Add(btnPickOnProfile);
 
             // Nút Xóa lý trình
-            var btnRemoveStation = new Button
-            {
-                Text = "🗑 Xóa",
-                Location = new Point(555, 80),
-                Size = new Size(130, 32),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f),
-                Cursor = Cursors.Hand
-            };
-            btnRemoveStation.FlatAppearance.BorderColor = BorderColor;
-            btnRemoveStation.FlatAppearance.MouseOverBackColor = Color.FromArgb(180, 50, 50);
+            var btnRemoveStation = CreateButton("Xóa", 555, 80, 130, 32, grpStations);
             btnRemoveStation.Click += BtnRemoveStation_Click;
-            grpStations.Controls.Add(btnRemoveStation);
 
             // Nút Xóa tất cả
-            var btnClearAll = new Button
-            {
-                Text = "🗑 Xóa tất cả",
-                Location = new Point(555, 118),
-                Size = new Size(130, 32),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f),
-                Cursor = Cursors.Hand
-            };
-            btnClearAll.FlatAppearance.BorderColor = BorderColor;
-            btnClearAll.FlatAppearance.MouseOverBackColor = Color.FromArgb(180, 50, 50);
+            var btnClearAll = CreateButton("Xóa tất cả", 555, 120, 130, 32, grpStations);
             btnClearAll.Click += (s, e) =>
             {
                 Stations.Clear();
                 dgvStations.Rows.Clear();
                 UpdateStationGrid();
             };
-            grpStations.Controls.Add(btnClearAll);
 
             // Nút Nhập tay
-            var btnManualStation = new Button
-            {
-                Text = "✏️ Nhập tay",
-                Location = new Point(555, 160),
-                Size = new Size(130, 32),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f),
-                Cursor = Cursors.Hand
-            };
-            btnManualStation.FlatAppearance.BorderColor = BorderColor;
-            btnManualStation.FlatAppearance.MouseOverBackColor = AccentBlue;
+            var btnManualStation = CreateButton("Nhập tay", 555, 160, 130, 32, grpStations);
             btnManualStation.Click += BtnManualStation_Click;
-            grpStations.Controls.Add(btnManualStation);
 
-            lblStationInfo = CreateLabel("", 10, 210);
-            lblStationInfo.ForeColor = TextDim;
+            lblStationInfo = CreateLabel("", 10, 212);
             lblStationInfo.AutoSize = true;
             grpStations.Controls.Add(lblStationInfo);
 
             lblTotal = CreateLabel("Tổng: 0 lý trình", 10, 228);
-            lblTotal.ForeColor = TextDim;
-            lblTotal.AutoSize = true;
+            lblTotal.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
             grpStations.Controls.Add(lblTotal);
 
-            y += 258;
+            y += 265;
 
             // ═══════════════════════════════════════════════════
             // SECTION 3: KÍCH THƯỚC POLYLINE
             // ═══════════════════════════════════════════════════
-            var grpSize = CreateGroupBox("📏  Kích thước Polyline vuông góc", 0, y, 700, 75);
+            var grpSize = CreateSection("Kích thước Polyline vuông góc", 0, y, 700, 75);
             mainPanel.Controls.Add(grpSize);
 
             grpSize.Controls.Add(CreateLabel("Chiều rộng trái (m):", 12, 35));
             numLeftWidth = new NumericUpDown
             {
-                Location = new Point(170, 32),
+                Location = new Point(170, 31),
                 Size = new Size(100, 28),
                 Minimum = 1,
                 Maximum = 500,
@@ -352,14 +270,14 @@ namespace MyFirstProject
                 DecimalPlaces = 1,
                 Increment = 5,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             grpSize.Controls.Add(numLeftWidth);
 
             grpSize.Controls.Add(CreateLabel("Chiều rộng phải (m):", 320, 35));
             numRightWidth = new NumericUpDown
             {
-                Location = new Point(480, 32),
+                Location = new Point(480, 31),
                 Size = new Size(100, 28),
                 Minimum = 1,
                 Maximum = 500,
@@ -367,32 +285,25 @@ namespace MyFirstProject
                 DecimalPlaces = 1,
                 Increment = 5,
                 BackColor = BgInput,
-                ForeColor = TextWhite
+                ForeColor = TextDark
             };
             grpSize.Controls.Add(numRightWidth);
 
-            grpSize.Controls.Add(CreateDimLabel("(Từ tim tuyến sang 2 bên)", 590, 35));
-
-            y += 85;
+            var dimLabel = CreateLabel("(Từ tim tuyến sang 2 bên)", 590, 35);
+            dimLabel.Font = new Font("Segoe UI", 8.5f, FontStyle.Italic);
+            dimLabel.ForeColor = TextDim;
+            grpSize.Controls.Add(dimLabel);
 
             // ═══════════════════════════════════════════════════
             // BOTTOM BUTTONS
             // ═══════════════════════════════════════════════════
-            var pnlBottom = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 55,
-                BackColor = Color.FromArgb(38, 38, 42),
-                Padding = new Padding(12, 8, 12, 8)
-            };
+            var pnlBottom = CreateBottomBar();
             this.Controls.Add(pnlBottom);
 
-            var btnCancel = CreateButton("✖ Hủy", 490, 8, 100, 36, pnlBottom);
+            var btnCancel = CreateButton("Hủy", 510, 8, 100, 36, pnlBottom);
             btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
 
-            var btnExecute = CreateButton("✅ Tạo Polyline", 605, 8, 130, 36, pnlBottom);
-            btnExecute.BackColor = GreenOk;
-            btnExecute.FlatAppearance.BorderColor = Color.FromArgb(35, 134, 54);
+            var btnExecute = CreatePrimaryButton("Tạo Polyline", 620, 8, 120, 36, pnlBottom);
             btnExecute.Click += BtnExecute_Click;
 
             // Initialize
@@ -535,7 +446,6 @@ namespace MyFirstProject
             Stations = sorted;
 
             lblTotal.Text = $"Tổng: {Stations.Count} lý trình";
-            lblTotal.ForeColor = Stations.Count > 0 ? GreenOk : TextDim;
         }
 
         private void BtnExecute_Click(object? sender, EventArgs e)
@@ -562,74 +472,7 @@ namespace MyFirstProject
             }
         }
 
-        // ═══════════════════════════════════════════════════
-        // UI HELPERS
-        // ═══════════════════════════════════════════════════
-
-        private Panel CreateGroupBox(string title, int x, int y, int w, int h)
-        {
-            var panel = new Panel
-            {
-                Location = new Point(x, y),
-                Size = new Size(w, h),
-                BackColor = BgPanel,
-                BorderStyle = BorderStyle.FixedSingle
-            };
-            var lbl = new WinLabel
-            {
-                Text = title,
-                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ForeColor = AccentBlue,
-                Location = new Point(10, 5),
-                AutoSize = true
-            };
-            panel.Controls.Add(lbl);
-            return panel;
-        }
-
-        private WinLabel CreateLabel(string text, int x, int y)
-        {
-            return new WinLabel
-            {
-                Text = text,
-                Location = new Point(x, y),
-                AutoSize = true,
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9.5f)
-            };
-        }
-
-        private WinLabel CreateDimLabel(string text, int x, int y)
-        {
-            return new WinLabel
-            {
-                Text = text,
-                Location = new Point(x, y),
-                AutoSize = true,
-                ForeColor = TextDim,
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Italic)
-            };
-        }
-
-        private Button CreateButton(string text, int x, int y, int w, int h, Control parent)
-        {
-            var btn = new Button
-            {
-                Text = text,
-                Location = new Point(x, y),
-                Size = new Size(w, h),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(55, 55, 62),
-                ForeColor = TextWhite,
-                Font = new Font("Segoe UI", 9f),
-                Cursor = Cursors.Hand,
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-            btn.FlatAppearance.BorderColor = BorderColor;
-            btn.FlatAppearance.MouseOverBackColor = AccentBlue;
-            parent.Controls.Add(btn);
-            return btn;
-        }
+        // (Removed UI helpers)
     }
 
     #endregion
