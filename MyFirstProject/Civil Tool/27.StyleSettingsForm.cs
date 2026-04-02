@@ -198,7 +198,7 @@ namespace MyFirstProject
     /// Dark theme giống MenuSettingsForm
     /// </summary>
     public class StyleSettingsForm : CivilFormBase
-
+    {
         // ─── Data ───
         private StyleConfig _config;
         private readonly CivilDocument _cdoc;

@@ -217,21 +217,24 @@ namespace MyFirstProject
             subtitle.BringToFront();
 
             // ── MAIN CONTENT ──
-            var mainPanel = new Panel
+            var mainPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 Padding = new Padding(15),
-                AutoScroll = true
+                AutoScroll = true,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false
             };
             this.Controls.Add(mainPanel);
             mainPanel.BringToFront();
 
-            int y = 10;
+            int y = 5;
 
             // ═══════════════════════════════════════════════════
             // SECTION 1: CHỌN CHỨC NĂNG
             // ═══════════════════════════════════════════════════
-            var grpMode = CreateSection("Chọn chức năng", 0, y, 730, 60);
+            var grpMode = CreateSection("Chọn chức năng", 0, 0, 730, 60);
+            grpMode.Margin = new Padding(0, 5, 0, 10);
             mainPanel.Controls.Add(grpMode);
 
             rdoPhatSinh = new RadioButton
@@ -278,12 +281,11 @@ namespace MyFirstProject
             rdoTable.CheckedChanged += (s, e) => OnModeChanged();
             grpMode.Controls.Add(rdoTable);
 
-            y += 75;
-
             // ═══════════════════════════════════════════════════
             // SECTION 2: CHỌN TUYẾN
             // ═══════════════════════════════════════════════════
-            var grpAlign = CreateSection("Chọn Tuyến (Alignment)", 0, y, 730, 75);
+            var grpAlign = CreateSection("Chọn Tuyến (Alignment)", 0, 0, 730, 75);
+            grpAlign.Margin = new Padding(0, 0, 0, 10);
             mainPanel.Controls.Add(grpAlign);
 
             grpAlign.Controls.Add(CreateLabel("Tuyến:", 12, 33));
@@ -311,12 +313,11 @@ namespace MyFirstProject
             lblGroupInfo.AutoSize = true;
             grpAlign.Controls.Add(lblGroupInfo);
 
-            y += 90;
-
             // ═══════════════════════════════════════════════════
             // SECTION 3: THÔNG SỐ PHÁT SINH (chỉ hiện khi PhatSinh)
             // ═══════════════════════════════════════════════════
-            pnlPhatSinh = CreateSection("Thông số phát sinh cọc", 0, y, 730, 220);
+            pnlPhatSinh = CreateSection("Thông số phát sinh cọc", 0, 0, 730, 220);
+            pnlPhatSinh.Margin = new Padding(0, 0, 0, 10);
             mainPanel.Controls.Add(pnlPhatSinh);
 
             // Row 1: Khoảng cách
@@ -448,12 +449,11 @@ namespace MyFirstProject
             lblStyleHint.Font = new Font("Segoe UI", 8.5f, FontStyle.Italic);
             pnlPhatSinh.Controls.Add(lblStyleHint);
 
-            y += 235;
-
             // ═══════════════════════════════════════════════════
             // SECTION 3A: PANEL COGOPOINT
             // ═══════════════════════════════════════════════════
-            pnlCogoPoint = CreateSection("Từ CogoPoint — chọn nhóm điểm trên bản vẽ", 0, y, 730, 60);
+            pnlCogoPoint = CreateSection("Từ CogoPoint — chọn nhóm điểm trên bản vẽ", 0, 0, 730, 60);
+            pnlCogoPoint.Margin = new Padding(0, 0, 0, 10);
             pnlCogoPoint.Visible = false;
             pnlCogoPoint.Controls.Add(CreateLabel("Chọn 1 CogoPoint thuộc nhóm cần phát sinh cọc (pick trên bản vẽ khi thực hiện)", 15, 30));
             mainPanel.Controls.Add(pnlCogoPoint);
@@ -461,7 +461,8 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 3B: PANEL TABLE
             // ═══════════════════════════════════════════════════
-            pnlTable = CreateSection("Từ Bảng tọa độ (AutoCAD Table)", 0, y, 730, 100);
+            pnlTable = CreateSection("Từ Bảng tọa độ (AutoCAD Table)", 0, 0, 730, 100);
+            pnlTable.Margin = new Padding(0, 0, 0, 10);
             pnlTable.Visible = false;
             mainPanel.Controls.Add(pnlTable);
 
@@ -497,7 +498,8 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 4: QUY CÁCH ĐẶT TÊN CỌC
             // ═══════════════════════════════════════════════════
-            var grpNaming = CreateSection("Quy cách đặt tên cọc", 0, y, 730, 100);
+            var grpNaming = CreateSection("Quy cách đặt tên cọc", 0, 0, 730, 100);
+            grpNaming.Margin = new Padding(0, 0, 0, 10);
             mainPanel.Controls.Add(grpNaming);
 
             chkDT_CT = new CheckBox 
@@ -565,12 +567,11 @@ namespace MyFirstProject
             txtPrefix.TextChanged += (s, e) => GeneratePreview();
             grpNaming.Controls.Add(txtPrefix);
 
-            y += 115;
-
             // ═══════════════════════════════════════════════════
             // SECTION 5: PREVIEW
             // ═══════════════════════════════════════════════════
-            var grpPreview = CreateSection("Preview danh sách cọc", 0, y, 730, 310);
+            var grpPreview = CreateSection("Preview danh sách cọc", 0, 0, 730, 310);
+            grpPreview.Margin = new Padding(0, 0, 0, 10);
             mainPanel.Controls.Add(grpPreview);
 
             dgvPreview = new DataGridView
@@ -1037,12 +1038,6 @@ namespace MyFirstProject
                 ExecutePhatSinh(form);
             else
                 ExecuteDoiTen(form);
-        }
-
-        [CommandMethod("CTS_DoiTenCoc")]
-        public static void CTSDoiTenCocAlias()
-        {
-            CTSPhatSinhCoc();
         }
 
         /// <summary>
