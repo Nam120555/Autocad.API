@@ -60,6 +60,11 @@ namespace MyFirstProject
         private CheckBox chkH = null!;
         private CheckBox chkKM = null!;
         private CheckBox chkCurve = null!;
+        private TextBox txtND = null!;
+        private TextBox txtTD = null!;
+        private TextBox txtP = null!;
+        private TextBox txtTC = null!;
+        private TextBox txtNC = null!;
         private CheckBox chkPrefix = null!;
         private TextBox txtPrefix = null!;
 
@@ -91,6 +96,11 @@ namespace MyFirstProject
         public bool UseCurve => chkCurve == null ? true : chkCurve.Checked;
         public bool UsePrefix => chkPrefix == null ? false : chkPrefix.Checked;
         public string PrefixValue => txtPrefix == null ? "" : txtPrefix.Text.Trim();
+        public string StrND => txtND == null ? "NĐ" : (string.IsNullOrWhiteSpace(txtND.Text) ? "NĐ" : txtND.Text.Trim());
+        public string StrTD => txtTD == null ? "TĐ" : (string.IsNullOrWhiteSpace(txtTD.Text) ? "TĐ" : txtTD.Text.Trim());
+        public string StrP  => txtP == null  ? "P"  : (string.IsNullOrWhiteSpace(txtP.Text)  ? "P"  : txtP.Text.Trim());
+        public string StrTC => txtTC == null ? "TC" : (string.IsNullOrWhiteSpace(txtTC.Text) ? "TC" : txtTC.Text.Trim());
+        public string StrNC => txtNC == null ? "NC" : (string.IsNullOrWhiteSpace(txtNC.Text) ? "NC" : txtNC.Text.Trim());
         public bool IsCogoPointMode => rdoCogoPoint != null && rdoCogoPoint.Checked;
         public bool IsTableMode => rdoTable != null && rdoTable.Checked;
         public ObjectId SelectedAlignmentId { get; private set; } = ObjectId.Null;
@@ -222,7 +232,7 @@ namespace MyFirstProject
                 Dock = DockStyle.Fill,
                 Padding = new Padding(15),
                 AutoScroll = true,
-                FlowDirection = FlowDirection.TopDown,
+                FlowDirection = System.Windows.Forms.FlowDirection.TopDown,
                 WrapContents = false
             };
             this.Controls.Add(mainPanel);
@@ -316,7 +326,7 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 3: THÔNG SỐ PHÁT SINH (chỉ hiện khi PhatSinh)
             // ═══════════════════════════════════════════════════
-            pnlPhatSinh = CreateSection("Thông số phát sinh cọc", 0, 0, 730, 220);
+            pnlPhatSinh = CreateSection("Thông số phát sinh cọc", 0, 0, 730, 110);
             pnlPhatSinh.Margin = new Padding(0, 0, 0, 10);
             mainPanel.Controls.Add(pnlPhatSinh);
 
@@ -382,11 +392,18 @@ namespace MyFirstProject
             };
             pnlPhatSinh.Controls.Add(numBeRongPhai);
 
-            // Row 3: Style dao diện cọc
-            pnlPhatSinh.Controls.Add(CreateLabel("Style cọc:", 12, 108));
+            // ═══════════════════════════════════════════════════
+            // SECTION 3C: TÙY CHỌN STYLE (áp dụng cho mọi chế độ)
+            // ═══════════════════════════════════════════════════
+            var grpStyle = CreateSection("Style hiển thị cọc", 0, 0, 730, 95);
+            grpStyle.Margin = new Padding(0, 0, 0, 10);
+            mainPanel.Controls.Add(grpStyle);
+
+            // Style dao diện cọc
+            grpStyle.Controls.Add(CreateLabel("Style cọc:", 12, 32));
             cboSampleLineStyle = new ComboBox
             {
-                Location = new Point(110, 104),
+                Location = new Point(110, 28),
                 Size = new Size(230, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
@@ -405,13 +422,13 @@ namespace MyFirstProject
                     selStyleIdx = si + 1;
             }
             cboSampleLineStyle.SelectedIndex = selStyleIdx;
-            pnlPhatSinh.Controls.Add(cboSampleLineStyle);
+            grpStyle.Controls.Add(cboSampleLineStyle);
 
-            // Row 3: Label style
-            pnlPhatSinh.Controls.Add(CreateLabel("Label cọc:", 370, 108));
+            // Label style
+            grpStyle.Controls.Add(CreateLabel("Label cọc:", 370, 32));
             cboLabelStyle = new ComboBox
             {
-                Location = new Point(460, 104),
+                Location = new Point(460, 28),
                 Size = new Size(250, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
@@ -430,24 +447,11 @@ namespace MyFirstProject
                     selLabelIdx = li + 1;
             }
             cboLabelStyle.SelectedIndex = selLabelIdx;
-            pnlPhatSinh.Controls.Add(cboLabelStyle);
+            grpStyle.Controls.Add(cboLabelStyle);
 
-            // Row 4: Checkbox đường cong
-            chkCurve = new CheckBox
-            {
-                Text = "Phát sinh cọc trong đường cong (TĐ, P, TC)",
-                Location = new Point(15, 145),
-                AutoSize = true,
-                Checked = true,
-                ForeColor = TextDark,
-                Font = new Font("Segoe UI", 9.5f)
-            };
-            chkCurve.CheckedChanged += (s, e) => GeneratePreview();
-            pnlPhatSinh.Controls.Add(chkCurve);
-
-            var lblStyleHint = CreateLabel("Style được lưu tại CT_StyleSettings", 15, 175);
+            var lblStyleHint = CreateLabel("Style được lưu tại CT_StyleSettings", 15, 65);
             lblStyleHint.Font = new Font("Segoe UI", 8.5f, FontStyle.Italic);
-            pnlPhatSinh.Controls.Add(lblStyleHint);
+            grpStyle.Controls.Add(lblStyleHint);
 
             // ═══════════════════════════════════════════════════
             // SECTION 3A: PANEL COGOPOINT
@@ -498,7 +502,7 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 4: QUY CÁCH ĐẶT TÊN CỌC
             // ═══════════════════════════════════════════════════
-            var grpNaming = CreateSection("Quy cách đặt tên cọc", 0, 0, 730, 100);
+            var grpNaming = CreateSection("Quy cách đặt tên cọc", 0, 0, 730, 135);
             grpNaming.Margin = new Padding(0, 0, 0, 10);
             mainPanel.Controls.Add(grpNaming);
 
@@ -566,6 +570,43 @@ namespace MyFirstProject
             };
             txtPrefix.TextChanged += (s, e) => GeneratePreview();
             grpNaming.Controls.Add(txtPrefix);
+
+            // Row 3: Checkbox đường cong
+            chkCurve = new CheckBox
+            {
+                Text = "Cọc đường cong:",
+                Location = new Point(15, 95),
+                AutoSize = true,
+                Checked = true,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f)
+            };
+            chkCurve.CheckedChanged += (s, e) => {
+                bool isC = chkCurve.Checked;
+                if(txtND != null) {
+                    txtND.Enabled = isC; txtTD.Enabled = isC; txtP.Enabled = isC; txtTC.Enabled = isC; txtNC.Enabled = isC;
+                }
+                GeneratePreview();
+            };
+            grpNaming.Controls.Add(chkCurve);
+
+            txtND = CreateTextBox(150, 92, 45, "NĐ");
+            txtTD = CreateTextBox(205, 92, 45, "TĐ");
+            txtP  = CreateTextBox(260, 92, 45, "P");
+            txtTC = CreateTextBox(315, 92, 45, "TC");
+            txtNC = CreateTextBox(370, 92, 45, "NC");
+
+            txtND.TextChanged += (s, e) => GeneratePreview();
+            txtTD.TextChanged += (s, e) => GeneratePreview();
+            txtP.TextChanged += (s, e) => GeneratePreview();
+            txtTC.TextChanged += (s, e) => GeneratePreview();
+            txtNC.TextChanged += (s, e) => GeneratePreview();
+
+            grpNaming.Controls.Add(txtND);
+            grpNaming.Controls.Add(txtTD);
+            grpNaming.Controls.Add(txtP);
+            grpNaming.Controls.Add(txtTC);
+            grpNaming.Controls.Add(txtNC);
 
             // ═══════════════════════════════════════════════════
             // SECTION 5: PREVIEW
@@ -890,37 +931,51 @@ namespace MyFirstProject
                 Alignment? al = tr.GetObject(alignmentId, OpenMode.ForRead) as Alignment;
                 if (al == null) { tr.Commit(); return dict; }
 
-                int curveIndex = 1; // Đánh số đường cong bắt đầu từ 1
+                var curveList = new List<(double startSta, AlignmentEntity entity)>();
                 foreach (AlignmentEntity entity in al.Entities)
                 {
+                    if (entity is AlignmentSCS scs)
+                        curveList.Add((scs.SpiralIn.StartStation, entity));
+                    else if (entity is AlignmentArc arc)
+                        curveList.Add((arc.StartStation, entity));
+                    else if (entity is AlignmentSpiral spiral)
+                        curveList.Add((spiral.StartStation, entity));
+                }
+
+                curveList = curveList.OrderBy(c => c.startSta).ToList();
+
+                int curveIndex = 1; // Đánh số đường cong bắt đầu từ 1
+                foreach (var item in curveList)
+                {
+                    AlignmentEntity entity = item.entity;
                     if (entity is AlignmentSCS scs)
                     {
                         // === ĐƯỜNG CONG CHUYỂN TIẾP SCS (compound entity) ===
                         string idx = curveIndex.ToString();
-                        AddStation(dict, scs.SpiralIn.StartStation, $"NĐ{idx}");   // Nối Đầu
-                        AddStation(dict, scs.SpiralIn.EndStation, $"TĐ{idx}");     // Tiếp Đầu
+                        AddStation(dict, scs.SpiralIn.StartStation, $"{StrND}{idx}");   // Nối Đầu
+                        AddStation(dict, scs.SpiralIn.EndStation, $"{StrTD}{idx}");     // Tiếp Đầu
                         double pStation = (scs.Arc.StartStation + scs.Arc.EndStation) / 2.0;
-                        AddStation(dict, pStation, $"P{idx}");
-                        AddStation(dict, scs.Arc.EndStation, $"TC{idx}");          // Tiếp Cuối
-                        AddStation(dict, scs.SpiralOut.EndStation, $"NC{idx}");    // Nối Cuối
+                        AddStation(dict, pStation, $"{StrP}{idx}");
+                        AddStation(dict, scs.Arc.EndStation, $"{StrTC}{idx}");          // Tiếp Cuối
+                        AddStation(dict, scs.SpiralOut.EndStation, $"{StrNC}{idx}");    // Nối Cuối
                         curveIndex++;
                     }
                     else if (entity is AlignmentArc arc)
                     {
                         // === CUNG TRÒN ĐƠN (không có Spiral) ===
                         string idx = curveIndex.ToString();
-                        AddStation(dict, arc.StartStation, $"TĐ{idx}");
+                        AddStation(dict, arc.StartStation, $"{StrTD}{idx}");
                         double pStation = (arc.StartStation + arc.EndStation) / 2.0;
-                        AddStation(dict, pStation, $"P{idx}");
-                        AddStation(dict, arc.EndStation, $"TC{idx}");
+                        AddStation(dict, pStation, $"{StrP}{idx}");
+                        AddStation(dict, arc.EndStation, $"{StrTC}{idx}");
                         curveIndex++;
                     }
                     else if (entity is AlignmentSpiral spiral)
                     {
                         // === SPIRAL ĐƠN (không nằm trong SCS) ===
                         string idx = curveIndex.ToString();
-                        AddStation(dict, spiral.StartStation, $"NĐ{idx}");
-                        AddStation(dict, spiral.EndStation, $"NC{idx}");
+                        AddStation(dict, spiral.StartStation, $"{StrND}{idx}");
+                        AddStation(dict, spiral.EndStation, $"{StrNC}{idx}");
                         curveIndex++;
                     }
                 }
@@ -1074,7 +1129,7 @@ namespace MyFirstProject
                 // Đổi tên tất cả cọc trong group theo quy cách
                 SampleLineGroup? slGroup = tr.GetObject(slgId, OpenMode.ForWrite) as SampleLineGroup;
                 if (slGroup != null)
-                    RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue);
+                    RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue, form.StrND, form.StrTD, form.StrP, form.StrTC, form.StrNC);
 
                 // Áp dụng Style cho SampleLine
                 ApplyStyleAndLabel(tr, slgId, form.SelectedSampleLineStyle, form.SelectedLabelStyle);
@@ -1110,7 +1165,7 @@ namespace MyFirstProject
                 SampleLineGroup? slGroup = tr.GetObject(slgIds[0], OpenMode.ForWrite) as SampleLineGroup;
                 if (slGroup == null) { tr.Commit(); return; }
 
-                int count = RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue);
+                int count = RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue, form.StrND, form.StrTD, form.StrP, form.StrTC, form.StrNC);
 
                 // Áp dụng Style cho SampleLine
                 ApplyStyleAndLabel(tr, slgIds[0], form.SelectedSampleLineStyle, form.SelectedLabelStyle);
@@ -1171,7 +1226,7 @@ namespace MyFirstProject
                 // Rename theo quy cách
                 SampleLineGroup? slGroup = tr.GetObject(slgId, OpenMode.ForWrite) as SampleLineGroup;
                 if (slGroup != null)
-                    RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue);
+                    RenameSampleLines(tr, alignment, slGroup, form.UseDT_CT, form.UseH, form.UseKM, form.UseCurve, form.UsePrefix, form.PrefixValue, form.StrND, form.StrTD, form.StrP, form.StrTC, form.StrNC);
 
                 // Áp dụng Style
                 ApplyStyleAndLabel(tr, slgId, form.SelectedSampleLineStyle, form.SelectedLabelStyle);
@@ -1261,41 +1316,56 @@ namespace MyFirstProject
         /// DT (đầu), CT (cuối), KM (1000m), H (100m), TĐ, P, TC, 1~N (còn lại)
         /// </summary>
         private static int RenameSampleLines(Transaction tr, Alignment al, SampleLineGroup slGroup,
-            bool useDtCt = true, bool useH = true, bool useKm = true, bool useCurve = true, bool usePrefix = false, string prefixValue = "")
+            bool useDtCt, bool useH, bool useKm, bool useCurve, bool usePrefix, string prefixValue,
+            string strND, string strTD, string strP, string strTC, string strNC)
         {
             Dictionary<double, string> specialStations = new();
             if (useCurve && al != null)
             {
-                int curveIndex = 1; // Đánh số đường cong bắt đầu từ 1
+                var curveList = new List<(double startSta, AlignmentEntity entity)>();
                 foreach (AlignmentEntity entity in al.Entities)
                 {
+                    if (entity is AlignmentSCS scs)
+                        curveList.Add((scs.SpiralIn.StartStation, entity));
+                    else if (entity is AlignmentArc arc)
+                        curveList.Add((arc.StartStation, entity));
+                    else if (entity is AlignmentSpiral spiral)
+                        curveList.Add((spiral.StartStation, entity));
+                }
+
+                curveList = curveList.OrderBy(c => c.startSta).ToList();
+
+                int curveIndex = 1; // Đánh số đường cong bắt đầu từ 1
+                foreach (var item in curveList)
+                {
+                    AlignmentEntity entity = item.entity;
                     if (entity is AlignmentSCS scs)
                     {
                         // === ĐƯỜNG CONG CHUYỂN TIẾP SCS (compound: SpiralIn → Arc → SpiralOut) ===
                         string idx = curveIndex.ToString();
-                        AddStationStatic(specialStations, scs.SpiralIn.StartStation, $"NĐ{idx}");
-                        AddStationStatic(specialStations, scs.SpiralIn.EndStation, $"TĐ{idx}");
+                        AddStationStatic(specialStations, scs.SpiralIn.StartStation, $"{strND}{idx}");
+                        AddStationStatic(specialStations, scs.SpiralIn.EndStation, $"{strTD}{idx}");
                         double pStation = (scs.Arc.StartStation + scs.Arc.EndStation) / 2.0;
-                        AddStationStatic(specialStations, pStation, $"P{idx}");
-                        AddStationStatic(specialStations, scs.Arc.EndStation, $"TC{idx}");
-                        AddStationStatic(specialStations, scs.SpiralOut.EndStation, $"NC{idx}");
+                        AddStationStatic(specialStations, pStation, $"{strP}{idx}");
+                        AddStationStatic(specialStations, scs.Arc.EndStation, $"{strTC}{idx}");
+                        AddStationStatic(specialStations, scs.SpiralOut.EndStation, $"{strNC}{idx}");
                         curveIndex++;
                     }
                     else if (entity is AlignmentArc arc)
                     {
                         // === CUNG TRÒN ĐƠN (không nằm trong SCS) ===
                         string idx = curveIndex.ToString();
-                        AddStationStatic(specialStations, arc.StartStation, $"TĐ{idx}");
-                        AddStationStatic(specialStations, (arc.StartStation + arc.EndStation) / 2.0, $"P{idx}");
-                        AddStationStatic(specialStations, arc.EndStation, $"TC{idx}");
+                        AddStationStatic(specialStations, arc.StartStation, $"{strTD}{idx}");
+                        AddStationStatic(specialStations, (arc.StartStation + arc.EndStation) / 2.0, $"{strP}{idx}");
+                        AddStationStatic(specialStations, arc.EndStation, $"{strTC}{idx}");
                         curveIndex++;
                     }
                     else if (entity is AlignmentSpiral spiral)
                     {
                         // === SPIRAL ĐƠN (không nằm trong SCS) ===
                         string idx = curveIndex.ToString();
-                        AddStationStatic(specialStations, spiral.StartStation, $"NĐ{idx}");
-                        AddStationStatic(specialStations, spiral.EndStation, $"NC{idx}");
+                        AddStationStatic(specialStations, spiral.StartStation, $"{strND}{idx}");
+                        AddStationStatic(specialStations, spiral.EndStation, $"{strNC}{idx}");
                         curveIndex++;
                     }
                 }

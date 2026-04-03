@@ -35,8 +35,11 @@ namespace MyFirstProject
         protected static readonly Color TextNavy = Color.FromArgb(27, 42, 74);       // Tiêu đề
         protected static readonly Color TextHint = Color.FromArgb(122, 122, 122);    // #7A7A7A — Hint/phụ
         protected static readonly Color TextRed = Color.FromArgb(211, 47, 47);       // #D32F2F — Ghi chú quan trọng
+        protected static readonly Color TextDim = Color.FromArgb(122, 122, 122);
+        protected static readonly Color TextWhite = Color.White;
 
         protected static readonly Color BorderLight = Color.FromArgb(208, 213, 221); // #D0D5DD
+        protected static readonly Color BorderColor = Color.FromArgb(208, 213, 221);
         protected static readonly Color GreenOk = Color.FromArgb(46, 160, 67);       // Thành công
         protected static readonly Color HoverNavy = Color.FromArgb(232, 238, 248);   // Hover nhạt
 
@@ -102,6 +105,11 @@ namespace MyFirstProject
                 BackColor = BgPanel
             };
         }
+
+        /// <summary>
+        /// Tạo Section (panel có title)
+        /// </summary>
+        protected Panel CreateSection(string title, int x, int y, int w, int h) => CreateGroupBox(title, x, y, w, h);
 
         /// <summary>
         /// Tạo GroupBox (panel có title)

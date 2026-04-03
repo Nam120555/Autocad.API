@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
@@ -240,6 +240,65 @@ namespace MyFirstProject.Extensions
             catch (Autodesk.AutoCAD.Runtime.Exception e)
             {
                 A.Ed.WriteMessage(e.Message);
+            }
+        }
+
+        public static double CreateDynamicCoordTable(string title, Point3d position, List<string> headers, List<List<string>> rows)
+        {
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            try
+            {
+                BlockTable bt = (BlockTable)tr.GetObject(A.Doc.Database.BlockTableId, OpenMode.ForRead);
+                ATable table = new();
+                table.SetSize(rows.Count + 2, headers.Count);
+                table.SetRowHeight(5);
+                table.SetColumnWidth(20);
+                table.Position = position;
+                
+                // Kích hoạt bẻ bảng (Table Breaking) nếu bảng quá dài
+                table.EnableBreak = true;
+                table.BreakOptions = TableBreakOptions.EnableBreaking | TableBreakOptions.AllowManualPositions | TableBreakOptions.RepeatTopLabels;
+                table.BreakHeight = 5 * 50; // Ví dụ: Bẻ bảng sau khoảng 50 dòng
+                table.BreakSpacing = 10; // Khoảng cách giữa các mảnh gập
+
+                // Title
+                table.Cells[0, 0].TextHeight = 2;
+                table.Cells[0, 0].TextString = "Bảng " + title;
+                table.Cells[0, 0].Alignment = CellAlignment.MiddleCenter;
+
+                // Headers
+                for (int c = 0; c < headers.Count; c++)
+                {
+                    table.Cells[1, c].TextHeight = 2;
+                    table.Cells[1, c].TextString = headers[c];
+                    table.Cells[1, c].Alignment = CellAlignment.MiddleCenter;
+                }
+
+                // Data Rows
+                for (int r = 0; r < rows.Count; r++)
+                {
+                    for (int c = 0; c < headers.Count; c++)
+                    {
+                        table.Cells[r + 2, c].TextHeight = 2;
+                        table.Cells[r + 2, c].TextString = rows[r].Count > c ? rows[r][c] : "";
+                        table.Cells[r + 2, c].Alignment = CellAlignment.MiddleCenter;
+                    }
+                }
+
+                table.GenerateLayout();
+                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                btr.AppendEntity(table);
+                tr.AddNewlyCreatedDBObject(table, true);
+
+                // Trả về tổng chiều rộng của toàn bộ bảng (bao gồm bẻ gập) để căn lề cho bảng tiếp theo.
+                double totalWidth = table.Extents.Value.MaxPoint.X - table.Extents.Value.MinPoint.X;
+                tr.Commit();
+                return totalWidth;
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception e)
+            {
+                A.Ed.WriteMessage(e.Message);
+                return 0;
             }
         }
 

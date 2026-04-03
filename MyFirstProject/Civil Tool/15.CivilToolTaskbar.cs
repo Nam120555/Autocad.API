@@ -68,36 +68,25 @@ namespace MyFirstProject
             var screenBounds = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
             this.Location = new Point((screenBounds.Width - this.Width) / 2, 5);
 
-            // Load config đã lưu
-            var config = MenuSettingsForm.LoadSavedConfig();
-
-            int btnWidth = 68;
             int btnHeight = 28;
-            int margin = 2;
-            int x = 6;
+            int margin = 4;
+            int x = 8;
             int y = 10;
 
-            // Tạo nút từ Civil groups
-            foreach (var group in config.CivilGroups)
-            {
-                if (group.Commands.Count == 0) continue;
-                var cmds = group.Commands
-                    .Where(c => !string.IsNullOrEmpty(c.Command) && c.Command != "---")
-                    .Select(c => (c.Label, c.Command))
-                    .ToList();
-                if (cmds.Count == 0) continue;
+            // Load config đã lưu
+            var config = TaskbarSettingsForm.LoadSavedConfig();
 
-                string cleanName = System.Text.RegularExpressions.Regex.Replace(
-                    group.GroupName, @"[\u2600-\u27BF\u2B50-\u2B55\u25A0-\u25FF\uFE00-\uFEFF]+|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD00-\uDDFF]", "").Trim();
-
-                this.Controls.Add(CreateDropdownButton(cleanName, x, y, btnWidth, btnHeight, cmds));
-                x += btnWidth + margin;
-            }
+            // Nút Menu Chính "CIVIL TOOL"
+            var btnMain = CreateButton("≡ CIVIL TOOL ▾", x, y, 115, btnHeight, Color.FromArgb(27, 42, 74));
+            btnMain.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            btnMain.Click += (s, e) => ShowMainMenu(btnMain, config);
+            this.Controls.Add(btnMain);
+            x += btnMain.Width + margin;
 
             // Nút Cài đặt
             var btnSettings = CreateButton("⚙", x, y, 30, btnHeight, Color.FromArgb(27, 42, 74));
             btnSettings.ForeColor = Color.White;
-            btnSettings.Click += (s, e) => { this.Hide(); RunCommand("CT_MENU_SETTINGS"); this.Show(); };
+            btnSettings.Click += (s, e) => { this.Hide(); RunCommand("CT_TASKBAR_SETTINGS"); this.Show(); };
             this.Controls.Add(btnSettings);
             x += 30 + margin;
 
@@ -107,11 +96,59 @@ namespace MyFirstProject
             btnClose.FlatAppearance.MouseOverBackColor = Color.FromArgb(211, 47, 47);
             btnClose.Click += (s, e) => this.Close();
             this.Controls.Add(btnClose);
+            x += btnClose.Width + margin + 4; // Thêm 1 chút padding bên phải
 
-            // Cập nhật kích thước form
-            this.Size = new Size(x + 30, 48);
+            // Cập nhật kích thước form (Thu gọn cực đại)
+            this.Size = new Size(x, 48);
             this.Region = CreateRoundedRegion(this.Width, this.Height, 8);
             this.Location = new Point((screenBounds.Width - this.Width) / 2, 5);
+        }
+
+        private void ShowMainMenu(Button anchorBtn, TaskbarMenuConfig config)
+        {
+            var menu = new ContextMenuStrip();
+            menu.BackColor = Color.FromArgb(255, 255, 255);
+            menu.ForeColor = Color.FromArgb(61, 61, 61);
+            menu.Font = new Font("Segoe UI", 9.5f);
+            menu.Renderer = new DarkToolStripRenderer();
+            menu.ShowImageMargin = false;
+
+            foreach (var group in config.CivilGroups)
+            {
+                if (group.Commands.Count == 0) continue;
+                
+                var activeCmds = group.Commands.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.Command) && c.Command != "---").ToList();
+                if (activeCmds.Count == 0) continue;
+
+                var groupItem = new ToolStripMenuItem($"  {group.GroupName}");
+                // Nested menu items configuration
+                groupItem.DropDown.BackColor = Color.FromArgb(255, 255, 255);
+                groupItem.DropDown.ForeColor = Color.FromArgb(61, 61, 61);
+                
+                // Set the drop down directly using custom Renderer from ToolStripMenuItem
+                if (groupItem.DropDown is ToolStripDropDownMenu dropDownMenu)
+                {
+                    dropDownMenu.ShowImageMargin = false;
+                    dropDownMenu.Renderer = new DarkToolStripRenderer();
+                }
+
+                foreach (var cmd in activeCmds)
+                {
+                    var cmdItem = new ToolStripMenuItem($"  {cmd.Label}");
+                    string cmdName = cmd.Command;
+                    cmdItem.Click += (sender, args) => { this.Hide(); RunCommand(cmdName); this.Show(); };
+                    groupItem.DropDownItems.Add(cmdItem);
+                }
+
+                menu.Items.Add(groupItem);
+            }
+
+            menu.Items.Add(new ToolStripSeparator());
+            var dslItem = new ToolStripMenuItem("  📋 Mở bảng Danh Sách Lệnh (All)...");
+            dslItem.Click += (sender, args) => { this.Hide(); RunCommand("CT_DanhSachLenh"); this.Show(); };
+            menu.Items.Add(dslItem);
+
+            menu.Show(anchorBtn, new Point(0, anchorBtn.Height));
         }
 
         private static System.Drawing.Region CreateRoundedRegion(int w, int h, int r)
@@ -145,38 +182,7 @@ namespace MyFirstProject
             return btn;
         }
 
-        private Button CreateDropdownButton(string text, int x, int y, int width, int height,
-            List<(string Name, string Command)> commands)
-        {
-            var btn = CreateButton(text + " ▾", x, y, width, height, Color.FromArgb(27, 42, 74));
-            btn.Click += (s, e) =>
-            {
-                var menu = new ContextMenuStrip();
-                menu.BackColor = Color.FromArgb(255, 255, 255);
-                menu.ForeColor = Color.FromArgb(61, 61, 61);
-                menu.Font = new Font("Segoe UI", 9);
-                menu.Renderer = new DarkToolStripRenderer();
-                menu.ShowImageMargin = false;
-
-                foreach (var cmd in commands)
-                {
-                    if (string.IsNullOrEmpty(cmd.Command))
-                    {
-                        menu.Items.Add(new ToolStripSeparator());
-                        continue;
-                    }
-
-                    var item = new ToolStripMenuItem($"  {cmd.Name}");
-                    item.ForeColor = Color.FromArgb(61, 61, 61);
-                    string cmdName = cmd.Command;
-                    item.Click += (sender, args) => { this.Hide(); RunCommand(cmdName); this.Show(); };
-                    menu.Items.Add(item);
-                }
-
-                menu.Show(btn, new Point(0, btn.Height));
-            };
-            return btn;
-        }
+        // Xoá logic CreateDropdownButton cũ không dùng nữa
 
         private static void RunCommand(string commandName)
         {

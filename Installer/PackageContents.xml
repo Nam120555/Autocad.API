@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0" AppVersion="1.0.0" Name="MyFirstProject Civil Tool" Description="Bo Cong Cu Tu Dong Hoa Cho Civil 3D" Author="Huynh Ngoc Nam">
+  <CompanyDetails Name="Huynh Ngoc Nam" Email="Namhuynh1205@gmail.com" />
+  <Components>
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" />
+    <ComponentEntry AppName="MyFirstProject" Version="1.0.0" ModuleName="./Contents/MyFirstProject.dll" AppDescription="Civil Tool Extensions" LoadOnAutoCADStartup="True" />
+  </Components>
+</ApplicationPackage>

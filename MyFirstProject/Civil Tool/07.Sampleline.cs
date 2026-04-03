@@ -217,7 +217,8 @@ namespace MyFirstProject
                     double easting = 0;
                     double northing = 0;
                     alignment.PointLocation(station, 0, ref easting, ref northing);
-                    samplelineName[orderSampleline] = sampleline.Name.ToUpper();
+                    string lyTrinhStr = $"Km {Math.Floor(Math.Abs(station) / 1000)}+{(Math.Abs(station) % 1000):000.00}";
+                    samplelineName[orderSampleline] = $"{sampleline.Name.ToUpper()} ({lyTrinhStr})";
                     eastings[orderSampleline] = Convert.ToString(Math.Round(easting, 3));
                     northings[orderSampleline] = Convert.ToString(Math.Round(northing, 3));
                     orderSampleline++;

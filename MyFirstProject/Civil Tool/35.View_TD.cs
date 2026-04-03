@@ -7,8 +7,11 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using Autodesk.Civil.DatabaseServices;
 using Acad = Autodesk.AutoCAD.ApplicationServices;
 using WinLabel = System.Windows.Forms.Label;
+using Font = System.Drawing.Font;
+using WinPoint = System.Drawing.Point;
 
 [assembly: CommandClass(typeof(MyFirstProject.View_TD))]
 
@@ -23,10 +26,13 @@ namespace MyFirstProject
         public static double MViewSpacingX = 10;
         public static double MViewSpacingY = 10;
         public static double StartX = 10;
-        public static double StartY = 200; // Tọa độ Y góc dưới trái của hàng trên cùng
-        public static int Columns = 1;
-        public static int Rows = 2; // Ví dụ 1 cột 2 hàng
+        public static double StartY = 200; 
+        public static int Columns = 3;
         public static double ScaleVal = 1000;
+        
+        // Điều hướng tương tác pick điểm
+        public static int CurrentPickAction = 0; 
+        // 1: Pick XREF, 2: Kích thước, 3: Gốc, 4: Hở X, 5: Hở Y, 6: Cắt Tuyến
 
         [CommandMethod("CTSV_TaoTrangInTD")]
         public void CTSVTaoTrangInTD()
@@ -35,18 +41,16 @@ namespace MyFirstProject
             var db = doc.Database;
             var ed = doc.Editor;
 
-            // Xoay vòng lặp nếu người dùng nhấn "Vẽ Khung" và muốn quay lại Form
             bool keepLooping = true;
             while (keepLooping)
             {
                 List<string> blockNames = new List<string>();
                 using (var tr = db.TransactionManager.StartTransaction())
                 {
-                    var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                    var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForWrite); 
                     foreach (ObjectId btrId in bt)
                     {
-                        var btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
-                        // Chỉ lấy block thường, không phải layout, không anonymous
+                        var btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForWrite);
                         if (!btr.IsLayout && !btr.IsAnonymous)
                         {
                             blockNames.Add(btr.Name);
@@ -59,17 +63,29 @@ namespace MyFirstProject
                 using (var form = new MainForm_ViewTD(blockNames))
                 {
                     var res = Acad.Application.ShowModalDialog(form);
-                    if (res == DialogResult.Retry) // Chọn Vẽ khung Model
+                    
+                    if (res == DialogResult.Retry) // Chọn Vẽ khung Model thủ công
                     {
                         DrawFrames(db, ed);
-                        // Vòng lặp sẽ tiếp tục hiển thị lại form
+                    }
+                    else if (res == DialogResult.Ignore) // Các thao tác Auto Pick / Auto Align
+                    {
+                        switch(CurrentPickAction)
+                        {
+                            case 1: SelectXrefFromScreen(db, ed); break;
+                            case 2: PickPointsForSize(ed); break;
+                            case 3: PickStartPoint(ed); break;
+                            case 4: PickDistance("X", ed); break;
+                            case 5: PickDistance("Y", ed); break;
+                            case 6: DrawFramesAlongAlignment(db, ed); break;
+                        }
                     }
                     else if (res == DialogResult.OK) // Chọn Tạo Layout
                     {
                         CreateLayouts(db, ed);
-                        keepLooping = false; // Xong việc thì thoát
+                        keepLooping = false;
                     }
-                    else // Đóng form (Cancel)
+                    else 
                     {
                         keepLooping = false;
                     }
@@ -77,31 +93,215 @@ namespace MyFirstProject
             }
         }
 
+        private void DrawFramesAlongAlignment(Database db, Editor ed)
+        {
+            var ppo = new PromptEntityOptions("\n[Rải Dọc Mùa] Chọn Tuyến (Alignment) để tự động dàn khung bình đồ: ");
+            ppo.SetRejectMessage("\nLỗi: Chọn sai. Yêu cầu click vào tim đường Alignment!");
+            ppo.AddAllowedClass(typeof(Alignment), true);
+            var res = ed.GetEntity(ppo);
+            if (res.Status != PromptStatus.OK) return;
+
+            // Optional overlap = 5% chiều rộng khung để các bản vẽ có tính liên kết nối tiếp
+            double frameW = MViewWidth * (ScaleVal / 1000.0);
+            double frameH = MViewHeight * (ScaleVal / 1000.0);
+            double overlap = frameW * 0.05; 
+            double step = frameW - overlap;
+
+            try
+            {
+                using (var tr = db.TransactionManager.StartTransaction())
+                {
+                    var align = (Alignment)tr.GetObject(res.ObjectId, OpenMode.ForRead);
+                    double startSta = align.StartingStation;
+                    double endSta = align.EndingStation;
+
+                    string layerName = "KhungView_BinhDoAuto";
+                    var lt = (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForWrite);
+                    if (!lt.Has(layerName))
+                    {
+                        var ltr = new LayerTableRecord();
+                        ltr.Name = layerName;
+                        ltr.Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, 6); // Magenta
+                        lt.Add(ltr);
+                        tr.AddNewlyCreatedDBObject(ltr, true);
+                    }
+
+                    var btr = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+
+                    int count = 0;
+                    for (double sta = startSta + frameW / 2.0; sta < endSta + frameW / 2.0; sta += step) // Đảo tiến lý trình
+                    {
+                        double x = 0, y = 0;
+                        align.PointLocation(sta, 0, ref x, ref y);
+                        Point3d pCen = new Point3d(x, y, 0);
+
+                        // Lấy Vector tiếp tuyến để xoay vuông góc với cung đường
+                        double x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+                        double ds = 0.5; // Mượn khoảng siêu nhỏ đo góc
+                        if (sta - ds >= startSta && sta + ds <= endSta) {
+                            align.PointLocation(sta - ds, 0, ref x1, ref y1);
+                            align.PointLocation(sta + ds, 0, ref x2, ref y2);
+                        } else if (sta + ds <= endSta) {
+                            align.PointLocation(sta, 0, ref x1, ref y1);
+                            align.PointLocation(sta + ds, 0, ref x2, ref y2);
+                        } else {
+                            align.PointLocation(sta - ds, 0, ref x1, ref y1);
+                            align.PointLocation(sta, 0, ref x2, ref y2);
+                        }
+                        double angle = Math.Atan2(y2 - y1, x2 - x1);
+
+                        var pline = new Polyline();
+                        Point2d[] pts = new Point2d[4] {
+                            new Point2d(-frameW/2, -frameH/2),
+                            new Point2d(frameW/2, -frameH/2),
+                            new Point2d(frameW/2, frameH/2),
+                            new Point2d(-frameW/2, frameH/2)
+                        };
+
+                        for (int i=0; i<4; i++) {
+                            // Xoay ma trận Point
+                            double rotX = pts[i].X * Math.Cos(angle) - pts[i].Y * Math.Sin(angle);
+                            double rotY = pts[i].X * Math.Sin(angle) + pts[i].Y * Math.Cos(angle);
+                            pline.AddVertexAt(i, new Point2d(pCen.X + rotX, pCen.Y + rotY), 0, 0, 0);
+                        }
+                        pline.Closed = true;
+                        pline.Layer = layerName;
+
+                        btr.AppendEntity(pline);
+                        tr.AddNewlyCreatedDBObject(pline, true);
+                        count++;
+                    }
+
+                    tr.Commit();
+                    ed.WriteMessage($"\n>> Đã tự động sinh {count} Khung MView xoay uốn lượn bay bổng dọc theo tuyến {align.Name}.");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage("\nLỗi rải theo tuyến: " + ex.Message);
+            }
+        }
+
+        private void PickPointsForSize(Editor ed)
+        {
+            var pt1Opts = new PromptPointOptions("\n[Đo MView] Chọn góc DƯỚI BÊN TRÁI của khung: ");
+            var pt1Res = ed.GetPoint(pt1Opts);
+            if (pt1Res.Status != PromptStatus.OK) return;
+
+            var pt2Opts = new PromptCornerOptions("\nChọn góc TRÊN BÊN PHẢI của khung: ", pt1Res.Value);
+            var pt2Res = ed.GetCorner(pt2Opts);
+            if (pt2Res.Status != PromptStatus.OK) return;
+
+            try
+            {
+                double w = Math.Abs(pt2Res.Value.X - pt1Res.Value.X);
+                double h = Math.Abs(pt2Res.Value.Y - pt1Res.Value.Y);
+
+                if (w > 0 && h > 0)
+                {
+                    MViewWidth = Math.Round(w, 2);
+                    MViewHeight = Math.Round(h, 2);
+                    ed.WriteMessage($"\n>> Cập nhật Kích Thước (Rộng x Cao): {MViewWidth} x {MViewHeight}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage("\nLỗi đo kích thước: " + ex.Message);
+            }
+        }
+
+        private void PickStartPoint(Editor ed)
+        {
+            var ppo = new PromptPointOptions("\n[Đo Gốc Layout] Click 1 điểm làm toạ độ X,Y bắt đầu rải mặt bằng: ");
+            var res = ed.GetPoint(ppo);
+            if (res.Status == PromptStatus.OK)
+            {
+                StartX = Math.Round(res.Value.X, 2);
+                StartY = Math.Round(res.Value.Y, 2);
+                ed.WriteMessage($"\n>> Đã Lưu Tọa Độ Chèn Gốc: X={StartX}, Y={StartY}");
+            }
+        }
+
+        private void PickDistance(string axis, Editor ed)
+        {
+            var pdo = new PromptDistanceOptions($"\n[Đo Khoảng Cách] Click chọn 2 điểm trên mặt bằng để đo khoảng hở {axis}: ");
+            var res = ed.GetDistance(pdo);
+            if (res.Status == PromptStatus.OK)
+            {
+                if (axis == "X") 
+                {
+                    MViewSpacingX = Math.Round(res.Value, 2);
+                    ed.WriteMessage($"\n>> Cập nhật Hở TRỤC X: {MViewSpacingX}");
+                }
+                else 
+                {
+                    MViewSpacingY = Math.Round(res.Value, 2);
+                    ed.WriteMessage($"\n>> Cập nhật Hở TRỤC Y: {MViewSpacingY}");
+                }
+            }
+        }
+
+        private void SelectXrefFromScreen(Database db, Editor ed)
+        {
+            var peo = new PromptEntityOptions("\n[Chỉ Bắt Điểm] Nhấp vào XREF / Block Khung Tên trên mô hình (Zoom to nếu cần): ");
+            peo.SetRejectMessage("\nLỗi: Đối tượng bạn chọn không phải là XREF hay Block!");
+            peo.AddAllowedClass(typeof(BlockReference), false);
+
+            var res = ed.GetEntity(peo);
+            if (res.Status != PromptStatus.OK) return;
+
+            try
+            {
+                using (var tr = db.TransactionManager.StartTransaction())
+                {
+                    var bref = (BlockReference)tr.GetObject(res.ObjectId, OpenMode.ForWrite);
+                    string bName = bref.IsDynamicBlock ? 
+                        ((BlockTableRecord)tr.GetObject(bref.DynamicBlockTableRecord, OpenMode.ForWrite)).Name : 
+                        bref.Name;
+
+                    Extents3d ext = bref.GeometricExtents;
+                    double w = ext.MaxPoint.X - ext.MinPoint.X;
+                    double h = ext.MaxPoint.Y - ext.MinPoint.Y;
+
+                    if (w < 1) w = 297;
+                    if (h < 1) h = 210;
+
+                    SelectedBlockName = bName;
+                    MViewWidth = Math.Round(w, 2);
+                    MViewHeight = Math.Round(h, 2);
+
+                    tr.Commit();
+                    ed.WriteMessage($"\n>> Đã nhận XREF: [{bName}] ({MViewWidth} x {MViewHeight})");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage("\nLỗi đo XREF: " + ex.Message);
+            }
+        }
+
         private void DrawFrames(Database db, Editor ed)
         {
-            // Kích thước khung trên Model = MView x Scale
             double frameW = MViewWidth * (ScaleVal / 1000.0);
             double frameH = MViewHeight * (ScaleVal / 1000.0);
 
-            ed.WriteMessage($"\n--- VẼ KHỐI KHUNG MVIEW TRÊN MODEL (Rộng: {frameW}, Cao: {frameH}) ---");
+            ed.WriteMessage($"\n--- LỆNH VẼ KHUNG MVIEW LÊN MODEL ({frameW}x{frameH}) ---");
 
             while (true)
             {
-                var ppo = new PromptPointOptions("\nChọn điểm chèn góc dưới bên trái của Khung (hoặc ESC để quay lại): ");
+                var ppo = new PromptPointOptions("\nChọn gốc chèn (Góc trái dưới) cho khung nhìn tiếp theo (HOẶC NHẤP ESC ĐỂ TRỞ VỀ FORM): ");
                 var res = ed.GetPoint(ppo);
                 if (res.Status != PromptStatus.OK) break;
 
                 using (var tr = db.TransactionManager.StartTransaction())
                 {
-                    // Tạo layer nếu chưa có
-                    string layerName = "Khung_TD";
-                    var lt = (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead);
+                    string layerName = "KhungView_TD";
+                    var lt = (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForWrite);
                     if (!lt.Has(layerName))
                     {
-                        lt.UpgradeOpen();
                         var ltr = new LayerTableRecord();
                         ltr.Name = layerName;
-                        ltr.Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, 1); // Đỏ
+                        ltr.Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, 1);
                         lt.Add(ltr);
                         tr.AddNewlyCreatedDBObject(ltr, true);
                     }
@@ -126,7 +326,7 @@ namespace MyFirstProject
         private void CreateLayouts(Database db, Editor ed)
         {
             var pso = new PromptSelectionOptions();
-            pso.MessageForAdding = "\nChọn các khung Polyline trên Model để tạo Layout (Nhấn Enter khi xong): ";
+            pso.MessageForAdding = "\nVui lòng quét các viền Polyline trên Model mà bạn muốn kéo vào Layout (Nhấn ENTER khi quét xong): ";
             var selRes = ed.GetSelection(pso);
             if (selRes.Status != PromptStatus.OK) return;
 
@@ -135,8 +335,7 @@ namespace MyFirstProject
             {
                 foreach (SelectedObject so in selRes.Value)
                 {
-                    var ent = tr.GetObject(so.ObjectId, OpenMode.ForRead) as Polyline;
-                    // Phải là polyline có ít nhất 4 đỉnh và đóng kín (hoặc vẽ theo hàm DrawFrames)
+                    var ent = tr.GetObject(so.ObjectId, OpenMode.ForWrite) as Polyline;
                     if (ent != null && ent.NumberOfVertices >= 4)
                     {
                         frames.Add(ent);
@@ -145,122 +344,106 @@ namespace MyFirstProject
 
                 if (frames.Count == 0)
                 {
-                    ed.WriteMessage("\nKhông có khung nào hợp lệ được chọn.");
+                    ed.WriteMessage("\nKhông tìm thấy khung nào.");
                     tr.Commit();
                     return;
                 }
 
-                // Sắp xếp các khung theo thứ tự X (từ trái qua phải)
+                // Sắp xếp thứ tự cắt khung không dựa vào X tuyệt đối, mà dựa vào Chiều Dài Curve Trung Bình. (Để Layout chạy đúng số tờ)
                 frames.Sort((a, b) => a.GetPoint3dAt(0).X.CompareTo(b.GetPoint3dAt(0).X));
 
-                int framesPerLayout = Columns * Rows;
-                int numLayouts = (int)Math.Ceiling(frames.Count / (double)framesPerLayout);
-
                 var layoutMgr = LayoutManager.Current;
-
-                int frameIdx = 0;
-                for (int i = 0; i < numLayouts; i++)
+                
+                string layoutName = "Layout_TD_TongHop";
+                ObjectId layoutId = layoutMgr.GetLayoutId(layoutName);
+                if (layoutId.IsNull)
                 {
-                    string layoutName = "Layout_TD_" + (i + 1);
-                    
-                    // Tạo layout mới hoặc lấy layout cũ
-                    ObjectId layoutId = layoutMgr.GetLayoutId(layoutName);
-                    if (layoutId.IsNull)
-                    {
-                        layoutId = layoutMgr.CreateLayout(layoutName);
-                    }
-                    
-                    Layout layout = (Layout)tr.GetObject(layoutId, OpenMode.ForWrite);
-                    layoutMgr.CurrentLayout = layoutName;
-                    
-                    var btr = (BlockTableRecord)tr.GetObject(layout.BlockTableRecordId, OpenMode.ForWrite);
+                    layoutId = layoutMgr.CreateLayout(layoutName);
+                }
+                
+                Layout layout = (Layout)tr.GetObject(layoutId, OpenMode.ForWrite);
+                layoutMgr.CurrentLayout = layoutName;
+                
+                var btrLayout = (BlockTableRecord)tr.GetObject(layout.BlockTableRecordId, OpenMode.ForWrite);
 
-                    // Xóa tất cả các viewport hiện có trong layout này (trừ viewport mặc định số 1 thường là khung giấy)
-                    // Ở đây, xóa mọi viewports cũ để thiết lập lại
-                    foreach (ObjectId id in btr)
+                foreach (ObjectId id in btrLayout)
+                {
+                    var ent = tr.GetObject(id, OpenMode.ForWrite);
+                    if (ent is Viewport vp && vp.Number != 1)
                     {
-                        var ent = tr.GetObject(id, OpenMode.ForWrite);
-                        if (ent is Viewport vp && vp.Number != 1)
-                        {
-                            ent.Erase();
-                        }
+                        ent.Erase();
                     }
+                    else if (ent is BlockReference)
+                    {
+                        ent.Erase(); 
+                    }
+                }
 
-                    // Chèn khung tên (Nút gốc 0,0)
+                int col = 0;
+                int row = 0;
+                for (int i = 0; i < frames.Count; i++)
+                {
+                    var frame = frames[i];
+
+                    // TRUNG TÂM MODEL CHUẨN TỪ ĐA GIÁC BẤT KỲ (XOAY HOẶC KHÔNG XOAY)
+                    double sumX = 0, sumY = 0;
+                    for (int v = 0; v < frame.NumberOfVertices; v++)
+                    {
+                        sumX += frame.GetPoint3dAt(v).X;
+                        sumY += frame.GetPoint3dAt(v).Y;
+                    }
+                    double centerModelX = sumX / frame.NumberOfVertices;
+                    double centerModelY = sumY / frame.NumberOfVertices;
+
+                    // TÍNH GÓC XOAY TWIST ANGLE
+                    Point3d p0 = frame.GetPoint3dAt(0);
+                    Point3d p1 = frame.GetPoint3dAt(1);
+                    double frameAng = Math.Atan2(p1.Y - p0.Y, p1.X - p0.X);
+
+                    double blX = StartX + col * (MViewWidth + MViewSpacingX);
+                    double blY = StartY - row * (MViewHeight + MViewSpacingY);
+                    
+                    double centerX = blX + MViewWidth / 2.0;
+                    double centerY = blY + MViewHeight / 2.0;
+
                     if (!string.IsNullOrEmpty(SelectedBlockName) && SelectedBlockName != "<Không dùng>")
                     {
-                        var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                        var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForWrite);
                         if (bt.Has(SelectedBlockName))
                         {
-                            var bref = new BlockReference(Point3d.Origin, bt[SelectedBlockName]);
-                            btr.AppendEntity(bref);
+                            var bref = new BlockReference(new Point3d(blX, blY, 0), bt[SelectedBlockName]);
+                            btrLayout.AppendEntity(bref);
                             tr.AddNewlyCreatedDBObject(bref, true);
                         }
                     }
 
-                    // Tạo các MView cho Layout này
-                    int col = 0;
-                    int row = 0;
-                    // StartY là cạnh Dưới của Viewport tại Hàng 0. Viewport tâm Y sẽ là StartY + MViewHeight/2.
-                    // Nhưng tọa độ Y từ trên xuống dưới trên khổ giấy, Rows sẽ đi xuống (trừ Y).
-                    for (int j = 0; j < framesPerLayout && frameIdx < frames.Count; j++, frameIdx++)
+                    var vp = new Viewport();
+                    vp.CenterPoint = new Point3d(centerX, centerY, 0);
+                    vp.Width = MViewWidth;
+                    vp.Height = MViewHeight;
+
+                    btrLayout.AppendEntity(vp);
+                    tr.AddNewlyCreatedDBObject(vp, true);
+                    
+                    vp.On = true;
+                    vp.ViewCenter = new Point2d(centerModelX, centerModelY);
+                    vp.CustomScale = 1000.0 / ScaleVal; 
+                    
+                    // Xoay chống bẻ nghiêng tuyến
+                    vp.TwistAngle = -frameAng; // Twist Angle trừ lại góc cong của Model
+                    
+                    vp.Locked = true;  
+
+                    col++;
+                    if (col >= Columns)
                     {
-                        var frame = frames[frameIdx];
-
-                        // Xác định tâm của khung trên Model
-                        // Do khung bên model có thể được vẽ bằng tool (đỉnh 0 là góc dưới trái, 2 là trên phải)
-                        // Ta tính Min/Max để an toàn hơn
-                        double minX = double.MaxValue, minY = double.MaxValue;
-                        double maxX = double.MinValue, maxY = double.MinValue;
-                        for (int v = 0; v < frame.NumberOfVertices; v++)
-                        {
-                            Point3d pt = frame.GetPoint3dAt(v);
-                            if (pt.X < minX) minX = pt.X;
-                            if (pt.Y < minY) minY = pt.Y;
-                            if (pt.X > maxX) maxX = pt.X;
-                            if (pt.Y > maxY) maxY = pt.Y;
-                        }
-                        double centerModelX = (minX + maxX) / 2.0;
-                        double centerModelY = (minY + maxY) / 2.0;
-
-                        // Tọa độ tâm MView trên Layout
-                        // X tăng dần sang phải
-                        double centerX = StartX + col * (MViewWidth + MViewSpacingX) + (MViewWidth / 2.0);
-                        // Y giảm dần xuống dưới (Giả sử StartY là mép dưới của khung đầu tiên)
-                        // StartY là điểm cơ sở (bottom-left) của Layout Grid (Top-Left view).
-                        // Vậy tâm Y của hàng thứ 'row' sẽ là: StartY CÚA HÀNG ĐÓ + MViewHeight/2.
-                        double centerY = StartY - row * (MViewHeight + MViewSpacingY) + (MViewHeight / 2.0);
-
-                        var vp = new Viewport();
-                        vp.CenterPoint = new Point3d(centerX, centerY, 0);
-                        vp.Width = MViewWidth;
-                        vp.Height = MViewHeight;
-
-                        btr.AppendEntity(vp);
-                        tr.AddNewlyCreatedDBObject(vp, true);
-
-                        // Bật MView
-                        vp.On = true;
-
-                        // Gán góc nhìn Model
-                        vp.ViewCenter = new Point2d(centerModelX, centerModelY);
-                        vp.CustomScale = 1000.0 / ScaleVal; // Ratio 1:ScaleVal
-
-                        vp.Locked = true; // Khoá lại tránh zoom trượt tay
-
-                        col++;
-                        if (col >= Columns)
-                        {
-                            col = 0;
-                            row++;
-                        }
+                        col = 0;
+                        row++;
                     }
                 }
+
                 tr.Commit();
-                ed.WriteMessage($"\n✅ Đã tạo {numLayouts} Layout(s) chứa {frames.Count} Viewport(s).");
-                
-                // Trở về model space
-                layoutMgr.CurrentLayout = "Model";
+                ed.WriteMessage($"\n--- HOÀN TẤT --- Đã rải xong {frames.Count} cụm vào {layoutName}.");
             }
         }
     }
@@ -269,8 +452,8 @@ namespace MyFirstProject
     {
         private ComboBox cboBlocks = null!;
         private NumericUpDown nudWidth = null!, nudHeight = null!, nudSpacingX = null!, nudSpacingY = null!;
-        private NumericUpDown nudStartX = null!, nudStartY = null!, nudColumns = null!, nudRows = null!, nudScale = null!;
-        private Button btnDrawFrames = null!, btnCreateLayouts = null!, btnClose = null!;
+        private NumericUpDown nudStartX = null!, nudStartY = null!, nudColumns = null!, nudScale = null!;
+        private Button btnDrawFrames = null!, btnDrawAlign = null!, btnCreateLayouts = null!, btnClose = null!, btnSelectXref = null!;
 
         public MainForm_ViewTD(List<string> blockNames)
         {
@@ -278,18 +461,41 @@ namespace MyFirstProject
             LoadSettings();
         }
 
+        private Button CreatePickButton(Control parent, int x, int y, string text, int actionId)
+        {
+            var btn = new Button
+            {
+                Text = text,
+                Location = new WinPoint(x, y),
+                Size = new Size(35, 28),
+                BackColor = Color.FromArgb(41, 128, 185), // Navy sáng
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            };
+            btn.FlatAppearance.BorderSize = 0;
+            btn.Click += (s, e) => {
+                SaveSettings();
+                View_TD.CurrentPickAction = actionId;
+                this.DialogResult = DialogResult.Ignore;
+                this.Close();
+            };
+            parent.Controls.Add(btn);
+            return btn;
+        }
+
         private void InitComponents(List<string> blockNames)
         {
-            InitBaseTheme("TẠO TRANG IN TRẮC DỌC / BÌNH ĐỒ", 550, 640);
+            InitBaseTheme("SẮP XẾP KHUNG VIEW BÌNH ĐỒ HÀNG LOẠT", 560, 680);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
 
-            var header = CreateHeader("TẠO TRANG IN TRẮC DỌC / BÌNH ĐỒ");
+            var header = CreateHeader("QUẢN LÝ VIEWPORT & XREF LAYOUTS");
             this.Controls.Add(header);
 
-            // ── SUBTITLE ──
             var subtitle = new WinLabel
             {
-                Text = "Cấu hình khung Viewport và bố trí tự động Layout từ các khung Model Space.",
+                Text = "Tạo mảng khung Bình đồ theo Alignment tự động và đồng bộ xoay ngang giấy ảo giác Layout.",
                 Font = new Font("Segoe UI", 9.5f),
                 ForeColor = TextDark,
                 AutoSize = false,
@@ -313,15 +519,24 @@ namespace MyFirstProject
 
             int y = 5;
 
-            // SECTION 1: CẤU HÌNH VIEW
-            var grpConfig = CreateSection("Cấu hình Khung View (MView)", 0, y, 500, 185);
+            // SECTION 1: CẤU HÌNH VIEW VÀ CHỌN XREF
+            var grpConfig = CreateSection("1. Bốc tách và Khai báo XREF Khung Tên Gốc", 0, y, 510, 205);
             mainPanel.Controls.Add(grpConfig);
 
-            grpConfig.Controls.Add(CreateLabel("Block Khung Tên:", 15, 33));
+            btnSelectXref = CreatePrimaryButton("🔗 Quét Nhận Diện Khung Tên / XREF...", 15, 25, 470, 32, grpConfig);
+            btnSelectXref.BackColor = Color.FromArgb(231, 76, 60); 
+            btnSelectXref.Click += (s, e) => {
+                SaveSettings();
+                View_TD.CurrentPickAction = 1;
+                this.DialogResult = DialogResult.Ignore;
+                this.Close();
+            };
+
+            grpConfig.Controls.Add(CreateLabel("Khung tên đang dùng:", 15, 73));
             cboBlocks = new ComboBox
             {
-                Location = new Point(200, 29),
-                Size = new Size(270, 28),
+                Location = new WinPoint(180, 69),
+                Size = new Size(260, 28),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = BgInput,
                 ForeColor = TextDark,
@@ -330,55 +545,74 @@ namespace MyFirstProject
             };
             cboBlocks.Items.Add("<Không dùng>");
             foreach (var b in blockNames) cboBlocks.Items.Add(b);
+            if (!string.IsNullOrEmpty(View_TD.SelectedBlockName) && !cboBlocks.Items.Contains(View_TD.SelectedBlockName))
+            {
+                cboBlocks.Items.Add(View_TD.SelectedBlockName);
+            }
             if (cboBlocks.Items.Count > 0) cboBlocks.SelectedIndex = 0;
             grpConfig.Controls.Add(cboBlocks);
 
-            grpConfig.Controls.Add(CreateLabel("Tỷ lệ hiển thị 1/:", 15, 68));
-            nudScale = CreateNud(200, 64, 270, 1, 10000, 1000, 0, grpConfig);
+            grpConfig.Controls.Add(CreateLabel("Tỉ lệ Model hiển thị 1/", 15, 108));
+            nudScale = CreateNud(180, 104, 260, 1, 100000, 1000, 0, grpConfig);
 
-            grpConfig.Controls.Add(CreateLabel("Rộng MView (Layout):", 15, 103));
-            nudWidth = CreateNud(200, 99, 270, 10, 10000, 297, 1, grpConfig);
+            grpConfig.Controls.Add(CreateLabel("Kích thước X (Rộng):", 15, 143));
+            nudWidth = CreateNud(180, 139, 260, 0.1m, 100000, 297, 2, grpConfig);
 
-            grpConfig.Controls.Add(CreateLabel("Cao MView (Layout):", 15, 138));
-            nudHeight = CreateNud(200, 134, 270, 10, 10000, 210, 1, grpConfig);
+            grpConfig.Controls.Add(CreateLabel("Kích thước Y (Cao):", 15, 178));
+            nudHeight = CreateNud(180, 174, 260, 0.1m, 100000, 210, 2, grpConfig);
 
-            y += 200;
+            var btnPickSize = CreatePickButton(grpConfig, 445, 139, "🖱️", 2);
+            btnPickSize.Height = 63; 
+            btnPickSize.Text = "📐";
 
-            // SECTION 2: BỐ TRÍ
-            var grpLayout = CreateSection("Tọa độ và Bố trí Layout", 0, y, 500, 255);
+            y += 220;
+
+            // SECTION 2: BỐ TRÍ TRÊN 1 LAYOUT
+            var grpLayout = CreateSection("2. Cấu trúc Cuộn Trang / Lưới Dàn Layouts", 0, y, 510, 215);
             mainPanel.Controls.Add(grpLayout);
 
-            grpLayout.Controls.Add(CreateLabel("Tọa độ MView đầu X:", 15, 33));
-            nudStartX = CreateNud(200, 29, 270, -10000, 10000, 10, 1, grpLayout);
+            grpLayout.Controls.Add(CreateLabel("Toạ độ Chèn Cụm Khung X:", 15, 33));
+            nudStartX = CreateNud(180, 29, 260, -100000, 100000, 10, 1, grpLayout);
 
-            grpLayout.Controls.Add(CreateLabel("Tọa độ MView đầu Y:", 15, 68));
-            nudStartY = CreateNud(200, 64, 270, -10000, 10000, 200, 1, grpLayout);
+            grpLayout.Controls.Add(CreateLabel("Toạ độ Chèn Cụm Khung Y:", 15, 68));
+            nudStartY = CreateNud(180, 64, 260, -100000, 100000, 200, 1, grpLayout);
+            
+            var btnPickStart = CreatePickButton(grpLayout, 445, 29, "📍", 3);
+            btnPickStart.Height = 63;
 
-            grpLayout.Controls.Add(CreateLabel("Khoảng cách X:", 15, 103));
-            nudSpacingX = CreateNud(200, 99, 270, 0, 10000, 10, 1, grpLayout);
+            grpLayout.Controls.Add(CreateLabel("Khoảng Đệm Trục X (Hở):", 15, 103));
+            nudSpacingX = CreateNud(180, 99, 260, 0, 10000, 30, 1, grpLayout);
+            CreatePickButton(grpLayout, 445, 99, "↔️", 4);
 
-            grpLayout.Controls.Add(CreateLabel("Khoảng cách Y:", 15, 138));
-            nudSpacingY = CreateNud(200, 134, 270, 0, 10000, 10, 1, grpLayout);
+            grpLayout.Controls.Add(CreateLabel("Khoảng Đệm Trục Y (Hở):", 15, 138));
+            nudSpacingY = CreateNud(180, 134, 260, 0, 10000, 30, 1, grpLayout);
+            CreatePickButton(grpLayout, 445, 134, "↕️", 5);
 
-            grpLayout.Controls.Add(CreateLabel("Số cột MView:", 15, 173));
-            nudColumns = CreateNud(200, 169, 270, 1, 100, 1, 0, grpLayout);
+            grpLayout.Controls.Add(CreateLabel("Dàn hàng bao nhiêu Cột?:", 15, 173));
+            nudColumns = CreateNud(180, 169, 260, 1, 1000, 3, 0, grpLayout);
 
-            grpLayout.Controls.Add(CreateLabel("Số hàng MView:", 15, 208));
-            nudRows = CreateNud(200, 204, 270, 1, 100, 1, 0, grpLayout);
-
-            // SECTION 3: HÀNH ĐỘNG
+            // SECTION 3: HÀNH ĐỘNG THÔNG MINH
             var pnlBottom = CreateBottomBar();
             this.Controls.Add(pnlBottom);
 
-            btnDrawFrames = CreateButton("Vẽ Khung Model", 12, 8, 150, 36, pnlBottom);
+            btnDrawFrames = CreateButton("Vẽ Tay", 12, 8, 110, 36, pnlBottom);
             btnDrawFrames.Click += BtnDrawFrames_Click;
             btnDrawFrames.FlatAppearance.BorderColor = NavyMedium;
             btnDrawFrames.ForeColor = NavyMedium;
 
-            btnClose = CreateButton("Đóng", 250, 8, 80, 36, pnlBottom);
+            btnDrawAlign = CreatePrimaryButton("🛤️ Auto Cắt Tuyến BĐ", 127, 8, 175, 36, pnlBottom);
+            btnDrawAlign.BackColor = Color.FromArgb(142, 68, 173); // MÀU TÍM BÌNH ĐỒ
+            btnDrawAlign.Click += (s, e) => {
+                SaveSettings();
+                View_TD.CurrentPickAction = 6;
+                this.DialogResult = DialogResult.Ignore;
+                this.Close();
+            };
+
+            btnClose = CreateButton("Đóng", 307, 8, 60, 36, pnlBottom);
             btnClose.Click += (s, e) => this.Close();
 
-            btnCreateLayouts = CreatePrimaryButton("Tạo Layouts & MViews", 340, 8, 180, 36, pnlBottom);
+            btnCreateLayouts = CreatePrimaryButton("Rải Vào Layout", 373, 8, 150, 36, pnlBottom);
             btnCreateLayouts.Click += BtnCreateLayouts_Click;
         }
 
@@ -386,7 +620,7 @@ namespace MyFirstProject
         {
             var nud = new NumericUpDown
             {
-                Location = new Point(x, y),
+                Location = new WinPoint(x, y),
                 Size = new Size(w, 28),
                 Minimum = min,
                 Maximum = max,
@@ -412,7 +646,6 @@ namespace MyFirstProject
             nudStartX.Value = (decimal)View_TD.StartX;
             nudStartY.Value = (decimal)View_TD.StartY;
             nudColumns.Value = View_TD.Columns;
-            nudRows.Value = View_TD.Rows;
             nudScale.Value = (decimal)View_TD.ScaleVal;
         }
 
@@ -426,21 +659,20 @@ namespace MyFirstProject
             View_TD.StartX = (double)nudStartX.Value;
             View_TD.StartY = (double)nudStartY.Value;
             View_TD.Columns = (int)nudColumns.Value;
-            View_TD.Rows = (int)nudRows.Value;
             View_TD.ScaleVal = (double)nudScale.Value;
         }
 
         private void BtnDrawFrames_Click(object? sender, EventArgs e)
         {
             SaveSettings();
-            this.DialogResult = DialogResult.Retry; // Trapping loop in parent
+            this.DialogResult = DialogResult.Retry; 
             this.Close();
         }
 
         private void BtnCreateLayouts_Click(object? sender, EventArgs e)
         {
             SaveSettings();
-            this.DialogResult = DialogResult.OK; // Layout generation
+            this.DialogResult = DialogResult.OK; 
             this.Close();
         }
     }

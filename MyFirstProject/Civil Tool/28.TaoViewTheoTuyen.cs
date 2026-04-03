@@ -308,7 +308,7 @@ namespace MyFirstProject
             };
             btnAddRange.FlatAppearance.BorderColor = BorderColor;
             btnAddRange.FlatAppearance.MouseOverBackColor = NavyMedium;
-            btnAddRange.FlatAppearance.MouseOverForeColor = Color.White;
+
             btnAddRange.Click += BtnAddRange_Click;
             grpRanges.Controls.Add(btnAddRange);
 
@@ -326,7 +326,7 @@ namespace MyFirstProject
             };
             btnRemoveRange.FlatAppearance.BorderColor = BorderColor;
             btnRemoveRange.FlatAppearance.MouseOverBackColor = Color.FromArgb(180, 50, 50);
-            btnRemoveRange.FlatAppearance.MouseOverForeColor = Color.White;
+
             btnRemoveRange.Click += BtnRemoveRange_Click;
             grpRanges.Controls.Add(btnRemoveRange);
 
@@ -344,7 +344,7 @@ namespace MyFirstProject
             };
             btnSplitEqual.FlatAppearance.BorderColor = BorderColor;
             btnSplitEqual.FlatAppearance.MouseOverBackColor = NavyMedium;
-            btnSplitEqual.FlatAppearance.MouseOverForeColor = Color.White;
+
             btnSplitEqual.Click += BtnSplitEqual_Click;
             grpRanges.Controls.Add(btnSplitEqual);
 
