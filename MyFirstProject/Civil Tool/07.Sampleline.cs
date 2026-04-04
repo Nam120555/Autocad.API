@@ -207,6 +207,7 @@ namespace MyFirstProject
                 string[] samplelineName = new string[numberSampleline];
                 string[] eastings = new string[numberSampleline];
                 string[] northings = new string[numberSampleline];
+                string[] stationsArr = new string[numberSampleline];
                 int orderSampleline = 1;
                 foreach (ObjectId sampleLineId in samplelineGroup.GetSampleLineIds())
                 {
@@ -218,14 +219,17 @@ namespace MyFirstProject
                     double northing = 0;
                     alignment.PointLocation(station, 0, ref easting, ref northing);
                     string lyTrinhStr = $"Km {Math.Floor(Math.Abs(station) / 1000)}+{(Math.Abs(station) % 1000):000.00}";
-                    samplelineName[orderSampleline] = $"{sampleline.Name.ToUpper()} ({lyTrinhStr})";
+                    samplelineName[orderSampleline] = sampleline.Name.ToUpper();
+                    stationsArr[orderSampleline] = lyTrinhStr;
                     eastings[orderSampleline] = Convert.ToString(Math.Round(easting, 3));
                     northings[orderSampleline] = Convert.ToString(Math.Round(northing, 3));
                     orderSampleline++;
                 }
 
                 //create a coordinate table
-                UtilitiesCAD.CreateTableCoordinate(numberSampleline, 3, alignment.Name, samplelineName, eastings, northings);
+                UtilitiesCAD.CreateTableCoordinate4C(numberSampleline, 4, alignment.Name, samplelineName, stationsArr, northings, eastings);
+
+
 
                 // draw polyline for check coordinnate
                 UtilitiesCAD.CreateOpenPolyline(numberSampleline, eastings, northings);

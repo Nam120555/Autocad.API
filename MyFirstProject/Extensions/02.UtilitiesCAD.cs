@@ -33,7 +33,7 @@ namespace MyFirstProject.Extensions
             {
                 //start here
                 UserInput userInput = new();
-                BlockTable bt = (BlockTable)tr.GetObject(A.Doc.Database.BlockTableId, OpenMode.ForRead);
+                BlockTable bt = (BlockTable)tr.GetObject(A.Db.Database.BlockTableId, OpenMode.ForRead);
                 //Point3d point3D = userInput.g_point("Specify a point for the position of table:");
                 TableStyle tableStyle = new();
                 ATable table = new();
@@ -95,6 +95,75 @@ namespace MyFirstProject.Extensions
                 A.Ed.WriteMessage(e.Message);
             }
         }
+
+        public static void CreateTableCoordinate4C(int numberRow, int numberColumn, string title, string[] names, string[] stations, string[] northings, string[] eastings)
+        {
+            // start transantion
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            try
+            {
+                //start here
+                UserInput userInput = new();
+                BlockTable bt = (BlockTable)tr.GetObject(A.Db.Database.BlockTableId, OpenMode.ForRead);
+                ATable table = new();
+
+                // 1 row title, 1 row header, 1 row per stake
+                table.SetSize(numberRow + 1, numberColumn);
+                table.SetRowHeight(5);
+                table.SetColumnWidth(22);
+                table.Position = UserInput.GPoint("\n Chọn vị trí điểm đặt bảng: \n");
+
+                // title
+                table.Cells[0, 0].TextHeight = 2;
+                table.Cells[0, 0].TextString = "Bảng tọa độ cọc: đường " + title;
+                table.Cells[0, 0].Alignment = CellAlignment.MiddleCenter;
+
+                // header
+                table.Cells[1, 0].TextString = "Tên cọc";
+                table.Cells[1, 1].TextString = "Lý trình";
+                table.Cells[1, 2].TextString = "Tọa độ X";
+                table.Cells[1, 3].TextString = "Tọa độ Y";
+
+                for (int j = 0; j < numberColumn; j++)
+                {
+                    table.Cells[1, j].TextHeight = 2;
+                    table.Cells[1, j].Alignment = CellAlignment.MiddleCenter;
+                }
+
+                // add data to table
+                for (int i = 2; i < numberRow + 1; i++)
+                {
+                    table.Cells[i, 0].TextHeight = 2;
+                    table.Cells[i, 0].TextString = names[i - 1];
+                    table.Cells[i, 0].Alignment = CellAlignment.MiddleCenter;
+
+                    table.Cells[i, 1].TextHeight = 2;
+                    table.Cells[i, 1].TextString = stations[i - 1];
+                    table.Cells[i, 1].Alignment = CellAlignment.MiddleCenter;
+
+                    table.Cells[i, 2].TextHeight = 2;
+                    table.Cells[i, 2].TextString = northings[i - 1];
+                    table.Cells[i, 2].Alignment = CellAlignment.MiddleCenter;
+
+                    table.Cells[i, 3].TextHeight = 2;
+                    table.Cells[i, 3].TextString = eastings[i - 1];
+                    table.Cells[i, 3].Alignment = CellAlignment.MiddleCenter;
+                }
+
+                //draw table
+                table.GenerateLayout();
+                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                btr.AppendEntity(table);
+                tr.AddNewlyCreatedDBObject(table, true);
+
+                tr.Commit();
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception e)
+            {
+                A.Ed.WriteMessage(e.Message);
+            }
+        }
+
 
         public static void CreateTableCoordinate2(int numberRow, int numberColumn, string title, string[] samplelineIds, string[] eastings, string[] northings, string[] stations)
         {
@@ -240,65 +309,6 @@ namespace MyFirstProject.Extensions
             catch (Autodesk.AutoCAD.Runtime.Exception e)
             {
                 A.Ed.WriteMessage(e.Message);
-            }
-        }
-
-        public static double CreateDynamicCoordTable(string title, Point3d position, List<string> headers, List<List<string>> rows)
-        {
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            try
-            {
-                BlockTable bt = (BlockTable)tr.GetObject(A.Doc.Database.BlockTableId, OpenMode.ForRead);
-                ATable table = new();
-                table.SetSize(rows.Count + 2, headers.Count);
-                table.SetRowHeight(5);
-                table.SetColumnWidth(20);
-                table.Position = position;
-                
-                // Kích hoạt bẻ bảng (Table Breaking) nếu bảng quá dài
-                table.EnableBreak = true;
-                table.BreakOptions = TableBreakOptions.EnableBreaking | TableBreakOptions.AllowManualPositions | TableBreakOptions.RepeatTopLabels;
-                table.BreakHeight = 5 * 50; // Ví dụ: Bẻ bảng sau khoảng 50 dòng
-                table.BreakSpacing = 10; // Khoảng cách giữa các mảnh gập
-
-                // Title
-                table.Cells[0, 0].TextHeight = 2;
-                table.Cells[0, 0].TextString = "Bảng " + title;
-                table.Cells[0, 0].Alignment = CellAlignment.MiddleCenter;
-
-                // Headers
-                for (int c = 0; c < headers.Count; c++)
-                {
-                    table.Cells[1, c].TextHeight = 2;
-                    table.Cells[1, c].TextString = headers[c];
-                    table.Cells[1, c].Alignment = CellAlignment.MiddleCenter;
-                }
-
-                // Data Rows
-                for (int r = 0; r < rows.Count; r++)
-                {
-                    for (int c = 0; c < headers.Count; c++)
-                    {
-                        table.Cells[r + 2, c].TextHeight = 2;
-                        table.Cells[r + 2, c].TextString = rows[r].Count > c ? rows[r][c] : "";
-                        table.Cells[r + 2, c].Alignment = CellAlignment.MiddleCenter;
-                    }
-                }
-
-                table.GenerateLayout();
-                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
-                btr.AppendEntity(table);
-                tr.AddNewlyCreatedDBObject(table, true);
-
-                // Trả về tổng chiều rộng của toàn bộ bảng (bao gồm bẻ gập) để căn lề cho bảng tiếp theo.
-                double totalWidth = table.Extents.Value.MaxPoint.X - table.Extents.Value.MinPoint.X;
-                tr.Commit();
-                return totalWidth;
-            }
-            catch (Autodesk.AutoCAD.Runtime.Exception e)
-            {
-                A.Ed.WriteMessage(e.Message);
-                return 0;
             }
         }
 
