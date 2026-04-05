@@ -87,11 +87,15 @@ namespace MyFirstProject
         private Button btnSelectAll = null!;
         private Button btnExit = null!;
         private Button btnExecute = null!;
+        private NumericUpDown numTableSpacing = null!;
+        private CheckBox chkExportToAcad = null!;
 
         public List<AlignmentExportConfig> Configs { get; private set; } = new();
         public int DecimalPlaces { get; private set; } = 2;
         public bool IncludeCaoDoTuNhien { get; private set; } = true;
         public bool IncludeCaoDoThietKe { get; private set; } = true;
+        public bool ExportToAcad { get; private set; } = false;
+        public double TableSpacing { get; private set; } = 50.0;
         public bool IsConfirmed { get; private set; } = false;
 
         public AlignmentSelectionForm(List<AlignmentExportConfig> configs)
@@ -103,7 +107,7 @@ namespace MyFirstProject
 
         private void InitializeComponent()
         {
-            InitBaseTheme("Tạo bảng thống kê tọa độ cọc", 700, 580);
+            InitBaseTheme("Tạo bảng thống kê tọa độ cọc", 700, 620);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
 
             var header = CreateHeader("THỐNG KÊ TỌA ĐỘ CỌC");
@@ -188,7 +192,7 @@ namespace MyFirstProject
             dgvAlignments.Columns.Add(colProfileTK);
 
             // GroupBox Tùy chọn
-            var grpOptions = CreateSection("Tùy chọn", 10, 410, 665, 80);
+            var grpOptions = CreateSection("Tùy chọn", 10, 410, 665, 120);
             this.Controls.Add(grpOptions);
 
             // Độ chính xác
@@ -252,6 +256,44 @@ namespace MyFirstProject
             btnSelectAll.FlatAppearance.BorderColor = BorderColor;
             btnSelectAll.Click += BtnSelectAll_Click;
             grpOptions.Controls.Add(btnSelectAll);
+
+            // AutoCAD Export Options
+            var lblSpacing = new FormLabel
+            {
+                Text = "Khoảng cách bảng:",
+                Location = new System.Drawing.Point(15, 75),
+                AutoSize = true,
+                ForeColor = TextDark,
+                Font = new System.Drawing.Font("Segoe UI", 9.5f)
+            };
+            grpOptions.Controls.Add(lblSpacing);
+
+            numTableSpacing = new NumericUpDown
+            {
+                Location = new System.Drawing.Point(145, 73),
+                Width = 80,
+                Minimum = 0,
+                Maximum = 1000,
+                Value = 50,
+                DecimalPlaces = 1,
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                Font = new System.Drawing.Font("Segoe UI", 9f),
+                Enabled = false
+            };
+            grpOptions.Controls.Add(numTableSpacing);
+
+            chkExportToAcad = new CheckBox
+            {
+                Text = "Xuất ra bản vẽ AutoCAD",
+                Location = new System.Drawing.Point(250, 73),
+                AutoSize = true,
+                Checked = false,
+                ForeColor = NavyDark,
+                Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold)
+            };
+            chkExportToAcad.CheckedChanged += (s, e) => numTableSpacing.Enabled = chkExportToAcad.Checked;
+            grpOptions.Controls.Add(chkExportToAcad);
 
             // Buttons bottom
             var pnlBottom = CreateBottomBar();
@@ -361,6 +403,8 @@ namespace MyFirstProject
             DecimalPlaces = (int)numDecimal.Value;
             IncludeCaoDoTuNhien = chkCaoDoTuNhien.Checked;
             IncludeCaoDoThietKe = chkCaoDoThietKe.Checked;
+            ExportToAcad = chkExportToAcad.Checked;
+            TableSpacing = (double)numTableSpacing.Value;
 
             // Validate
             int selectedCount = Configs.Count(c => c.IsSelected);
@@ -828,7 +872,88 @@ namespace MyFirstProject
         }
 
         /// <summary>
-        /// Lệnh thống kê cọc và xuất Excel (với Form chọn tuyến)
+        /// Vẽ bảng AutoCAD từ danh sách cọc
+        /// </summary>
+        private static double DrawTableInAutoCAD(Transaction tr, string alignmentName, List<CocInfo> cocInfos, 
+            Point3d startPoint, bool includeTN, bool includeTK)
+        {
+            Autodesk.AutoCAD.DatabaseServices.Table table = new Autodesk.AutoCAD.DatabaseServices.Table();
+            table.TableStyle = A.Db.Tablestyle; // Use current AutoCAD table style
+            table.SetSize(cocInfos.Count + 3, 6 + (includeTN ? 1 : 0) + (includeTK ? 1 : 0) + 3);
+            table.Position = startPoint;
+
+            // Header
+            table.Cells[0, 0].TextString = $"BẢNG THỐNG KÊ TỌA ĐỘ CỌC - {alignmentName.ToUpper()}";
+            table.Cells[0, 0].Alignment = CellAlignment.MiddleCenter;
+            table.Cells[0, 0].TextHeight = 2.5;
+
+            int col = 0;
+            table.Cells[1, col++].TextString = "STT";
+            table.Cells[1, col++].TextString = "TÊN CỌC";
+            table.Cells[1, col++].TextString = "LÝ TRÌNH";
+            table.Cells[1, col++].TextString = "X (EAST)";
+            table.Cells[1, col++].TextString = "Y (NORTH)";
+            if (includeTN) table.Cells[1, col++].TextString = "CAO ĐỘ TN";
+            if (includeTK) table.Cells[1, col++].TextString = "CAO ĐỘ TK";
+            table.Cells[1, col++].TextString = "K.CÁCH (m)";
+            table.Cells[1, col++].TextString = "B.RỘNG TRÁI";
+            table.Cells[1, col++].TextString = "B.RỘNG PHẢI";
+            table.Cells[1, col++].TextString = "TỔNG RỘNG";
+
+            for (int i = 0; i < col; i++)
+            {
+                table.Cells[1, i].Alignment = CellAlignment.MiddleCenter;
+                table.Cells[1, i].TextHeight = 2.0;
+            }
+
+            // Data
+            for (int i = 0; i < cocInfos.Count; i++)
+            {
+                int row = i + 2;
+                var coc = cocInfos[i];
+                col = 0;
+                table.Cells[row, col++].TextString = coc.STT.ToString();
+                table.Cells[row, col++].TextString = coc.TenCoc;
+                table.Cells[row, col++].TextString = coc.LyTrinh;
+                table.Cells[row, col++].TextString = coc.Easting.ToString("F3");
+                table.Cells[row, col++].TextString = coc.Northing.ToString("F3");
+                if (includeTN) table.Cells[row, col++].TextString = coc.CaoDoTuNhien.ToString("F3");
+                if (includeTK) table.Cells[row, col++].TextString = coc.CaoDoThietKe.ToString("F3");
+                table.Cells[row, col++].TextString = coc.KhoangCachDenCocTruoc.ToString("F3");
+                table.Cells[row, col++].TextString = coc.BeRongTrai.ToString("F3");
+                table.Cells[row, col++].TextString = coc.BeRongPhai.ToString("F3");
+                table.Cells[row, col++].TextString = (coc.BeRongTrai + coc.BeRongPhai).ToString("F3");
+
+                for (int j = 0; j < col; j++)
+                {
+                    table.Cells[row, j].Alignment = CellAlignment.MiddleCenter;
+                    table.Cells[row, j].TextHeight = 1.8;
+                }
+            }
+
+            // Footer
+            int footerRow = cocInfos.Count + 2;
+            table.Cells[footerRow, 0].TextString = "TỔNG CỘNG";
+            int mergeCols = 5 + (includeTN ? 1 : 0) + (includeTK ? 1 : 0);
+            table.MergeCells(CellRange.Create(table, footerRow, 0, footerRow, mergeCols - 1));
+            
+            double totalDist = cocInfos.Sum(c => c.KhoangCachDenCocTruoc);
+            table.Cells[footerRow, mergeCols].TextString = totalDist.ToString("F3");
+            table.Cells[footerRow, mergeCols].Alignment = CellAlignment.MiddleCenter;
+
+            table.GenerateLayout();
+            
+            BlockTableRecord btr = (BlockTableRecord)tr.GetObject(A.Db.CurrentSpaceId, OpenMode.ForWrite);
+            btr.AppendEntity(table);
+            tr.AddNewlyCreatedDBObject(table, true);
+
+            // Re-calculate height after layout generation to accurately space tables
+            double height = table.Rows.Cast<Row>().Sum(r => r.Height);
+            return height;
+        }
+
+        /// <summary>
+        /// Lệnh thống kê cọc và xuất Excel hoặc AutoCAD Table
         /// </summary>
         [CommandMethod("CTSV_ThongKeCoc")]
         public static void CTSVThongKeCoc()
@@ -850,6 +975,8 @@ namespace MyFirstProject
                 int decimalPlaces;
                 bool includeCaoDoTuNhien;
                 bool includeCaoDoThietKe;
+                bool exportToAcad;
+                double tableSpacing;
 
                 using (AlignmentSelectionForm form = new AlignmentSelectionForm(configs))
                 {
@@ -865,6 +992,8 @@ namespace MyFirstProject
                     decimalPlaces = form.DecimalPlaces;
                     includeCaoDoTuNhien = form.IncludeCaoDoTuNhien;
                     includeCaoDoThietKe = form.IncludeCaoDoThietKe;
+                    exportToAcad = form.ExportToAcad;
+                    tableSpacing = form.TableSpacing;
                 }
 
                 if (selectedConfigs.Count == 0)
@@ -873,51 +1002,73 @@ namespace MyFirstProject
                     return;
                 }
 
-                // 4. Chọn nơi lưu file Excel
-                string defaultFileName = selectedConfigs.Count == 1 
-                    ? $"ThongKeCoc_{selectedConfigs[0].AlignmentName}.xlsx" 
-                    : "ThongKeCoc_TatCa.xlsx";
-                
-                SaveFileDialog saveDialog = new()
+                if (exportToAcad)
                 {
-                    Filter = "Excel Files (*.xlsx)|*.xlsx",
-                    Title = "Chọn nơi lưu file Excel thống kê cọc",
-                    FileName = defaultFileName
-                };
-
-                if (saveDialog.ShowDialog() != DialogResult.OK) return;
-
-                // 5. Trích xuất dữ liệu
-                A.Ed.WriteMessage("\n\n📊 ĐANG XỬ LÝ...");
-                var alignmentData = new List<(string Name, List<CocInfo> Data)>();
-                int totalCoc = 0;
-
-                foreach (var config in selectedConfigs)
-                {
-                    var cocInfos = ExtractCocInfoWithElevation(tr, config, decimalPlaces);
-                    if (cocInfos.Count > 0)
+                    // AutoCAD Table Branch
+                    Point3d insertPoint = UserInput.GPoint("\nChọn điểm đặt cho bảng đầu tiên:");
+                    A.Ed.WriteMessage("\n\n✍️ ĐANG VẼ BẢNG VÀO BẢN VẼ...");
+                    
+                    Point3d currentPoint = insertPoint;
+                    foreach (var config in selectedConfigs)
                     {
-                        alignmentData.Add((config.AlignmentName, cocInfos));
-                        totalCoc += cocInfos.Count;
-                        A.Ed.WriteMessage($"\n   ✓ {config.AlignmentName}: {cocInfos.Count} cọc");
+                        var cocInfos = ExtractCocInfoWithElevation(tr, config, decimalPlaces);
+                        if (cocInfos.Count > 0)
+                        {
+                            double tableHeight = DrawTableInAutoCAD(tr, config.AlignmentName, cocInfos, 
+                                currentPoint, includeCaoDoTuNhien, includeCaoDoThietKe);
+                            
+                            // Calculate next point (move down vertically)
+                            currentPoint = new Point3d(currentPoint.X, currentPoint.Y - tableHeight - tableSpacing, 0);
+                            A.Ed.WriteMessage($"\n   ✓ Đã vẽ: {config.AlignmentName}");
+                        }
                     }
+                    A.Ed.WriteMessage("\n✅ Đã hoàn tất vẽ bảng.");
+                }
+                else
+                {
+                    // Excel Export Branch (EXISTING)
+                    string defaultFileName = selectedConfigs.Count == 1 
+                        ? $"ThongKeCoc_{selectedConfigs[0].AlignmentName}.xlsx" 
+                        : "ThongKeCoc_TatCa.xlsx";
+                    
+                    SaveFileDialog saveDialog = new()
+                    {
+                        Filter = "Excel Files (*.xlsx)|*.xlsx",
+                        Title = "Chọn nơi lưu file Excel thống kê cọc",
+                        FileName = defaultFileName
+                    };
+
+                    if (saveDialog.ShowDialog() != DialogResult.OK) return;
+
+                    A.Ed.WriteMessage("\n\n📊 ĐANG XỬ LÝ EXCEL...");
+                    var alignmentData = new List<(string Name, List<CocInfo> Data)>();
+                    int totalCoc = 0;
+
+                    foreach (var config in selectedConfigs)
+                    {
+                        var cocInfos = ExtractCocInfoWithElevation(tr, config, decimalPlaces);
+                        if (cocInfos.Count > 0)
+                        {
+                            alignmentData.Add((config.AlignmentName, cocInfos));
+                            totalCoc += cocInfos.Count;
+                            A.Ed.WriteMessage($"\n   ✓ {config.AlignmentName}: {cocInfos.Count} cọc");
+                        }
+                    }
+
+                    ExportToExcelWithOptions(saveDialog.FileName, alignmentData, 
+                        includeCaoDoTuNhien, includeCaoDoThietKe, decimalPlaces);
+
+                    A.Ed.WriteMessage($"\n\n📊 Tổng: {selectedConfigs.Count} tuyến, {totalCoc} cọc");
+                    A.Ed.WriteMessage($"\n✅ Đã xuất file: {saveDialog.FileName}");
+                    
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = saveDialog.FileName,
+                        UseShellExecute = true
+                    });
                 }
 
-                // 6. Xuất Excel
-                ExportToExcelWithOptions(saveDialog.FileName, alignmentData, 
-                    includeCaoDoTuNhien, includeCaoDoThietKe, decimalPlaces);
-
-                A.Ed.WriteMessage($"\n\n📊 Tổng: {selectedConfigs.Count} tuyến, {totalCoc} cọc");
-                A.Ed.WriteMessage($"\n✅ Đã xuất file: {saveDialog.FileName}");
                 A.Ed.WriteMessage("\n=== HOÀN TẤT ===\n");
-
-                // Mở file Excel
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = saveDialog.FileName,
-                    UseShellExecute = true
-                });
-
                 tr.Commit();
             }
             catch (System.Exception ex)

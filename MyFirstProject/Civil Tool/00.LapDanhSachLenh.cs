@@ -1,8 +1,11 @@
 // ==============================================================================
 // BẢNG THỐNG KÊ DANH SÁCH LỆNH CIVIL TOOL
 // ==============================================================================
-// Ngày tạo: 2026-02-05
-// Mô tả: File tổng hợp danh sách tất cả lệnh trong Civil Tool
+// Ngày tạo  : 2026-02-05
+// Cập nhật  : 2026-04-04
+// Mô tả     : File tổng hợp danh sách tất cả lệnh trong Civil Tool
+// Tích hợp  : NXSOFT-N đã được gộp vào project (MyFirstProject/NXSOFT-N/)
+//             File: NXSOFTCommands.cs - namespace MyFirstProject
 // ==============================================================================
 
 /*
@@ -74,26 +77,23 @@
 │ 4   │ CTS_DoiTenCoc_fromCogoPoint        │ Đổi tên cọc từ tên Cogo Point                      │ Gõ lệnh → Chọn Cogo Point → Nhập sai số                   │
 │ 5   │ CTS_DoiTenCoc_TheoThuTu            │ Đổi tên cọc theo thứ tự lý trình                   │ Gõ lệnh → Nhập prefix → Chọn nhóm cọc                     │
 │ 6   │ CTS_DoiTenCoc_H                    │ Đổi tên cọc với hậu tố H (hầm)                     │ Gõ lệnh → Chọn cọc                                        │
-│ 7   │ CTS_TaoBang_ToaDoCoc               │ Tạo bảng tọa độ cọc                                │ Gõ lệnh → Chọn tuyến → Nhập start/end station             │
-│ 8   │ CTS_TaoBang_ToaDoCoc2              │ Tạo bảng tọa độ cọc (cách 2)                       │ Gõ lệnh → Chọn tuyến → Chọn nhóm cọc                      │
-│ 9   │ CTS_TaoBang_ToaDoCoc3              │ Tạo bảng tọa độ cọc (cách 3)                       │ Gõ lệnh → Chọn tuyến                                      │
-│ 10  │ AT_UPdate2Table                    │ Cập nhật bảng tọa độ                               │ Gõ lệnh → Chọn bảng                                       │
-│ 11  │ CTS_ChenCoc_TrenTracDoc            │ Chèn cọc hiển thị trên trắc dọc                    │ Gõ lệnh → Chọn Profile View → Chọn vị trí                 │
-│ 12  │ CTS_CHENCOC_TRENTRACNGANG          │ Chèn cọc hiển thị trên trắc ngang                  │ Gõ lệnh → Chọn Section View → Chọn vị trí                 │
-│ 13  │ CTS_PhatSinhCoc                    │ Phát sinh cọc tự động                              │ Gõ lệnh → Chọn tuyến → Nhập khoảng cách → Chọn nhóm cọc   │
-│ 14  │ CTS_PhatSinhCoc_ChiTiet            │ Phát sinh cọc chi tiết                             │ Gõ lệnh → Chọn tuyến → Nhập các thông số                  │
-│ 15  │ CTS_PhatSinhCoc_theoKhoangDelta    │ Phát sinh cọc theo khoảng Delta                    │ Gõ lệnh → Chọn tuyến → Nhập Delta                         │
-│ 16  │ CTS_PhatSinhCoc_TuCogoPoint        │ Phát sinh cọc từ Cogo Point                        │ Gõ lệnh → Chọn Point Group                                │
-│ 17  │ CTS_PhatSinhCoc_TheoBang           │ Phát sinh cọc theo bảng Excel                      │ Gõ lệnh → Chọn tuyến → Chọn file Excel                    │
-│ 18  │ CTS_DichCoc_TinhTien               │ Dịch cọc tịnh tiến (nhập giá trị)                  │ Gõ lệnh → Chọn nhóm cọc → Nhập khoảng dịch                │
-│ 19  │ CTS_DichCoc_TinhTien40             │ Dịch cọc tịnh tiến 40m                             │ Gõ lệnh → Chọn nhóm cọc                                   │
-│ 20  │ CTS_DichCoc_TinhTien_20            │ Dịch cọc tịnh tiến 20m                             │ Gõ lệnh → Chọn nhóm cọc                                   │
-│ 21  │ CTS_Copy_NhomCoc                   │ Sao chép nhóm cọc                                  │ Gõ lệnh → Chọn nhóm cọc nguồn → Chọn tuyến đích           │
-│ 22  │ CTS_DongBo_2_NhomCoc               │ Đồng bộ 2 nhóm cọc                                 │ Gõ lệnh → Chọn nhóm nguồn → Chọn nhóm đích                │
-│ 23  │ CTS_DongBo_2_NhomCoc_TheoDoan      │ Đồng bộ 2 nhóm cọc theo đoạn                       │ Gõ lệnh → Chọn nhóm → Nhập station đầu/cuối               │
-│ 24  │ CTS_Copy_BeRong_sampleLine         │ Sao chép bề rộng Sample Line                       │ Gõ lệnh → Chọn cọc mẫu → Chọn các cọc đích                │
-│ 25  │ CTS_Thaydoi_BeRong_sampleLine      │ Thay đổi bề rộng Sample Line                       │ Gõ lệnh → Chọn cọc → Nhập bề rộng trái/phải               │
-│ 26  │ CTS_Offset_BeRong_sampleLine       │ Offset bề rộng Sample Line                         │ Gõ lệnh → Chọn cọc → Nhập giá trị offset                  │
+│ 7   │ AT_UPdate2Table                    │ Cập nhật bảng tọa độ                               │ Gõ lệnh → Chọn bảng                                       │
+│ 8   │ CTS_ChenCoc_TrenTracDoc            │ Chèn cọc hiển thị trên trắc dọc                    │ Gõ lệnh → Chọn Profile View → Chọn vị trí                 │
+│ 9   │ CTS_CHENCOC_TRENTRACNGANG          │ Chèn cọc hiển thị trên trắc ngang                  │ Gõ lệnh → Chọn Section View → Chọn vị trí                 │
+│ 10  │ CTS_PhatSinhCoc                    │ Phát sinh cọc tự động                              │ Gõ lệnh → Chọn tuyến → Nhập khoảng cách → Chọn nhóm cọc   │
+│ 11  │ CTS_PhatSinhCoc_ChiTiet            │ Phát sinh cọc chi tiết                             │ Gõ lệnh → Chọn tuyến → Nhập các thông số                  │
+│ 12  │ CTS_PhatSinhCoc_theoKhoangDelta    │ Phát sinh cọc theo khoảng Delta                    │ Gõ lệnh → Chọn tuyến → Nhập Delta                         │
+│ 13  │ CTS_PhatSinhCoc_TuCogoPoint        │ Phát sinh cọc từ Cogo Point                        │ Gõ lệnh → Chọn Point Group                                │
+│ 14  │ CTS_PhatSinhCoc_TheoBang           │ Phát sinh cọc theo bảng Excel                      │ Gõ lệnh → Chọn tuyến → Chọn file Excel                    │
+│ 15  │ CTS_DichCoc_TinhTien               │ Dịch cọc tịnh tiến (nhập giá trị)                  │ Gõ lệnh → Chọn nhóm cọc → Nhập khoảng dịch                │
+│ 16  │ CTS_DichCoc_TinhTien40             │ Dịch cọc tịnh tiến 40m                             │ Gõ lệnh → Chọn nhóm cọc                                   │
+│ 17  │ CTS_DichCoc_TinhTien_20            │ Dịch cọc tịnh tiến 20m                             │ Gõ lệnh → Chọn nhóm cọc                                   │
+│ 18  │ CTS_Copy_NhomCoc                   │ Sao chép nhóm cọc                                  │ Gõ lệnh → Chọn nhóm cọc nguồn → Chọn tuyến đích           │
+│ 19  │ CTS_DongBo_2_NhomCoc               │ Đồng bộ 2 nhóm cọc                                 │ Gõ lệnh → Chọn nhóm nguồn → Chọn nhóm đích                │
+│ 20  │ CTS_DongBo_2_NhomCoc_TheoDoan      │ Đồng bộ 2 nhóm cọc theo đoạn                       │ Gõ lệnh → Chọn nhóm → Nhập station đầu/cuối               │
+│ 21  │ CTS_Copy_BeRong_sampleLine         │ Sao chép bề rộng Sample Line                       │ Gõ lệnh → Chọn cọc mẫu → Chọn các cọc đích                │
+│ 22  │ CTS_Thaydoi_BeRong_sampleLine      │ Thay đổi bề rộng Sample Line                       │ Gõ lệnh → Chọn cọc → Nhập bề rộng trái/phải               │
+│ 23  │ CTS_Offset_BeRong_sampleLine       │ Offset bề rộng Sample Line                         │ Gõ lệnh → Chọn cọc → Nhập giá trị offset                  │
 └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -167,7 +167,7 @@
 ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ STT │ Tên lệnh                          │ Mô tả                                              │ Cách dùng                                                 │
 ├─────┼────────────────────────────────────┼────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────┤
-│ 1   │ CTSV_ThongKeCoc                    │ Thống kê cọc ra Excel                              │ Gõ lệnh → Chọn tuyến → Chọn nhóm cọc                      │
+│ 1   │ CTSV_ThongKeCoc                    │ Thống kê cọc ra Excel / CAD Table (Nhiều tuyến)    │ Gõ lệnh → Chọn các tuyến → Chọn chế độ xuất               │
 │ 2   │ CTSV_ThongKeCoc_ToaDo              │ Thống kê cọc kèm tọa độ ra Excel                   │ Gõ lệnh → Chọn tuyến → Chọn nhóm cọc                      │
 └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
@@ -241,7 +241,7 @@
 │ DTC3     │ CTS_DoiTenCoc3                         │ Đổi tên cọc theo lý trình                                                                             │
 │ PSC      │ CTS_PhatSinhCoc                        │ Phát sinh cọc                                                                                         │
 │ DCT      │ CTS_DichCoc_TinhTien                   │ Dịch cọc tịnh tiến                                                                                    │
-│ TDC      │ CTS_TaoBang_ToaDoCoc                   │ Tạo bảng tọa độ cọc                                                                                   │
+│ TDC      │ CTSV_ThongKeCoc                        │ Tạo bảng tọa độ cọc (Excel/CAD)                                                                       │
 │ DB2      │ CTS_DongBo_2_NhomCoc                   │ Đồng bộ 2 nhóm cọc                                                                                    │
 │ CBR      │ CTS_Copy_BeRong_sampleLine             │ Sao chép bề rộng cọc                                                                                  │
 │ TBR      │ CTS_Thaydoi_BeRong_sampleLine          │ Thay đổi bề rộng cọc                                                                                  │
@@ -304,7 +304,7 @@ DTC2,       *CTS_DoiTenCoc2
 DTC3,       *CTS_DoiTenCoc3
 PSC,        *CTS_PhatSinhCoc
 DCT,        *CTS_DichCoc_TinhTien
-TDC,        *CTS_TaoBang_ToaDoCoc
+TDC,        *CTSV_ThongKeCoc
 DB2,        *CTS_DongBo_2_NhomCoc
 CBR,        *CTS_Copy_BeRong_sampleLine
 TBR,        *CTS_Thaydoi_BeRong_sampleLine

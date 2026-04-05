@@ -698,7 +698,7 @@ namespace MyFirstProject
             }
         }
 
-        private Button CreateButton(string text, int x, int y, int w, int h, Control parent)
+        private new Button CreateButton(string text, int x, int y, int w, int h, Control parent)
         {
             var btn = base.CreateButton(text, x, y, w, h, parent);
             btn.TextAlign = ContentAlignment.MiddleCenter;

@@ -40,7 +40,7 @@ namespace MyFirstProject
     public class TaoMViewForm : CivilFormBase
     {
         // ─── Theme Colors ───
-        private static readonly Color GreenOk = Color.FromArgb(46, 160, 67);
+        private new static readonly Color GreenOk = Color.FromArgb(46, 160, 67);
 
         // ─── Controls ───
         private ComboBox cboAlignment = null!;
@@ -866,7 +866,7 @@ namespace MyFirstProject
         // UI HELPERS
         // ═══════════════════════════════════════════════════
 
-        private Panel CreateGroupBox(string title, int x, int y, int w, int h)
+        private new Panel CreateGroupBox(string title, int x, int y, int w, int h)
         {
             var panel = new Panel
             {
@@ -911,7 +911,7 @@ namespace MyFirstProject
             };
         }
 
-        private Button CreateButton(string text, int x, int y, int w, int h, Control parent)
+        private new Button CreateButton(string text, int x, int y, int w, int h, Control parent)
         {
             var btn = base.CreateButton(text, x, y, w, h, parent);
             btn.TextAlign = ContentAlignment.MiddleCenter;

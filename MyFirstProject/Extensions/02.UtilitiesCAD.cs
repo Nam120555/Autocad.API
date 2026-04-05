@@ -33,7 +33,7 @@ namespace MyFirstProject.Extensions
             {
                 //start here
                 UserInput userInput = new();
-                BlockTable bt = (BlockTable)tr.GetObject(A.Db.Database.BlockTableId, OpenMode.ForRead);
+                BlockTable bt = (BlockTable)tr.GetObject(A.Db.BlockTableId, OpenMode.ForRead);
                 //Point3d point3D = userInput.g_point("Specify a point for the position of table:");
                 TableStyle tableStyle = new();
                 ATable table = new();
@@ -104,7 +104,7 @@ namespace MyFirstProject.Extensions
             {
                 //start here
                 UserInput userInput = new();
-                BlockTable bt = (BlockTable)tr.GetObject(A.Db.Database.BlockTableId, OpenMode.ForRead);
+                BlockTable bt = (BlockTable)tr.GetObject(A.Db.BlockTableId, OpenMode.ForRead);
                 ATable table = new();
 
                 // 1 row title, 1 row header, 1 row per stake

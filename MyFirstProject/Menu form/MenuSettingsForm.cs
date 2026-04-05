@@ -610,14 +610,16 @@ namespace MyFirstProject
                 // ─── 4. PROFILES ───
                 new() { GroupName = "Profiles", IconType = "PROFILE", Commands = ConvertCmds(new[]
                 {
-                    ("CTP_VeTracDoc_TuNhien", "Draw Existing Ground", "DRAW"),
-                    ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "Draw EG Profile (All)", "DRAW"),
-                    ("CTP_Fix_DuongTuNhien_TheoCoc", "Fix EG Profile by Station", "SYNC"),
+                    ("CTP_VeTracDoc_TuNhien", "Vẽ Trắc Dọc TN", "DRAW"),
+                    ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ TD TN - Tất cả tuyến", "DRAW"),
+                    ("CTP_Fix_DuongTuNhien_TheoCoc", "Sửa đường TN theo cọc", "SYNC"),
+                    ("CTP_FixTDTN", "Fix Trắc Dọc TN (NX)", "SYNC"),
                     ("---", "", ""),
-                    ("CTP_GanNhanNutGiao_LenTracDoc", "Intersection Labels → Profile", "ADD"),
-                    ("CTP_TaoCogoPointTuPVI", "Create Point from PVI", "POINT"),
-                    ("CTP_XuatBangCivil", "Export Profile Data", "EXPORT"),
-                    ("CTP_AddParcelLabels", "Add Parcel Labels", "ADD"),
+                    ("CTP_GanNhanNutGiao_LenTracDoc", "Nhãn nút giao → Trắc dọc", "ADD"),
+                    ("CTP_TaoCogoPointTuPVI", "Tạo Point từ PVI", "POINT"),
+                    ("CTP_DienCaoDoMB", "Điền CĐ thiết kế lên MB", "ADD"),
+                    ("CTP_XuatBangCivil", "Xuất dữ liệu Trắc Dọc", "EXPORT"),
+                    ("CTP_AddParcelLabels", "Thêm nhãn Parcel", "ADD"),
                 }) },
 
                 // ─── 5. CORRIDORS ───
@@ -631,68 +633,115 @@ namespace MyFirstProject
                 // ─── 6. SAMPLE LINES / STAKES ───
                 new() { GroupName = "Sample Lines", IconType = "STATION", Commands = ConvertCmds(new[]
                 {
-                    ("CTS_PhatSinhCoc", "Generate Stake / SL", "ADD"),
-                    ("CTS_DoiTenCoc", "Rename Stakes", "RENAME"),
+                    // Phát sinh cọc
+                    ("CTS_PhatSinhCoc", "⭐ Phát sinh cọc (Tổng hợp)", "ADD"),
+                    ("CTS_PhatSinhCoc_ChiTiet", "Phát sinh cọc chi tiết", "ADD"),
+                    ("CTS_PhatSinhCoc_theoKhoangDelta", "Phát sinh cọc theo Delta", "ADD"),
+                    ("CTS_PhatSinhCoc_TuCogoPoint", "Phát sinh từ CogoPoint", "POINT"),
+                    ("CTS_PhatSinhCoc_TheoBang", "Phát sinh theo bảng Excel", "EXCEL"),
                     ("---", "", ""),
-                    ("CTS_DichCoc_TinhTien", "Translate Stakes", "MOVE"),
-                    ("CTS_DichCoc_TinhTien40", "Translate 40m", "MOVE"),
-                    ("CTS_DichCoc_TinhTien_20", "Translate 20m", "MOVE"),
+                    // Đổi tên cọc
+                    ("CTS_DoiTenCoc", "Đổi tên cọc (NX)", "RENAME"),
+                    ("CTS_DoiTenCoc2", "Đổi tên cọc (Thập phân)", "RENAME"),
+                    ("CTS_DoiTenCoc3", "Đổi tên cọc (Lý trình)", "RENAME"),
+                    ("CTS_DoiTenCoc_fromCogoPoint", "Đổi tên từ CogoPoint", "RENAME"),
+                    ("CTS_DoiTenCoc_TheoThuTu", "Đổi tên theo thứ tự", "RENAME"),
+                    ("CTS_DoiTenCoc_H", "Đổi tên cọc Hầm (H)", "RENAME"),
                     ("---", "", ""),
-                    ("CTS_Copy_NhomCoc", "Copy Stake Group", "COPY"),
-                    ("CTS_DongBo_2_NhomCoc", "Sync 2 Stake Groups", "SYNC"),
-                    ("CTS_DongBo_2_NhomCoc_TheoDoan", "Sync SL by Segment", "SYNC"),
+                    // Dịch cọc
+                    ("CTS_DichCoc_TinhTien", "Dịch cọc tịnh tiến", "MOVE"),
+                    ("CTS_DichCoc_TinhTien40", "Dịch cọc 40m", "MOVE"),
+                    ("CTS_DichCoc_TinhTien_20", "Dịch cọc 20m", "MOVE"),
                     ("---", "", ""),
-                    ("CTS_Copy_BeRong_sampleLine", "Copy SL Swath Widths", "COPY"),
-                    ("CTS_Thaydoi_BeRong_sampleLine", "Modify SL Swath Widths", "SETTINGS"),
-                    ("CTS_Offset_BeRong_sampleLine", "Offset SL Swath Widths", "MOVE"),
+                    // Chèn cọc
+                    ("CTS_ChenCoc_TrenTracDoc", "Chèn cọc lên Trắc Dọc", "ADD"),
+                    ("CTS_CHENCOC_TRENTRACNGANG", "Chèn cọc lên Trắc Ngang", "ADD"),
                     ("---", "", ""),
-                    ("CTSV_ThongKeCoc", "Export Stake Data to Excel", "EXPORT"),
+                    // Sao chép / Đồng bộ
+                    ("CTS_Copy_NhomCoc", "Copy nhóm cọc", "COPY"),
+                    ("CTS_DongBo_2_NhomCoc", "Đồng bộ 2 nhóm cọc", "SYNC"),
+                    ("CTS_DongBo_2_NhomCoc_TheoDoan", "Đồng bộ theo đoạn", "SYNC"),
+                    ("---", "", ""),
+                    // Bề rộng
+                    ("CTS_Copy_BeRong_sampleLine", "Copy bề rộng SL", "COPY"),
+                    ("CTS_Thaydoi_BeRong_sampleLine", "Thay đổi bề rộng SL", "SETTINGS"),
+                    ("CTS_Offset_BeRong_sampleLine", "Offset bề rộng SL", "MOVE"),
+                    ("---", "", ""),
+                    // Bảng tọa độ & Thống kê
+                    ("CTS_TaoBang_ToaDoCoc", "Bảng tọa độ cọc (CAD)", "TABLE"),
+                    ("CTSV_ThongKeCoc", "Thống kê cọc → Excel", "EXCEL"),
+                    ("CTSV_ThongKeCoc_ToaDo", "Thống kê cọc kèm tọa độ", "EXCEL"),
+                    ("AT_UPdate2Table", "Cập nhật bảng tọa độ", "SYNC"),
                 }) },
 
                 // ─── 7. SECTION VIEWS ───
                 new() { GroupName = "Section Views", IconType = "SECTION", Commands = ConvertCmds(new[]
                 {
-                    ("CTSV_VeTracNgangThietKe", "Draw Design Sections", "DRAW"),
-                    ("CVSV_VeTatCa_TracNgangThietKe", "Draw All Sections", "DRAW"),
-                    ("CTSV_ChuyenDoi_TNTK_TNTN", "Convert Design → Existing", "SYNC"),
+                    // Vẽ trắc ngang
+                    ("CTSV_VeTracNgangThietKe", "⭐ Vẽ TN thiết kế", "DRAW"),
+                    ("CVSV_VeTatCa_TracNgangThietKe", "Vẽ tất cả TN thiết kế", "DRAW"),
+                    ("CTSV_ChuyenDoi_TNTK_TNTN", "Chuyển TNTK → TNTN", "SYNC"),
+                    ("CTSV_CCTN", "Điền chênh cao tim cọc", "MEASURE"),
                     ("---", "", ""),
-                    ("CTSV_DanhCap", "Slope Benching (VHC)", "SLOPE"),
-                    ("CTSV_DanhCap_XoaBo", "Remove Benching", "DELETE"),
-                    ("CTSV_DanhCap_VeThem", "Draw Extra Bench", "SLOPE"),
-                    ("CTSV_DanhCap_VeThem1", "Draw Extra 1m Bench", "ADD"),
-                    ("CTSV_DanhCap_VeThem2", "Draw Extra 2m Bench", "ADD"),
-                    ("CTSV_DanhCap_CapNhat", "Update Benching Area", "SYNC"),
+                    // Đánh cấp
+                    ("CTSV_DanhCap", "Đánh cấp VHC", "SLOPE"),
+                    ("CTSV_DanhCap_XoaBo", "Xóa đánh cấp", "DELETE"),
+                    ("CTSV_DanhCap_VeThem", "Vẽ thêm đánh cấp", "SLOPE"),
+                    ("CTSV_DanhCap_VeThem1", "Vẽ thêm ĐC 1m", "ADD"),
+                    ("CTSV_DanhCap_VeThem2", "Vẽ thêm ĐC 2m", "ADD"),
+                    ("CTSV_DanhCap_CapNhat", "Cập nhật đánh cấp", "SYNC"),
                     ("---", "", ""),
-                    ("CTSV_ThemVatLieu_TrenCatNgang", "Hatch Section Materials", "VOLUME"),
-                    ("CTSV_ThayDoi_MSS_Min_Max", "Modify Section Extents", "SETTINGS"),
-                    ("CTSV_ThayDoi_GioiHan_traiPhai", "Trim Section Left/Right", "SETTINGS"),
-                    ("CTSV_KhoaCatNgang_AddPoint", "Lock Section & Add Point", "ADD"),
+                    // Vật liệu & Hiệu chỉnh
+                    ("CTSV_ThemVatLieu_TrenCatNgang", "Điền vật liệu trắc ngang", "VOLUME"),
+                    ("CTSV_ThayDoi_MSS_Min_Max", "Thay đổi Min/Max Section", "SETTINGS"),
+                    ("CTSV_ThayDoi_GioiHan_traiPhai", "Giới hạn Trái/Phải SV", "SETTINGS"),
+                    ("CTSV_KhoaCatNgang_AddPoint", "Khóa + Thêm điểm", "ADD"),
                     ("---", "", ""),
-                    ("CTSV_ThayDoi_KhungIn", "Arrange Viewport Frames", "VIEW"),
-                    ("CTSV_fit_KhungIn", "Fit Viewport Frame", "VIEW"),
-                    ("CTSV_fit_KhungIn_5_5_top", "Fit Frame 5×5", "VIEW"),
-                    ("CTSV_fit_KhungIn_5_10_top", "Fit Frame 5×10", "VIEW"),
+                    // Khung in
+                    ("CTSV_ThayDoi_KhungIn", "Dàn khung in hàng loạt", "VIEW"),
+                    ("CTSV_fit_KhungIn", "Fit khung in", "VIEW"),
+                    ("CTSV_fit_KhungIn_5_5_top", "Fit khung 5×5", "VIEW"),
+                    ("CTSV_fit_KhungIn_5_10_top", "Fit khung 5×10", "VIEW"),
                     ("---", "", ""),
-                    ("CTSV_An_DuongDiaChat", "Hide Geotech Profile", "VIEW"),
-                    ("CTSV_HieuChinh_Section", "Fix Section Heights (Static)", "SETTINGS"),
-                    ("CTSV_HieuChinh_Section_Dynamic", "Fix Section Heights (Dyn)", "SETTINGS"),
+                    // Ẩn / Hiệu chỉnh
+                    ("CTSV_An_DuongDiaChat", "Ẩn đường địa chất", "VIEW"),
+                    ("CTSV_HieuChinh_Section", "Hiệu chỉnh Section (Static)", "SETTINGS"),
+                    ("CTSV_HieuChinh_Section_Dynamic", "Hiệu chỉnh Section (Dyn)", "SETTINGS"),
                 }) },
 
                 // ─── 8. QUANTITIES & VOLUMES ───
                 new() { GroupName = "Quantities", IconType = "VOLUME", Commands = ConvertCmds(new[]
                 {
-                    ("CTSV_TinhKhoiLuongTracNgang", "Compute Sec. Volumes", "CALCULATE"),
+                    // Tính khối lượng cắt ngang
+                    ("CTSV_TinhKhoiLuongTracNgang", "⭐ Tính KL Trắc Ngang", "CALCULATE"),
+                    ("CTSV_Taskbar", "Taskbar Khối Lượng", "VOLUME"),
+                    ("CTSV_CaiDatBang", "Cài đặt bảng KL", "SETTINGS"),
                     ("---", "", ""),
-                    ("CTSV_Taskbar", "Volume Taskbar", "VOLUME"),
-                    ("CTSV_CaiDatBang", "Volume Table Settings", "SETTINGS"),
-                    ("CTSV_XuatCad", "Export Volumes to CAD", "CAD"),
+                    // Xuất kết quả
+                    ("CTSV_XuatKhoiLuong", "Xuất KL Material → Excel", "EXCEL"),
+                    ("CTSV_XuatCad", "Xuất KL → CAD", "CAD"),
+                    ("CTSV_XuatSectionArea", "Xuất diện tích Section → Excel", "EXCEL"),
                     ("---", "", ""),
-                    ("CTSV_SoSanhSurface", "Surface Volume Compare", "CALCULATE"),
-                    ("CTSV_PolyArea", "Area from Polyline", "CALCULATE"),
-                    ("CTSV_TinhDienTichPoly", "Calculate Poly Areas", "CALCULATE"),
-                    ("CTSV_TinhKhoiLuongPoly", "Calculate Poly Volumes", "CALCULATE"),
-                    ("CTSV_TinhDienTichPolyExcel", "Export Poly Area to Excel", "EXCEL"),
-                    ("CTSV_GhiDienTichPoly", "Label Poly Area to CAD", "DRAW"),
+                    // Lấy dữ liệu
+                    ("CTSV_LayDienTichTuSectionView", "Lấy DT từ Section View", "CALCULATE"),
+                    ("CTSV_LayKhoiLuongTracNgang", "Lấy KL từ Trắc Ngang", "CALCULATE"),
+                    ("CTSV_TinhKLKetHop", "Tính KL kết hợp nhiều tuyến", "CALCULATE"),
+                    ("CTSV_ThongKeMaterialTracNgang", "Thống kê Material TN", "TABLE"),
+                    ("---", "", ""),
+                    // So sánh & Phân tích
+                    ("CTSV_SoSanhSurface", "So sánh 2 Surface", "CALCULATE"),
+                    ("CTSV_DaoDap", "KL đào đắp Surface-Surface", "VOLUME"),
+                    ("CTSV_HienThiMaterialList", "Hiển thị Material List", "INFO"),
+                    ("CTSV_ChiTietMaterialSection", "Chi tiết Material Section", "INFO"),
+                    ("CTSV_PhanTichArea", "Phân tích chi tiết AREA", "CALCULATE"),
+                    ("CTSV_KiemTraKhoiLuong", "Kiểm tra khối lượng", "CALCULATE"),
+                    ("---", "", ""),
+                    // Polyline Area
+                    ("CTSV_PolyArea", "Menu tính DT Polyline", "CALCULATE"),
+                    ("CTSV_TinhDienTichPoly", "Tính DT Polyline", "CALCULATE"),
+                    ("CTSV_TinhKhoiLuongPoly", "Tính KL Polyline", "CALCULATE"),
+                    ("CTSV_TinhDienTichPolyExcel", "DT Polyline → Excel", "EXCEL"),
+                    ("CTSV_GhiDienTichPoly", "Ghi DT lên CAD", "DRAW"),
                 }) },
 
                 // ─── 9. COGO POINTS ───
@@ -724,93 +773,128 @@ namespace MyFirstProject
                     ("CT_VTOADOHG", "Catch Basin Coords (DLL)", "POINT"),
                 }) },
 
-                // ─── 11. GRADING ───
-                new() { GroupName = "Grading", IconType = "GRADING", Commands = ConvertCmds(new[]
+
+                // ─── 11. IN ẤN / XUẤT FILE ───
+                new() { GroupName = "Print & Export", IconType = "LAYOUT", Commands = ConvertCmds(new[]
                 {
-                    ("CTSN_Taskbar", "Grading Taskbar", "VOLUME"),
+                    ("CT_PrintCenter", "⭐ Print Center", "DRAW"),
+                    ("CTSV_TaoTrangInTD", "Tạo trang in Trắc Dọc", "LAYOUT"),
+                    ("INL", "In Layout hàng loạt (INL)", "EXPORT"),
+                    ("INM", "In Model hàng loạt (INM)", "EXPORT"),
                     ("---", "", ""),
-                    ("CTSN_TaoLuoi", "Grid Generation", "GRADING"),
-                    ("CTSN_NhapCaoDo", "Import Grid Elevations", "ADD"),
-                    ("CTSN_Surface", "Get Surface Elevations", "SURFACE"),
-                    ("CTSN_TinhKL", "Compute Grading Volumes", "VOLUME"),
-                    ("CTSN_XuatBang", "Export Grading Grid to CAD", "CAD"),
+                    ("CTDS_PrintAllLayouts", "In tất cả Layout", "EXPORT"),
+                    ("CTDS_PrintCurrentLayout", "In Layout hiện tại", "EXPORT"),
+                    ("CTDS_ExportPDF", "Xuất PDF", "EXPORT"),
                 }) },
 
-                // ─── 12. PLOT & LAYOUT ───
-                new() { GroupName = "Plot & Layout", IconType = "LAYOUT", Commands = ConvertCmds(new[]
+                // ─── 12. PARCEL ───
+                new() { GroupName = "Parcel", IconType = "MEASURE", Commands = ConvertCmds(new[]
                 {
-                    ("CT_PrintCenter", "Print Center", "DRAW"),
-                    ("CTSV_TaoTrangInTD", "Profile Plot Sheets", "LAYOUT"),
-                    ("---", "", ""),
-                    ("CTDS_PrintAllLayouts", "Print All Layouts", "EXPORT"),
-                    ("CTDS_PrintCurrentLayout", "Print Current Layout", "EXPORT"),
-                    ("CTDS_ExportPDF", "Export to PDF", "EXPORT"),
+                    ("CTPA_TaoParcel_CacLoaiNha", "Tạo Parcel từ nhà", "DRAW"),
                 }) },
 
                 // ─── 13. UTILITIES ───
                 new() { GroupName = "Utilities", IconType = "UTILITY", Commands = ConvertCmds(new[]
                 {
-                    ("CTU_ExportCAD2007", "Export to CAD 2007", "EXPORT"),
+                    // Xuất file
+                    ("CTU_ExportCAD2007", "Xuất CAD 2007", "EXPORT"),
                     ("CTU_ExplodeAEC", "Explode AEC Objects", "DELETE"),
-                    ("CTU_TextToMText", "Convert Text → MText", "SYNC"),
-                    ("CTU_TotalLength", "Total Entity Length", "CALCULATE"),
-                    ("CTU_ExportTextCoords", "Export Text Coordinates", "EXPORT"),
-                    ("CTU_FindIntersections", "Find Intersections", "CALCULATE"),
-                    ("CTU_AddPolylineVertices", "Add Polyline Vertices", "ADD"),
-                    ("CTU_DrawTaluy", "Draw Embankment Slope", "DRAW"),
+                    ("XUATBANG_ToaDoPolyline", "Xuất bảng tọa độ Polyline", "TABLE"),
                     ("---", "", ""),
-                    ("CTU_StyleAutoOff", "Auto-Style Off", "SETTINGS"),
-                    ("CTU_StyleAutoOn", "Auto-Style On", "SETTINGS"),
+                    // Text & Object tools
+                    ("CTU_TextToMText", "Text → MText", "SYNC"),
+                    ("AT_MT2ML", "MultiText → MultiLine", "SYNC"),
+                    ("CTU_TotalLength", "Tổng chiều dài", "CALCULATE"),
+                    ("CTU_ExportTextCoords", "Xuất tọa độ Text", "EXPORT"),
+                    ("CTU_FindIntersections", "Tìm điểm giao", "CALCULATE"),
+                    ("CTU_AddPolylineVertices", "Thêm vertex Polyline", "ADD"),
+                    ("AT_ChinhBeDayPLine", "Chỉnh bề dày Polyline", "SETTINGS"),
+                    ("CTU_DrawTaluy", "Vẽ taluy", "DRAW"),
+                    ("---", "", ""),
+                    // Style & Object Info
+                    ("CTU_StyleAutoOff", "Tắt Auto-Style", "SETTINGS"),
+                    ("CTU_StyleAutoOn", "Bật Auto-Style", "SETTINGS"),
                     ("CTU_DumpObject", "Dump Object Properties", "INFO"),
+                    ("AT_Solid_Set_PropertySet", "Gán Property Set", "ADD"),
+                    ("AT_Solid_Show_Info", "Thông tin 3D Solid", "INFO"),
                     ("---", "", ""),
-                    ("AT_Solid_Set_PropertySet", "Assign Property Sets", "ADD"),
-                    ("AT_Solid_Show_Info", "Show 3D Solid Info", "INFO"),
+                    // Màu sắc
+                    ("CTS_DoiMauByLayer", "Đổi màu về ByLayer", "SYNC"),
                     ("---", "", ""),
-                    ("CT_DoiIcon", "Change Command Icons", "SETTINGS"),
+                    // Lệnh hệ thống
+                    ("CT_DanhSachLenh", "Danh sách lệnh", "TABLE"),
+                    ("CT_DoiIcon", "Thay đổi Icon lệnh", "SETTINGS"),
                     ("CIVIL_RIBBON", "Reload Civil Ribbon", "RELOAD"),
-                    ("CT_MENU_SETTINGS", "Menu Settings Panel", "SETTINGS"),
+                    ("CT_MENU_SETTINGS", "Cài đặt Menu", "SETTINGS"),
+                }) },
+
+                // ─── 14. NXSOFT ───
+                new() { GroupName = "NXSOFT", IconType = "UTILITY", Commands = ConvertCmds(new[]
+                {
+                    ("NXrenameSL", "⭐ Đổi tên cọc hàng loạt", "RENAME"),
+                    ("CWPL", "Chỉnh bề dày Polyline (CWPL)", "SETTINGS"),
+                    ("---", "", ""),
+                    ("NXFIXTDTN", "Sửa đường TN (NXFIXTDTN)", "SYNC"),
+                    ("NXCCTN", "Điền chênh cao tim cọc (NX)", "MEASURE"),
+                    ("NXdcdtd", "Điền chênh cao 2 trắc dọc", "MEASURE"),
+                    ("NXdcdcoc", "Điền CĐ thiết kế lên MB", "ADD"),
+                    ("NXNoiText", "Gộp text khảo sát", "SYNC"),
+                    ("---", "", ""),
+                    ("NXPIPE", "Thiết kế mạng lưới thoát nước", "PIPE"),
+                    ("NXNTDADD", "Nhập dữ liệu NTD vào tuyến", "ADD"),
                 }) },
             };
 
             // ══ ACAD TOOL panels ══
             config.AcadGroups = new List<MenuGroupItem>
             {
-                new() { GroupName = "Measurements", IconType = "MEASURE", Commands = ConvertCmds(new[]
+                new() { GroupName = "Đo lường", IconType = "MEASURE", Commands = ConvertCmds(new[]
                 {
-                    ("AT_TongDoDai_Full", "Total Length (Full)", "CALCULATE"),
-                    ("AT_TongDoDai_Replace", "Total Length (Replace)", "CALCULATE"),
-                    ("AT_TongDoDai_Replace2", "Total Length (Replace 2)", "CALCULATE"),
-                    ("AT_TongDoDai_Replace_CongThem", "Total Length (Add)", "CALCULATE"),
+                    // Chiều dài
+                    ("AT_TongDoDai_Full", "Tổng chiều dài (Full)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace", "Tổng dài (Replace)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace2", "Tổng dài (Replace2)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace_CongThem", "Tổng dài (Cộng thêm)", "CALCULATE"),
                     ("---", "", ""),
-                    ("AT_TongDienTich_Full", "Total Area (Full)", "CALCULATE"),
-                    ("AT_TongDienTich_Replace", "Total Area (Replace)", "CALCULATE"),
-                    ("AT_TongDienTich_Replace2", "Total Area (Replace 2)", "CALCULATE"),
-                    ("AT_TongDienTich_Replace_CongThem", "Total Area (Add)", "CALCULATE"),
+                    // Diện tích
+                    ("AT_TongDienTich_Full", "Tổng diện tích (Full)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace", "Tổng DT (Replace)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace2", "Tổng DT (Replace2)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace_CongThem", "Tổng DT (Cộng thêm)", "CALCULATE"),
+                    ("---", "", ""),
+                    // Tổng hợp
+                    ("AT_TongHop", "Đo lường tổng hợp", "CALCULATE"),
                 }) },
 
-                new() { GroupName = "✏ Modifiers", IconType = "EDIT", Commands = ConvertCmds(new[]
+                new() { GroupName = "Chỉnh sửa", IconType = "EDIT", Commands = ConvertCmds(new[]
                 {
-                    ("AT_TextLink", "Dynamic Text Link", "ADD"),
-                    ("AT_DanhSoThuTu", "Sequential Numbering", "ADD"),
-                    ("AT_XoaDoiTuong_CungLayer", "Delete on Layer", "DELETE"),
-                    ("AT_XoaDoiTuong_3DSolid_Body", "Delete 3D Solids/Bodies", "DELETE"),
-                    ("AT_Offset_2Ben", "Double Sided Offset", "COPY"),
-                    ("AT_annotive_scale_currentOnly", "Scale Current Annotative", "SETTINGS"),
+                    ("AT_TextLink", "Liên kết Text động", "ADD"),
+                    ("AT_DanhSoThuTu", "Đánh số thứ tự", "ADD"),
+                    ("AT_GopText", "Gộp Text khảo sát", "SYNC"),
+                    ("AT_MT2ML", "MultiText → MultiLine", "SYNC"),
+                    ("AT_TCD", "Tách chữ đặc biệt", "EDIT"),
+                    ("AT_TBD", "Text By Description", "EDIT"),
                     ("---", "", ""),
-                    ("AT_XoayDoiTuong_TheoViewport", "Rotate w. Viewport", "SYNC"),
-                    ("AT_XoayDoiTuong_Theo2Diem", "Rotate via 2 Pts", "SYNC"),
+                    ("AT_XoaDoiTuong_CungLayer", "Xóa đối tượng cùng Layer", "DELETE"),
+                    ("AT_XoaDoiTuong_3DSolid_Body", "Xóa 3D Solid/Body", "DELETE"),
+                    ("AT_Offset_2Ben", "Offset 2 bên", "COPY"),
+                    ("AT_ChinhBeDayPLine", "Chỉnh bề dày Polyline", "SETTINGS"),
+                    ("AT_annotive_scale_currentOnly", "Scale Annotative hiện tại", "SETTINGS"),
+                    ("---", "", ""),
+                    ("AT_XoayDoiTuong_TheoViewport", "Xoay theo Viewport", "SYNC"),
+                    ("AT_XoayDoiTuong_Theo2Diem", "Xoay theo 2 điểm", "SYNC"),
                 }) },
 
                 new() { GroupName = "Layout Tools", IconType = "LAYOUT", Commands = ConvertCmds(new[]
                 {
                     ("AT_TextLayout", "Text Layout Sync", "ADD"),
-                    ("AT_TaoMoi_TextLayout", "Create New Text Layout", "ADD"),
+                    ("AT_TaoMoi_TextLayout", "Tạo mới Text Layout", "ADD"),
                     ("AT_DimLayout", "Dimension Layout", "ADD"),
                     ("AT_DimLayout2", "Dimension Layout 2", "ADD"),
                     ("AT_BlockLayout", "Block Layout", "ADD"),
-                    ("AT_Label_FromText", "Label from Text", "ADD"),
+                    ("AT_Label_FromText", "Label từ Text", "ADD"),
                     ("---", "", ""),
-                    ("AT_UpdateLayout", "Update Layout Sync", "SYNC"),
+                    ("AT_UpdateLayout", "Cập nhật Layout Sync", "SYNC"),
                 }) },
             };
 
@@ -909,7 +993,6 @@ namespace MyFirstProject
                 { "CTS_DichCoc_TinhTien", "Dịch cọc sang trái/phải dọc theo tuyến." },
                 { "CTSV_ThayDoi_KhungIn", "Dàn khung in hàng loạt tự động." },
                 { "CTSV_DanhCap", "Đánh cấp (Vát mái taluy) - VHC." },
-                { "CTSN_NhapCaoDo", "Điền cao độ Text tự động từ lưới điểm." },
                 { "CTSV_ThemVatLieu_TrenTracNgang", "Điền khối lượng / vật liệu tự động lên trắc ngang." },
                 { "CTC_TaoCooridor_DuongDoi", "Tạo Corridor tự động cho đường rẽ phải/trái." },
                 { "CTSV_An_DuongDiaChat", "Ẩn hiện đường địa chất tự động." },

@@ -114,109 +114,116 @@ namespace MyFirstProject
         }
 
         /// <summary>
-        /// Tạo panel kiểu Civil 3D hiện đại:
-        /// - Lệnh đầu tiên: NÚT LỚN (Large, icon 24px + text bên dưới)
-        /// - Các lệnh tiếp: HÀNG NÚT NHỎ (3 nút/hàng, icon 12px + text bên cạnh)
-        /// - Nếu nhiều quá (&gt;7): gộp vào SplitButton dropdown
+        /// Tạo panel theo đúng phong cách Civil 3D:
+        /// ┌─────────────────────────┐
+        /// │  [LARGE ICON]           │
+        /// │  Lệnh đầu tiên ★       │  ← Nút LỚN (execute trực tiếp)
+        /// │─────────────────────────│
+        /// │  [▼] Tất cả lệnh...    │  ← SplitButton LIST (dropdown giống Civil 3D)
+        /// └─────────────────────────┘
+        ///  Panel Title
         /// </summary>
-        public static void AddCivilPanel(RibbonTab tab, string title, string iconType, 
+        public static void AddCivilPanel(RibbonTab tab, string title, string iconType,
             List<(string Command, string Label, string SubIcon)> commands)
         {
             if (commands.Count == 0) return;
 
-            // Lọc bỏ separator, chỉ lấy lệnh thực
+            // Tách separator và lệnh thực
+            var allItems = commands; // giữ lại separator để biết nhóm
             var realCmds = commands.Where(c => c.Command != "---" && !string.IsNullOrEmpty(c.Command)).ToList();
             if (realCmds.Count == 0) return;
 
             RibbonPanelSource panelSource = new RibbonPanelSource { Title = title };
             RibbonPanel panel = new RibbonPanel { Source = panelSource };
 
-            // ═══ 1. NÚT LỚN - Lệnh featured đầu tiên ═══
-            int featuredCount = Math.Min(FEATURED_COUNT, realCmds.Count);
-            for (int i = 0; i < featuredCount; i++)
+            // ═══ 1. NÚT LỚN - Lệnh đầu tiên (starred / featured) ═══
+            // Chọn lệnh featured: ưu tiên lệnh có ⭐ trong tên, nếu không dùng lệnh đầu tiên
+            var featured = realCmds.FirstOrDefault(c => c.Label.Contains("⭐"));
+            if (string.IsNullOrEmpty(featured.Command))
+                featured = realCmds[0];
+
+            var remainingCmds = realCmds.Where(c => c.Command != featured.Command).ToList();
+
+            // Nút lớn chính
+            RibbonButton largeBtn = new RibbonButton
             {
-                var (command, label, subIcon) = realCmds[i];
-                RibbonButton largeBtn = new RibbonButton
+                Text = featured.Label.Replace("⭐ ", "").Replace("⭐", "").Trim(),
+                ShowText = true,
+                ShowImage = true,
+                Image = CreateCivilIcon(featured.SubIcon, 16),
+                LargeImage = CreateCivilIcon(featured.SubIcon, 32),
+                Size = RibbonItemSize.Large,
+                Orientation = System.Windows.Controls.Orientation.Vertical,
+                CommandHandler = new CivilRibbonCommandHandler(),
+                Tag = featured.Command,
+                CommandParameter = featured.Command,
+                ToolTip = new RibbonToolTip
                 {
-                    Text = label,
+                    Title = featured.Label.Replace("⭐ ", ""),
+                    Content = $"Lệnh: {featured.Command}",
+                    Command = featured.Command
+                }
+            };
+            panelSource.Items.Add(largeBtn);
+
+            // ═══ 2. SPLITBUTTON DROPDOWN KIỂU CIVIL 3D ═══
+            // Chỉ tạo nếu còn lệnh khác
+            if (remainingCmds.Count > 0)
+            {
+                // Tên của SplitButton = tên panel (giống Civil 3D)
+                RibbonSplitButton splitBtn = new RibbonSplitButton
+                {
+                    Text = title,
                     ShowText = true,
                     ShowImage = true,
-                    Image = CreateCivilIcon(subIcon, 12),
-                    LargeImage = CreateCivilIcon(subIcon, 24),
+                    Image = CreateCivilIcon(iconType, 16),
+                    LargeImage = CreateCivilIcon(iconType, 32),
                     Size = RibbonItemSize.Large,
                     Orientation = System.Windows.Controls.Orientation.Vertical,
-                    CommandHandler = new CivilRibbonCommandHandler(),
-                    Tag = command,
-                    CommandParameter = command,
+                    ListStyle = RibbonSplitButtonListStyle.List,  // ← KIỂU LIST GIỐNG CIVIL 3D
+                    IsSplit = false,                               // Chỉ dropdown, không split
                     ToolTip = new RibbonToolTip
                     {
-                        Title = label,
-                        Content = $"Lệnh: {command}",
-                        Command = command
+                        Title = title,
+                        Content = $"Tất cả lệnh {title}",
                     }
                 };
-                panelSource.Items.Add(largeBtn);
-            }
 
-            // ═══ 2. HÀNG NÚT NHỎ - Các lệnh phụ xếp 3 nút/hàng ═══
-            var secondaryCmds = realCmds.Skip(featuredCount).ToList();
-            
-            if (secondaryCmds.Count > 0 && secondaryCmds.Count <= 9)
-            {
-                // Xếp thành các hàng, mỗi hàng tối đa 3 nút nhỏ
-                RibbonRowPanel rowPanel = new RibbonRowPanel();
-                int colCount = 0;
-
-                foreach (var (command, label, subIcon) in secondaryCmds)
+                // Thêm từng lệnh vào dropdown list
+                // Giải thích Civil 3D style: mỗi item = 1 dòng với icon nhỏ + tên lệnh
+                foreach (var (command, label, subIcon) in allItems)
                 {
-                    RibbonButton smallBtn = CreateSmallButton(command, label, subIcon);
-                    rowPanel.Items.Add(smallBtn);
-                    colCount++;
-
-                    // Xuống hàng sau mỗi 3 nút (trừ hàng cuối)
-                    if (colCount % 3 == 0 && colCount < secondaryCmds.Count)
+                    if (command == "---")
                     {
-                        rowPanel.Items.Add(new RibbonRowBreak());
+                        // Separator giữa nhóm lệnh
+                        splitBtn.Items.Add(new RibbonSeparator());
+                        continue;
                     }
+                    if (command == featured.Command) continue; // Đã có nút lớn rồi
+
+                    RibbonButton item = new RibbonButton
+                    {
+                        Text = label.Replace("⭐ ", "").Replace("⭐", "").Trim(),
+                        ShowText = true,
+                        ShowImage = true,
+                        Image = CreateCivilIcon(subIcon, 16),
+                        LargeImage = CreateCivilIcon(subIcon, 32),
+                        Size = RibbonItemSize.Standard,
+                        Orientation = System.Windows.Controls.Orientation.Horizontal,
+                        CommandHandler = new CivilRibbonCommandHandler(),
+                        Tag = command,
+                        CommandParameter = command,
+                        ToolTip = new RibbonToolTip
+                        {
+                            Title = label,
+                            Content = $"Lệnh: {command}",
+                            Command = command
+                        }
+                    };
+                    splitBtn.Items.Add(item);
                 }
 
-                panelSource.Items.Add(rowPanel);
-            }
-            else if (secondaryCmds.Count > 9)
-            {
-                // Quá nhiều → Hiện 6 nút nhỏ + SplitButton dropdown cho phần còn lại
-                var visibleCmds = secondaryCmds.Take(6).ToList();
-                var overflowCmds = secondaryCmds.Skip(6).ToList();
-
-                RibbonRowPanel rowPanel = new RibbonRowPanel();
-                int colCount = 0;
-                foreach (var (command, label, subIcon) in visibleCmds)
-                {
-                    rowPanel.Items.Add(CreateSmallButton(command, label, subIcon));
-                    colCount++;
-                    if (colCount % 3 == 0 && colCount < visibleCmds.Count)
-                        rowPanel.Items.Add(new RibbonRowBreak());
-                }
-                panelSource.Items.Add(rowPanel);
-
-                // SplitButton dropdown cho overflow commands
-                RibbonSplitButton overflowSplit = new RibbonSplitButton
-                {
-                    Text = "Thêm...",
-                    ShowText = true,
-                    ShowImage = true,
-                    Size = RibbonItemSize.Large,
-                    Orientation = System.Windows.Controls.Orientation.Vertical,
-                    Image = CreateCivilIcon(iconType, 12),
-                    LargeImage = CreateCivilIcon(iconType, 24),
-                    ListStyle = RibbonSplitButtonListStyle.List
-                };
-
-                foreach (var (command, label, subIcon) in overflowCmds)
-                {
-                    overflowSplit.Items.Add(CreateSmallButton(command, label, subIcon));
-                }
-                panelSource.Items.Add(overflowSplit);
+                panelSource.Items.Add(splitBtn);
             }
 
             tab.Panels.Add(panel);
@@ -917,16 +924,8 @@ namespace MyFirstProject
 
         private static List<(string Command, string Label, string SubIcon)> GetGradingCommands()
         {
-            return new List<(string, string, string)>
-            {
-                ("CTSN_Taskbar", "Taskbar SN", "VOLUME"),
-                ("---", "", ""),
-                ("CTSN_TaoLuoi", "Tạo lưới", "GRADING"),
-                ("CTSN_NhapCaoDo", "Nhập CĐ lưới", "ADD"),
-                ("CTSN_Surface", "Lấy CĐ Surface", "SURFACE"),
-                ("CTSN_TinhKL", "Tính KL SN", "CALCULATE"),
-                ("CTSN_XuatBang", "Xuất bảng CAD", "CAD"),
-            };
+            // San Nền đã bị loại khỏi dự án
+            return new List<(string, string, string)>();
         }
 
         private static List<(string Command, string Label, string SubIcon)> GetToolCommands()

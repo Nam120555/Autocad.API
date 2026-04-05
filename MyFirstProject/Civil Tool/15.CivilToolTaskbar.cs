@@ -376,15 +376,7 @@ namespace MyFirstProject
                 ("🔧 Pipe Networks", "CTPI_XoayHoThu_Theo2diem", "Rotate Catch Basin via 2Pts"),
                 ("🔧 Pipe Networks", "CT_VTOADOHG", "Catch Basin Coords (DLL)"),
 
-                // ── 11. GRADING ──
-                ("▦ Grading", "CTSN_Taskbar", "Grading Taskbar"),
-                ("▦ Grading", "CTSN_TaoLuoi", "Grid Generation"),
-                ("▦ Grading", "CTSN_NhapCaoDo", "Import Grid Elevations"),
-                ("▦ Grading", "CTSN_Surface", "Get Surface Elevations"),
-                ("▦ Grading", "CTSN_TinhKL", "Compute Grading Volumes"),
-                ("▦ Grading", "CTSN_XuatBang", "Export Grading Grid to CAD"),
-
-                // ── 12. PLOT & LAYOUT ──
+                // ── 11. PLOT & LAYOUT ──
                 ("🖨 Plot & Layout", "CT_PrintCenter", "Print Center"),
                 ("🖨 Plot & Layout", "CTSV_TaoTrangInTD", "Profile Plot Sheets"),
                 ("🖨 Plot & Layout", "CTDS_PrintAllLayouts", "Print All Layouts"),
