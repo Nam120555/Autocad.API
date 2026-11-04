@@ -22,12 +22,12 @@ namespace OutLookTool
         private List<string> _loadedFiles = new List<string>();
 
         // Paths
-        private static readonly string OutlookDataDir =
+        internal static readonly string OutlookDataDir =
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "Outlook");
-        private const string ArchivePstPath = @"C:\OutLook\QLTKDS01-ARCHIVE.pst";
-        private const string OutputFolder = @"C:\OutLook";
-        private const string TempCopyFolder = @"C:\OutLook\_TempRead";
-        private const string DefaultCacheFile = @"C:\OutLook\EmailData_Cache.json";
+        internal const string ArchivePstPath = @"C:\OutLook\QLTKDS01-ARCHIVE.pst";
+        internal const string OutputFolder = @"C:\OutLook";
+        internal const string TempCopyFolder = @"C:\OutLook\_TempRead";
+        internal const string DefaultCacheFile = @"C:\OutLook\EmailData_Cache.json";
 
         // Controls
         private Button btnLoadCache;
@@ -716,7 +716,38 @@ namespace OutLookTool
                           $"• Thư mục gốc: {em.ThuMuc}\n" +
                           $"• Nguồn file: {em.NguonFile}";
 
-            MessageBox.Show(info, "Chi tiết Email", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            var ans = MessageBox.Show(info + "\n\n➜ Bấm YES để tìm và mở email này trong Outlook.",
+                                      "Chi tiết Email", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (ans == DialogResult.Yes) OpenInOutlook(em);
+        }
+
+        /// <summary>Mở Outlook classic và tìm email theo chủ đề (tìm trong mọi thư mục).</summary>
+        private static void OpenInOutlook(EmailRecord em)
+        {
+            try
+            {
+                var type = Type.GetTypeFromProgID("Outlook.Application");
+                if (type == null)
+                {
+                    MessageBox.Show("Không tìm thấy Outlook (classic) trên máy.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                dynamic outlook = Activator.CreateInstance(type)!;
+                dynamic explorer = outlook.ActiveExplorer();
+                if (explorer == null)
+                {
+                    dynamic inbox = outlook.GetNamespace("MAPI").GetDefaultFolder(6); // 6 = Inbox
+                    explorer = inbox.GetExplorer();
+                    explorer.Display();
+                }
+                string subject = (em.ChuDe ?? "").Replace("\"", "'");
+                explorer.Search($"subject:\"{subject}\"", 1);                   // 1 = tìm trong tất cả thư mục
+                explorer.Activate();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Không mở được Outlook: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void ExportExcel(bool filteredOnly)
@@ -772,7 +803,7 @@ namespace OutLookTool
 
         #region Core File Readers & Excel Export
 
-        private static List<EmailRecord> ReadOutlookFile(string filePath, string sourceLabel)
+        internal static List<EmailRecord> ReadOutlookFile(string filePath, string sourceLabel)
         {
             var results = new List<EmailRecord>();
             using (var xstFile = new XstFile(filePath))
@@ -782,7 +813,7 @@ namespace OutLookTool
             return results;
         }
 
-        private static List<EmailRecord> ReadWithTempCopy(string filePath, string sourceLabel)
+        internal static List<EmailRecord> ReadWithTempCopy(string filePath, string sourceLabel)
         {
             if (!Directory.Exists(TempCopyFolder)) Directory.CreateDirectory(TempCopyFolder);
             string tempPath = Path.Combine(TempCopyFolder, $"temp_{Guid.NewGuid():N}_{Path.GetFileName(filePath)}");
@@ -934,7 +965,7 @@ namespace OutLookTool
             };
         }
 
-        private static void ExportToExcelFile(List<EmailRecord> emails, string outputPath)
+        internal static void ExportToExcelFile(List<EmailRecord> emails, string outputPath)
         {
             using (var wb = new XLWorkbook())
             {
@@ -1116,7 +1147,12 @@ namespace OutLookTool
                 var em = emails[i];
 
                 ws.Cell(row, 1).Value = i + 1;
-                ws.Cell(row, 2).Value = em.Ngay;
+                if (em.DateObj.HasValue)
+                {
+                    ws.Cell(row, 2).Value = em.DateObj.Value.Date;          // ngày thật → lọc theo năm/tháng trong Excel
+                    ws.Cell(row, 2).Style.DateFormat.Format = "dd/MM/yyyy";
+                }
+                else ws.Cell(row, 2).Value = em.Ngay;
                 ws.Cell(row, 3).Value = em.Gio;
                 ws.Cell(row, 4).Value = em.Tuan;
                 ws.Cell(row, 5).Value = em.NguoiGui;
@@ -1163,6 +1199,9 @@ namespace OutLookTool
 
             ws.SheetView.FreezeRows(1);
             ws.SheetView.FreezeColumns(1);
+
+            // Bộ lọc + ô tìm kiếm trên từng cột (bấm mũi tên ở tiêu đề → gõ từ khoá)
+            if (emails.Count > 0) ws.Range(1, 1, lastRow, 15).SetAutoFilter();
         }
 
         private static void CreateDailyStatSheet(XLWorkbook wb, List<EmailRecord> emails)
