@@ -32,9 +32,17 @@ namespace OutLookTool
                 Log("===== Bắt đầu xuất tự động =====");
 
                 var files = FindOutlookFiles();
-                if (files.Count == 0) { Log("Không tìm thấy file .ost/.pst nào."); return 2; }
+                if (files.Count == 0 && !OutlookComReader.IsOutlookRunning()) { Log("Không tìm thấy file .ost/.pst nào."); return 2; }
 
                 var all = new List<EmailRecord>();
+                bool viaOutlook = false;
+                if (OutlookComReader.IsOutlookRunning())
+                {
+                    Log("Outlook đang mở → đọc trực tiếp qua Outlook");
+                    try { all.AddRange(OutlookComReader.ReadAll(Log)); viaOutlook = true; }
+                    catch (Exception ex) { Log("  Đọc qua Outlook lỗi: " + ex.Message + " → thử đọc file"); }
+                }
+                if (!viaOutlook)
                 foreach (var f in files)
                 {
                     string name = Path.GetFileName(f);
@@ -48,6 +56,12 @@ namespace OutLookTool
                     }
                     Log($"  {name}: {emails.Count:N0} email");
                     all.AddRange(emails);
+                }
+
+                if (all.Count == 0)
+                {
+                    Log("Không đọc được email nào → GIỮ NGUYÊN file Excel cũ.");
+                    return 3;
                 }
 
                 all = all.OrderByDescending(e => e.DateObj ?? DateTime.MinValue).ToList();

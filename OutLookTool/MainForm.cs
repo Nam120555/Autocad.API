@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Drawing;
 using System.Collections.Generic;
@@ -512,6 +512,17 @@ namespace OutLookTool
 
             await Task.Run(() =>
             {
+                // Outlook đang mở → file .ost bị khoá → đọc trực tiếp qua Outlook
+                if (OutlookComReader.IsOutlookRunning())
+                {
+                    try
+                    {
+                        _allEmails.AddRange(OutlookComReader.ReadAll(_ => { }));
+                        _loadedFiles.Add("Outlook (truc tiep)");
+                        return;
+                    }
+                    catch (Exception) { /* Outlook không trả lời → thử đọc file như cũ */ }
+                }
                 foreach (var filePath in filesToRead)
                 {
                     string fileName = Path.GetFileName(filePath);
@@ -1640,7 +1651,7 @@ End Sub
             catch { }
         }
 
-        private static string GetUnitCategory(string senderName, string senderEmail)
+        internal static string GetUnitCategory(string senderName, string senderEmail)
         {
             string text = $"{senderName} {senderEmail}";
 
@@ -1680,7 +1691,7 @@ End Sub
             return "Doi tac / Don vi ngoai";
         }
 
-        private static string GetTopicCategory(string subject)
+        internal static string GetTopicCategory(string subject)
         {
             if (string.IsNullOrEmpty(subject)) return "Chua xac dinh";
 
