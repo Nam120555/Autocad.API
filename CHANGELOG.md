@@ -1,5 +1,11 @@
 # Nhật ký thay đổi
 
+## [1.4.0] – 04/11/2026
+### Thêm
+- Hộp lệnh NX (`NX`): mục **🔥 Hay dùng** liệt kê lệnh dùng nhiều nhất; khi tìm kiếm, lệnh hay dùng được xếp lên trước.
+### Thay đổi
+- Tách Form ra file riêng cho 5 file lớn: `07.Sampleline`, `28.TaoViewTheoTuyen`, `32.PhatSinhCoc-DoiTenCoc`, `39.TinhKhoiLuongTracNgang`, `40.NhapPointTT` (chỉ di chuyển code, không đổi logic).
+
 ## [1.3.0] – 04/11/2026
 ### Thêm
 - Lệnh `CT_THONGKELENH`: thống kê lệnh hay dùng (lưu cục bộ, không gửi đi đâu).

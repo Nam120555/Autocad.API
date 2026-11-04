@@ -120,6 +120,15 @@ namespace MyFirstProject.Core
             catch (System.Exception ex) { NxLog.Swallow(ex); }
         }
 
+        /// <summary>Số lần đã dùng 1 lệnh (0 nếu chưa dùng).</summary>
+        public static int CountOf(string command)
+        {
+            lock (_lock) return _data.TryGetValue(command ?? "", out var e) ? e.Count : 0;
+        }
+
+        /// <summary>Số lệnh khác nhau đã từng dùng.</summary>
+        public static int UsedCount { get { lock (_lock) return _data.Count; } }
+
         /// <summary>Danh sách lệnh hay dùng (giảm dần) — dùng cho Hộp lệnh / Ribbon sau này.</summary>
         public static List<(string Command, int Count, DateTime LastUsed)> Top(int n = 20)
         {

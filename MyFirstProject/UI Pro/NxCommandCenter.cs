@@ -47,6 +47,7 @@ namespace MyFirstProject.UI
     {
         private const string NavFav = "★  Yêu thích";
         private const string NavRecent = "🕘  Gần đây";
+        private const string NavTop = "🔥  Hay dùng";
         private const string NavAll = "☰  Tất cả lệnh";
         private const int MaxRecent = 15;
 
@@ -308,6 +309,7 @@ namespace MyFirstProject.UI
             _navItems.Clear();
             _navItems.Add((NavFav, _settings.Favorites.Count));
             _navItems.Add((NavRecent, _settings.Recent.Count));
+            _navItems.Add((NavTop, MyFirstProject.Core.NxUsage.UsedCount));
             _navItems.Add((NavAll, _all.Count));
             foreach (var g in _all.GroupBy(i => i.Group).OrderBy(g => g.Key))
                 _navItems.Add((g.Key, g.Count()));
@@ -342,6 +344,9 @@ namespace MyFirstProject.UI
                 NavFav => _all.Where(i => fav.Contains(i.Name)),
                 NavRecent => _settings.Recent.Select(r => _all.FirstOrDefault(i => i.Name.Equals(r, StringComparison.OrdinalIgnoreCase)))
                                              .Where(i => i != null)!.Cast<NxCommandItem>(),
+                NavTop => MyFirstProject.Core.NxUsage.Top(30)
+                              .Select(u => _all.FirstOrDefault(i => i.Name.Equals(u.Command, StringComparison.OrdinalIgnoreCase)))
+                              .Where(i => i != null)!.Cast<NxCommandItem>(),
                 NavAll => _all,
                 _ => _all.Where(i => i.Group == nav)
             };
@@ -357,6 +362,7 @@ namespace MyFirstProject.UI
                     .Select(i => (Item: i, Score: Score(i, tokens, fav)))
                     .Where(x => x.Score > 0)
                     .OrderByDescending(x => x.Score)
+                    .ThenByDescending(x => MyFirstProject.Core.NxUsage.CountOf(x.Item.Name))   // lệnh hay dùng lên trước
                     .ThenBy(x => x.Item.Name.Length)
                     .Select(x => x.Item)
                     .ToList();
