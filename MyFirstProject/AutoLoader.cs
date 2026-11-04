@@ -36,6 +36,9 @@ namespace MyFirstProject
             // Chỉ chạy 1 lần khi application sẵn sàng
             AcadApp.Idle -= OnApplicationIdle;
 
+            // Thống kê lệnh hay dùng (lưu cục bộ %AppData%\CivilTool\usage.json)
+            NxUsage.Start();
+
             try
             {
                 var doc = AcadApp.DocumentManager.MdiActiveDocument;
@@ -50,6 +53,7 @@ namespace MyFirstProject
                 doc.Editor.WriteMessage("\n║  Gõ 'CT_DanhSachLenh' để xem danh sách lệnh              ║");
                 doc.Editor.WriteMessage("\n║  Gõ 'NX' để mở HỘP LỆNH (tìm & chạy lệnh nhanh)          ║");
                 doc.Editor.WriteMessage("\n║  Gõ 'CT_LOG' để mở thư mục log khi cần hỗ trợ            ║");
+                doc.Editor.WriteMessage("\n║  Gõ 'CT_THONGKELENH' để xem lệnh bạn hay dùng            ║");
                 doc.Editor.WriteMessage("\n╚══════════════════════════════════════════════════════════╝\n");
 
                 // ── 3. Tự động tạo Ribbon menu ──

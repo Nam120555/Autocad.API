@@ -54,6 +54,8 @@ namespace MyFirstProject.UI
             ["CHEN_LINK_MAIL_VAO_CAD"] = ("Outlook & Email", "Chèn link email Outlook vào bản vẽ"),
             ["CIVIL_RIBBON"] = ("Hệ thống & Menu", "Reload menu"),
             ["CIVIL_TINHTOAN_RIBBON"] = ("Hệ thống & Menu", "Hiển thị Ribbon module Tính toán"),
+            ["CT_LOG"] = ("Hệ thống & Menu", "Mở thư mục log (gửi khi cần hỗ trợ)"),
+            ["CT_THONGKELENH"] = ("Hệ thống & Menu", "Thống kê các lệnh bạn hay dùng"),
             ["CT"] = ("Hệ thống & Menu", "Mở nhanh Ribbon Taskbar (WinForm)"),
             ["CTA_DOITENTUYENHANGLOAT"] = ("Tuyến (Alignment)", "Đổi tên tuyến (alignment) hàng loạt"),
             ["CTA_TAOTUYENHANGLOAT"] = ("Tuyến (Alignment)", "Tạo tuyến hàng loạt từ polyline"),
