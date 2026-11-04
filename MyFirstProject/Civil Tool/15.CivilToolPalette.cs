@@ -181,7 +181,7 @@ namespace MyFirstProject
             {
                 if (SelectedCommand() is string c)
                 {
-                    try { W.Clipboard.SetText(c); _status.Text = $"Đã sao chép: {c}"; } catch { }
+                    try { W.Clipboard.SetText(c); _status.Text = $"Đã sao chép: {c}"; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
             };
             var expand = new WC.MenuItem { Header = "Mở rộng tất cả" };
@@ -430,7 +430,7 @@ namespace MyFirstProject
         {
             foreach (var p in _pages)
             {
-                try { p.Reload(); } catch { }
+                try { p.Reload(); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
         }
 

@@ -403,25 +403,25 @@ namespace MyFirstProject
                     doc.SendStringToExecute("-PURGE O ", true, false, false);
                     optimized++;
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 // ── 2. System Variables cho Civil 3D ──
                 ed.WriteMessage("\n▸ Đang tối ưu Civil 3D settings...");
 
                 // Tắt auto-update các object phụ thuộc khi thay đổi surface
-                try { AcadApp.SetSystemVariable("OBJECTISOLATIONMODE", 0); optimized++; } catch { }
+                try { AcadApp.SetSystemVariable("OBJECTISOLATIONMODE", 0); optimized++; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 // Multithreaded regeneration
-                try { AcadApp.SetSystemVariable("WHIPTHREAD", 3); optimized++; } catch { }
+                try { AcadApp.SetSystemVariable("WHIPTHREAD", 3); optimized++; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 
                 // Tắt annotation monitor (chậm với nhiều label)
-                try { AcadApp.SetSystemVariable("ANNOMONITOR", 0); optimized++; } catch { }
+                try { AcadApp.SetSystemVariable("ANNOMONITOR", 0); optimized++; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 
                 // Tối ưu undo - giảm memory footprint
-                try { AcadApp.SetSystemVariable("UNDOCTL", 1); optimized++; } catch { }
+                try { AcadApp.SetSystemVariable("UNDOCTL", 1); optimized++; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 
                 // Tắt selection cycling (chậm với file phức tạp)  
-                try { AcadApp.SetSystemVariable("SELECTIONCYCLING", 0); optimized++; } catch { }
+                try { AcadApp.SetSystemVariable("SELECTIONCYCLING", 0); optimized++; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 // ── 3. Cleanup Orphaned Data ──
                 ed.WriteMessage("\n▸ Đang dọn Regapps...");
@@ -430,7 +430,7 @@ namespace MyFirstProject
                     doc.SendStringToExecute("-PURGE R * N ", true, false, false);
                     optimized++;
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 ed.WriteMessage($"\n◎ Đã tối ưu nâng cao xong! ({optimized} cài đặt đã áp dụng)");
                 ed.WriteMessage("\n  💡 Tip: Gõ CTDS_TurboMode để bật chế độ hiệu suất tối đa");

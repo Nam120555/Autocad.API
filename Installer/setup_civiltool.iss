@@ -4,10 +4,12 @@
 ; =====================================================================
 
 #define AppName      "Bo Cong Cu Civil 3D - NXSOFT"
-#define AppVersion   "1.1.0"
+#ifndef AppVersion
+  #define AppVersion "1.2.0"
+#endif
 #define AppPublisher "Huynh Ngoc Nam"
 #define AppURL       "Namhuynh1205@gmail.com"
-#define SourceDir    "..\MyFirstProject\bin\Debug"
+#define SourceDir    "..\MyFirstProject\bin\Release"
 #define OutputDir    "..\..\Civil_Tool_Installer"
 #define BundleName   "MyFirstProject.bundle"
 
@@ -44,6 +46,9 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 english.WelcomeLabel1=Chao mung ban den voi trinh cai dat [bold]{#AppName}[/bold]
 english.WelcomeLabel2=Phan mem nay se tu dong tich hop bo cong cu vao AutoCAD Civil 3D tren may tinh cua ban.%n%nKhuyen nghi tat AutoCAD truoc khi tien hanh cai dat.
 english.FinishedLabel=Cai dat [name] da hoan tat. Tu nay Plugin se tu dong load khi ban mo AutoCAD.
+
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\Contents"
 
 [Files]
 ; Copy file PackageContents vao goc cua thu muc .bundle

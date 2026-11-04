@@ -107,7 +107,7 @@ namespace MyFirstProject
                 }
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void InitializeUI()
@@ -755,7 +755,7 @@ namespace MyFirstProject
                 }
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
     }
 

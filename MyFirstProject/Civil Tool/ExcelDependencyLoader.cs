@@ -63,7 +63,7 @@ namespace MyFirstProject
                             byte[] bytes = File.ReadAllBytes(dllPath);
                             Assembly.Load(bytes);
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                 }
 

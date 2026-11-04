@@ -126,7 +126,7 @@ namespace MyFirstProject
                 File.WriteAllText(ConfigPath, json);
                 _cache = config;
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         public static void ClearCache() => _cache = null;
@@ -182,7 +182,7 @@ namespace MyFirstProject
                         if (style.Name.Equals(styleName, StringComparison.OrdinalIgnoreCase))
                             return id;
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
             }
             return firstId;
@@ -542,7 +542,7 @@ namespace MyFirstProject
                     idx++;
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             cmbSite.SelectedIndex = selectedSiteIdx;
             cmbSite.SelectedIndexChanged += (s, e) =>
             {
@@ -630,10 +630,10 @@ namespace MyFirstProject
                         }
                         idx++;
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             cmb.SelectedIndex = selectedIdx;
 

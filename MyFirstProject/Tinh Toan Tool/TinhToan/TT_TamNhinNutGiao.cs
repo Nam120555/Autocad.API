@@ -114,7 +114,7 @@ namespace TinhToan
                 lblResult.Text = $"{sa:F1} × {sb:F1} m";
                 pnlCanvas?.Invalidate();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void PnlCanvas_Paint(object? sender, PaintEventArgs e)

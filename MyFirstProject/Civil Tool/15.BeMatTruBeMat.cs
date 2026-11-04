@@ -358,7 +358,7 @@ namespace MyFirstProject
                                     // Kiểm tra các thuộc tính của material
                                     A.Ed.WriteMessage($"\n          Type: {material.GetType().Name}");
                                 }
-                                catch { }
+                                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                             }
                         }
 
@@ -560,7 +560,7 @@ namespace MyFirstProject
 
                                 // 2. SectionPoints
                                 List<Point3d> points = new();
-                                try { foreach (SectionPoint pt in section.SectionPoints) points.Add(pt.Location); } catch { }
+                                try { foreach (SectionPoint pt in section.SectionPoints) points.Add(pt.Location); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                                 A.Ed.WriteMessage($"\n║ 2. SỐ ĐIỂM (SectionPoints):    {points.Count,25} điểm ║");
 
@@ -609,7 +609,7 @@ namespace MyFirstProject
                                 break;
                             }
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                         break;
                     }
                 }
@@ -713,7 +713,7 @@ namespace MyFirstProject
                                     A.Ed.WriteMessage($"\n  │ {slName,-14} │ {shortName,-28} │ {area,12:F4} │ {totalAreas[name],10:F4} │");
                                 }
                             }
-                            catch { }
+                            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                         }
                         prevStation = sl.Station;
                     }
@@ -857,7 +857,7 @@ namespace MyFirstProject
                         materials.Add(matInfo);
                     }
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
 
             // Lấy và sắp xếp SampleLines theo lý trình
@@ -929,7 +929,7 @@ namespace MyFirstProject
                                         if (pt.Location.Y > maxElevation) maxElevation = pt.Location.Y;
                                     }
                                 }
-                                catch { }
+                                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                                 
                                 // Tạo MaterialSectionData với đầy đủ thông tin
                                 MaterialSectionData sectionData = new()
@@ -969,7 +969,7 @@ namespace MyFirstProject
                             }
                         }
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 // Tính khối lượng từ trắc ngang trước đến trắc ngang này

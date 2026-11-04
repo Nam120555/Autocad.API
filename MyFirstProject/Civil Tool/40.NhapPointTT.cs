@@ -447,7 +447,7 @@ namespace MyFirstProject
                     try {
                         var ps = tr.GetObject(psId, OpenMode.ForRead) as PointStyle;
                         if (ps != null) cboPointStyle.Items.Add(ps.Name);
-                    } catch { } // Bỏ qua folder hoặc item lỗi
+                    } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); } // Bỏ qua folder hoặc item lỗi
                 }
                 cboPointStyle.SelectedIndex = 0;
                 if (!string.IsNullOrEmpty(currentPointStyle) && cboPointStyle.Items.Contains(currentPointStyle))
@@ -464,7 +464,7 @@ namespace MyFirstProject
                         var ls = tr.GetObject(lsId, OpenMode.ForRead) as LabelStyle;
                         if (ls != null) cboLabelStyle.Items.Add(ls.Name);
                     }
-                } catch { }
+                } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 cboLabelStyle.SelectedIndex = 0;
                 if (!string.IsNullOrEmpty(currentLabelStyle) && cboLabelStyle.Items.Contains(currentLabelStyle))
@@ -472,7 +472,7 @@ namespace MyFirstProject
 
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void LoadBlockList()
@@ -1289,7 +1289,7 @@ namespace MyFirstProject
                     {
                         pointStyleId = civilDoc.Styles.PointStyles[pointStyleName];
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 // Lấy Label Style ID
@@ -1300,7 +1300,7 @@ namespace MyFirstProject
                     {
                         labelStyleId = civilDoc.Styles.LabelStyles.PointLabelStyles.LabelStyles[labelStyleName];
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 int created = 0;
@@ -1368,7 +1368,7 @@ namespace MyFirstProject
                             pg.Update();
                         }
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 // Cập nhật tất cả Point Groups
@@ -1376,7 +1376,7 @@ namespace MyFirstProject
                 {
                     civilDoc.PointGroups.UpdateAllPointGroups();
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 tr.Commit();
 

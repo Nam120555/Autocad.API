@@ -416,7 +416,7 @@ namespace MyFirstProject.ExcelModule
                         killed++;
                     }
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 finally
                 {
                     proc.Dispose();
@@ -443,7 +443,7 @@ namespace MyFirstProject.ExcelModule
                     Marshal.ReleaseComObject(comObject);
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
     }
 }

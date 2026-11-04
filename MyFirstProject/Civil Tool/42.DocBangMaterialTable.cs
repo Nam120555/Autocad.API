@@ -683,7 +683,7 @@ namespace MyFirstProject
                             materials.Add((mat.Name, matList.Guid, mat.Guid, matList.Name ?? "Unnamed", qtype));
                         }
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 if (materials.Count == 0)
@@ -844,7 +844,7 @@ namespace MyFirstProject
                         return 2; // Title + Header → Data từ hàng 2
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             return 1; // Mặc định: Header ở hàng 0, Data từ hàng 1
         }
@@ -932,7 +932,7 @@ namespace MyFirstProject
                     data.Rows.Add(rowData);
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             return data;
         }
@@ -998,7 +998,7 @@ namespace MyFirstProject
                 Clipboard.SetText(sb.ToString());
                 A.Ed.WriteMessage("\n📋 Đã copy dữ liệu vào Clipboard! Dán (Ctrl+V) vào Excel.");
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
     }
 }

@@ -140,7 +140,7 @@ namespace MyFirstProject.Acad_Tool
                         }
                     }
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 list.Add(item);
             }
@@ -278,7 +278,7 @@ namespace MyFirstProject.Acad_Tool
                 {
                     db.DetachXref(btrId);
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 return (true, $"✓ Gộp [{xrefName}] thành công qua cơ chế Deep Embedding (Vượt qua lỗi eDuplicateRecordName/Civil 3D styles)");
             }
@@ -322,7 +322,7 @@ namespace MyFirstProject.Acad_Tool
 
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             return purged;
         }
 
@@ -911,7 +911,7 @@ namespace MyFirstProject.Acad_Tool
                     AcadApp.SetSystemVariable("PROXYNOTICE", 0); // Tắt thông báo proxy che màn hình
                     AcadApp.SetSystemVariable("FILEDIA", 0); // Tắt dialog file để nhận đường dẫn qua dòng lệnh
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 // Bước 2: Tự động dọn dẹp rác & sửa lỗi database nếu được yêu cầu
                 if (autoPurge)

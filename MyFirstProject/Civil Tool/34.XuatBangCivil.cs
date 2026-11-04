@@ -400,7 +400,7 @@ namespace MyFirstProject
 
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             if (textItems.Count == 0) return data;
 

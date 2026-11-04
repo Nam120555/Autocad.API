@@ -265,7 +265,7 @@ namespace MyFirstProject
                                     else if (obj is BlockReference br)
                                     {
                                         var subObjs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
-                                        try { br.Explode(subObjs); } catch { }
+                                        try { br.Explode(subObjs); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                                         foreach (Autodesk.AutoCAD.DatabaseServices.DBObject subObj in subObjs)
                                         {
                                             if (subObj is Hatch subH) uniqueLayers.Add(subH.Layer);
@@ -275,7 +275,7 @@ namespace MyFirstProject
                                     obj.Dispose();
                                 }
                             }
-                            catch { }
+                            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                         }
                     }
 
@@ -315,7 +315,7 @@ namespace MyFirstProject
                                 }
                             }
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                 }
             }
@@ -729,7 +729,7 @@ namespace MyFirstProject
                         {
                             // Level đệ quy 1: nếu nổ ra cục Block (rất hay gặp trên Civil3D)
                             var subObjs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
-                            try { br.Explode(subObjs); } catch { }
+                            try { br.Explode(subObjs); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                             foreach (Autodesk.AutoCAD.DatabaseServices.DBObject subObj in subObjs)
                             {
                                 if (subObj is Hatch subH)
@@ -743,7 +743,7 @@ namespace MyFirstProject
                         obj.Dispose(); // Dọn rác
                     }
                 }
-                catch { } // Bỏ qua lỗi đồ họa
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); } // Bỏ qua lỗi đồ họa
             }
             return map;
         }
@@ -1150,7 +1150,7 @@ namespace MyFirstProject
             {
                 System.Windows.Forms.Clipboard.SetText(sb.ToString());
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         // ═══════════════════════════════════════════════════════════

@@ -1,10 +1,11 @@
-// ==============================================================================
+﻿// ==============================================================================
 // AUTO LOADER - Tự động load DLL khi AutoCAD khởi động
 // ==============================================================================
 using System;
 using System.IO;
 using System.Linq;
 using Autodesk.AutoCAD.Runtime;
+using MyFirstProject.Core;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 [assembly: ExtensionApplication(typeof(MyFirstProject.CivilToolAutoLoader))]
@@ -22,7 +23,9 @@ namespace MyFirstProject
         {
             // Load trước các DLL phụ thuộc ClosedXML (ExcelNumberFormat, ...)
             // Dùng Assembly.Load(byte[]) — cách duy nhất hoạt động trong AutoCAD .NET 8
-            ExcelDependencyLoader.EnsureLoaded();
+            NxLog.Info($"===== Khởi động {AppInfo.ProductName} v{AppInfo.Version} =====");
+            try { ExcelDependencyLoader.EnsureLoaded(); }
+            catch (System.Exception ex) { NxLog.Error(ex, "Nạp thư viện Excel"); }
 
             // Đăng ký sự kiện khi document/editor sẵn sàng
             AcadApp.Idle += OnApplicationIdle;
@@ -40,12 +43,13 @@ namespace MyFirstProject
 
                 // ── 1. Hiển thị thông báo ──
                 doc.Editor.WriteMessage("\n╔══════════════════════════════════════════════════════════╗");
-                doc.Editor.WriteMessage("\n║           CIVIL TOOL đã được load thành công!            ║");
-                doc.Editor.WriteMessage("\n║  DESIGNED BY HUYNH NGOC NAM / TRAFFIC ENGINEER           ║");
-                doc.Editor.WriteMessage("\n║  SĐT: 0378584154                                         ║");
+                doc.Editor.WriteMessage($"\n║  {AppInfo.ProductName} v{AppInfo.Version} đã được load thành công!".PadRight(59) + "║");
+                doc.Editor.WriteMessage($"\n║  DESIGNED BY {AppInfo.AuthorName} / {AppInfo.AuthorRole}".PadRight(59) + "║");
+                doc.Editor.WriteMessage($"\n║  SĐT: {AppInfo.AuthorPhone}".PadRight(59) + "║");
                 doc.Editor.WriteMessage("\n║  Gõ 'CT' để mở Taskbar | 'show_menu' để tạo Ribbon       ║");
                 doc.Editor.WriteMessage("\n║  Gõ 'CT_DanhSachLenh' để xem danh sách lệnh              ║");
                 doc.Editor.WriteMessage("\n║  Gõ 'NX' để mở HỘP LỆNH (tìm & chạy lệnh nhanh)          ║");
+                doc.Editor.WriteMessage("\n║  Gõ 'CT_LOG' để mở thư mục log khi cần hỗ trợ            ║");
                 doc.Editor.WriteMessage("\n╚══════════════════════════════════════════════════════════╝\n");
 
                 // ── 3. Tự động tạo Ribbon menu ──
@@ -60,9 +64,13 @@ namespace MyFirstProject
                         ApplyAliases(config.CommandAliases);
                     }
                 }
-                catch { }
+                catch (System.Exception ex)
+                {
+                    NxLog.Error(ex, "Tạo Ribbon / nạp lệnh tắt");
+                    doc.Editor.WriteMessage($"\n[CIVIL TOOL] Không tạo được Ribbon: {ex.Message}. Gõ CT_LOG để xem chi tiết.\n");
+                }
             }
-            catch { }
+            catch (System.Exception ex) { NxLog.Error(ex, "Khởi động Civil Tool"); }
         }
 
         /// <summary>
@@ -74,8 +82,7 @@ namespace MyFirstProject
             {
                 if (aliases == null || aliases.Count == 0) return;
                 
-                string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CivilTool");
-                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                string folder = AppInfo.DataFolder;
                 
                 string lspPath = Path.Combine(folder, "aliases.lsp");
                 
@@ -95,7 +102,7 @@ namespace MyFirstProject
                     doc.SendStringToExecute($"(load \"{escapedPath}\")\n", true, false, false);
                 }
             }
-            catch { /* Skip errors */ }
+            catch (System.Exception ex) { NxLog.Error(ex, "Áp dụng lệnh tắt"); }
         }
 
 

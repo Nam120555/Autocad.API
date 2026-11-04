@@ -177,7 +177,7 @@ namespace MyFirstProject
                 }
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void InitializeUI()
@@ -601,7 +601,7 @@ namespace MyFirstProject
 
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             OnAlignmentSelectionChanged();
         }
@@ -674,7 +674,7 @@ namespace MyFirstProject
 
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void OnModeChanged()
@@ -714,7 +714,7 @@ namespace MyFirstProject
                     }
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             // Hiện lại form
             this.Show();
@@ -954,7 +954,7 @@ namespace MyFirstProject
                     }
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             return stations.Distinct().OrderBy(s => s).ToList();
         }

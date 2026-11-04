@@ -109,7 +109,7 @@ namespace MyFirstProject.UI
                     LinkBehavior = LinkBehavior.HoverUnderline,
                     Location = new Point(96, 20)
                 };
-                lnkCopy.LinkClicked += (s, e) => { try { Clipboard.SetText(title + "\r\n" + message + "\r\n\r\n" + details); } catch { } };
+                lnkCopy.LinkClicked += (s, e) => { try { Clipboard.SetText(title + "\r\n" + message + "\r\n\r\n" + details); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); } };
                 footer.Controls.Add(lnk);
                 footer.Controls.Add(lnkCopy);
 

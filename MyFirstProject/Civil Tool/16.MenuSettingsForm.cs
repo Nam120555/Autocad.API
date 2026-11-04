@@ -294,7 +294,7 @@ namespace MyFirstProject
                 string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(GetConfigFilePath(), json);
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         public static TaskbarMenuConfig LoadSavedConfig()
@@ -309,7 +309,7 @@ namespace MyFirstProject
                     if (cfg != null && cfg.CivilGroups.Count > 0)
                         return cfg;
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
             return CreateDefaultConfig();
         }

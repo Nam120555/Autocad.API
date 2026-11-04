@@ -200,7 +200,7 @@ namespace MyFirstProject
                 Document doc = AcadApp.DocumentManager.MdiActiveDocument;
                 doc.SendStringToExecute($"{commandName}\n", true, false, false);
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         #region Static Methods
@@ -456,7 +456,7 @@ namespace MyFirstProject
                         Document doc = AcadApp.DocumentManager.MdiActiveDocument;
                         doc.SendStringToExecute($"{cmdName}\n", true, false, false);
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     this.Show();
                 }
             }

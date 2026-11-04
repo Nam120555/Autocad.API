@@ -1022,7 +1022,7 @@ namespace MyFirstProject
                             System.Windows.Forms.Clipboard.SetText(clipboardText);
                             A.Ed.WriteMessage("\n✅ Đã copy kết quả ra clipboard!");
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                 }
 
@@ -1269,7 +1269,7 @@ namespace MyFirstProject
                         A.Ed.WriteMessage($"\n\n✅ Đã xuất file: {saveFileDialog.FileName}");
 
                         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(saveFileDialog.FileName) { UseShellExecute = true }); }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                 }
 
@@ -1373,7 +1373,7 @@ namespace MyFirstProject
                                 }
                             }
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                 }
 
@@ -1618,7 +1618,7 @@ namespace MyFirstProject
                     
                     // Mở file
                     try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(saveFileDialog.FileName) { UseShellExecute = true }); }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 tr.Commit();
@@ -1722,7 +1722,7 @@ namespace MyFirstProject
                                 rightLength = Math.Max(0, maxX);           // Từ tim ra phải
                             }
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                         // Thêm chi tiết
                         info.Details.Add(new SectionDetailData
@@ -1749,7 +1749,7 @@ namespace MyFirstProject
                             }
                         }
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 // Thêm Material Sections
@@ -1798,7 +1798,7 @@ namespace MyFirstProject
                                                 rightLength = Math.Max(0, maxX);
                                             }
                                         }
-                                        catch { }
+                                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                                         // Thêm chi tiết Material Section
                                         info.Details.Add(new SectionDetailData
@@ -1827,10 +1827,10 @@ namespace MyFirstProject
                                     }
                                 }
                             }
-                            catch { }
+                            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                         }
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 sectionInfos.Add(info);
@@ -2187,11 +2187,11 @@ namespace MyFirstProject
                                 }
                             }
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         /// <summary>
@@ -2726,7 +2726,7 @@ namespace MyFirstProject
                         // A.Ed.WriteMessage($"\n  Material: '{material.Name}', QuantityType: {material.QuantityType}");
                     }
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
 
             // Lấy danh sách SampleLine và sắp xếp theo lý trình
@@ -2784,7 +2784,7 @@ namespace MyFirstProject
                                     
                                     // Đếm số điểm trong section
                                     int pointCount = 0;
-                                    try { pointCount = section.SectionPoints.Count; } catch { }
+                                    try { pointCount = section.SectionPoints.Count; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                                     
                                     // Log chi tiết cho debugging
                                     if (isFirst)
@@ -2846,7 +2846,7 @@ namespace MyFirstProject
                                             if (pt.Location.Y > maxElevation) maxElevation = pt.Location.Y;
                                         }
                                     }
-                                    catch { }
+                                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                                     
                                     // Tạo và lưu MaterialSectionDetail
                                     MaterialSectionDetail detail = new()
@@ -2950,7 +2950,7 @@ namespace MyFirstProject
                                 }
                             }
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                 }
                 catch (System.Exception ex)
@@ -3116,7 +3116,7 @@ namespace MyFirstProject
                     shoelaceArea = CalculateSectionArea(section);
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             
             // Chọn diện tích theo phương pháp
             return method switch
@@ -3206,7 +3206,7 @@ namespace MyFirstProject
                             }
                         }
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
                 
                 // Duyệt qua từng SampleLine
@@ -3264,7 +3264,7 @@ namespace MyFirstProject
                                 catch { continue; }
                             }
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                     
                     // Nếu không tìm thấy SectionView, bỏ qua sample line này
@@ -3335,7 +3335,7 @@ namespace MyFirstProject
                             tr.AddNewlyCreatedDBObject(pline, true);
                             totalDrawn++;
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                 }
             }
@@ -4118,7 +4118,7 @@ namespace MyFirstProject
                         materials.Add((material.Name, listGuid, material.Guid));
                     }
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
 
             // Sắp xếp SampleLines theo lý trình
@@ -4193,14 +4193,14 @@ namespace MyFirstProject
                                             detail.MaxElevation = maxY;
                                         }
                                     }
-                                    catch { }
+                                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                                     statInfo.MaterialDetails[materialName] = detail;
                                 }
                             }
                         }
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 stats.Add(statInfo);

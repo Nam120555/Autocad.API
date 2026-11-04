@@ -6,7 +6,7 @@ namespace MyFirstProject
 {
     public static class FormSignatureHelper
     {
-        private const string SignatureText = "●  DESIGNED BY HUYNH NGOC NAM / TRAFFIC ENGINEER   |   SĐT: 0378584154";
+        private static string SignatureText => MyFirstProject.Core.AppInfo.Signature + "   |   v" + MyFirstProject.Core.AppInfo.Version;
 
         public static void AddSignature(Form form)
         {

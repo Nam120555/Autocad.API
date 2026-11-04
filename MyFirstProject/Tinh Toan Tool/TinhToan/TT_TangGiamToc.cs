@@ -127,7 +127,7 @@ namespace TinhToan
                 lblLn.Text = $"{ln:F2} m"; lblLv_calc.Text = $"{lv_calc:F2} m"; lblLv_select.Text = $"{lv:F2} m"; lblL.Text = $"{l:F2} m";
                 pnlCanvas?.Invalidate();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void PnlCanvas_Paint(object? sender, PaintEventArgs e)

@@ -196,7 +196,7 @@ namespace MyFirstProject.UI
             _btnFav = NxTheme.CreateButton("☆ Yêu thích", false, 112);
             _btnFav.Click += (s, e) => { if (Selected is NxCommandItem it) ToggleFavorite(it); };
             var btnCopy = NxTheme.CreateButton("⧉ Sao chép", false, 104);
-            btnCopy.Click += (s, e) => { if (Selected is NxCommandItem it) { try { Clipboard.SetText(it.Name); } catch { } } };
+            btnCopy.Click += (s, e) => { if (Selected is NxCommandItem it) { try { Clipboard.SetText(it.Name); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); } } };
             var btnRun = NxTheme.CreateButton("▶  Chạy lệnh", true, 124);
             btnRun.Click += (s, e) => RunSelected();
             _detail.Controls.AddRange(new Control[] { _btnFav, btnCopy, btnRun });
@@ -545,7 +545,7 @@ namespace MyFirstProject.UI
 
         private static void SetCue(TextBox tb, string cue)
         {
-            try { SendMessage(tb.Handle, 0x1501 /*EM_SETCUEBANNER*/, (IntPtr)1, cue); } catch { }
+            try { SendMessage(tb.Handle, 0x1501 /*EM_SETCUEBANNER*/, (IntPtr)1, cue); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         /// <summary>Lưu Yêu thích / Gần đây tại %AppData%\CivilTool\CommandCenter.json</summary>
@@ -564,7 +564,7 @@ namespace MyFirstProject.UI
                     if (File.Exists(FilePath))
                         return JsonSerializer.Deserialize<CenterSettings>(File.ReadAllText(FilePath)) ?? new CenterSettings();
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 return new CenterSettings();
             }
 
@@ -575,7 +575,7 @@ namespace MyFirstProject.UI
                     Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
                     File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
         }
     }

@@ -396,7 +396,7 @@ namespace MyFirstProject.OutLook
             finally
             {
                 // Xóa file tạm
-                try { File.Delete(tempPath); } catch { }
+                try { File.Delete(tempPath); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
         }
 
@@ -421,13 +421,13 @@ namespace MyFirstProject.OutLook
                         if (record != null)
                             results.Add(record);
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                     // Giải phóng bộ nhớ cho file lớn
-                    try { msg.ClearContents(); } catch { }
+                    try { msg.ClearContents(); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             // Duyệt subfolder
             try
@@ -437,7 +437,7 @@ namespace MyFirstProject.OutLook
                     ProcessFolder(subFolder, currentPath, sourceLabel, results, ed);
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             // Progress mỗi 5000 email
             if (results.Count > 0 && results.Count % 5000 == 0)
@@ -473,12 +473,12 @@ namespace MyFirstProject.OutLook
                 if (string.IsNullOrEmpty(senderName))
                     senderName = msg.From ?? "";
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
-            try { subject = msg.Subject ?? ""; } catch { }
-            try { receivedTime = msg.ReceivedTime; } catch { }
-            try { sentTime = msg.SubmittedTime; } catch { }
-            try { hasAttachment = msg.HasAttachments; } catch { }
+            try { subject = msg.Subject ?? ""; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
+            try { receivedTime = msg.ReceivedTime; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
+            try { sentTime = msg.SubmittedTime; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
+            try { hasAttachment = msg.HasAttachments; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             try
             {
                 var imp = msg.Importance;
@@ -492,7 +492,7 @@ namespace MyFirstProject.OutLook
                     };
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             // Người nhận To / CC - sử dụng Recipients.To và Recipients.Cc
             string toList = "";
@@ -509,13 +509,13 @@ namespace MyFirstProject.OutLook
                         ccList = string.Join("; ", ccRecips.Select(r => r.DisplayName ?? r.Address ?? ""));
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             // Fallback: dùng msg.To và msg.Cc (string properties)
             if (string.IsNullOrEmpty(toList))
-                try { toList = msg.To ?? ""; } catch { }
+                try { toList = msg.To ?? ""; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             if (string.IsNullOrEmpty(ccList))
-                try { ccList = msg.Cc ?? ""; } catch { }
+                try { ccList = msg.Cc ?? ""; } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             // Xác định ngày/giờ
             DateTime? dateObj = receivedTime ?? sentTime;

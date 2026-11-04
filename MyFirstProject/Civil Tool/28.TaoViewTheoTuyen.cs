@@ -141,7 +141,7 @@ namespace MyFirstProject
                 }
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void InitializeUI()
@@ -545,7 +545,7 @@ namespace MyFirstProject
                 }
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void BtnAddRange_Click(object? sender, EventArgs e)
@@ -828,7 +828,7 @@ namespace MyFirstProject
                     AngleRad = angle
                 });
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void BtnExecute_Click(object? sender, EventArgs e)
@@ -1077,7 +1077,7 @@ namespace MyFirstProject
                     }
                     trDel.Commit();
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
 
             // ── Tạo khung polyline theo BATCH ──
@@ -1157,7 +1157,7 @@ namespace MyFirstProject
                                 created++;
                                 progress.MeterProgress();
                             }
-                            catch { }
+                            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                         }
 
                         tr.Commit();
@@ -1389,7 +1389,7 @@ namespace MyFirstProject
                 }
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         /// <summary>

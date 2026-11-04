@@ -266,7 +266,7 @@ namespace TinhToan
                     pnlCanvas2D.Invalidate();
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void ExportReport(bool isPdf)
@@ -318,7 +318,7 @@ namespace TinhToan
             float cy = pnlCanvas2D.Height / 2f;
 
             double hsRate = 8.0; 
-            try { hsRate = Math.Max(5, Math.Min(cx, cy) / 60.0); } catch { }
+            try { hsRate = Math.Max(5, Math.Min(cx, cy) / 60.0); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             float r_chon = (float)(CurrentRadius * hsRate);
             float wRoad = 0; float wDpc = 0; float wVh = 0;

@@ -145,7 +145,7 @@ namespace MyFirstProject
                 }
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void LoadSurfaces()
@@ -194,7 +194,7 @@ namespace MyFirstProject
 
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             // Cập nhật ComboBox columns trong DataGridView
             UpdateSurfaceColumns();
@@ -666,7 +666,7 @@ namespace MyFirstProject
                 foreach (SectionPoint pt in section.SectionPoints)
                     pts.Add((pt.Location.X, pt.Location.Y));
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             return pts.OrderBy(p => p.Item1).ToList();
         }
 
@@ -866,14 +866,14 @@ namespace MyFirstProject
 
                 var thread = new System.Threading.Thread(() =>
                 {
-                    try { Clipboard.SetText(sb.ToString()); } catch { }
+                    try { Clipboard.SetText(sb.ToString()); } catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 });
                 thread.SetApartmentState(System.Threading.ApartmentState.STA);
                 thread.Start();
                 thread.Join(2000);
                 A.Ed.WriteMessage("\n📋 Đã copy vào Clipboard! Dán (Ctrl+V) vào Excel.");
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         // ═══════════════════════════════════════════════════════════

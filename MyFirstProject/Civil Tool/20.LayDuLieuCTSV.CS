@@ -178,7 +178,7 @@ namespace MyFirstProject
                             materialInfo.Add((material.Name, listName, listGuid, material.Guid));
                         }
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 if (materialInfo.Count == 0)
@@ -276,7 +276,7 @@ namespace MyFirstProject
                             tr.AddNewlyCreatedDBObject(pline, true);
                             totalDrawn++;
                         }
-                        catch { }
+                        catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                     }
                 }
             }
@@ -388,10 +388,10 @@ namespace MyFirstProject
                             });
                         }
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             return result;
         }

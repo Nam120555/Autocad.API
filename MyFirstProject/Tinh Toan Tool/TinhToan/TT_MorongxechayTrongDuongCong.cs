@@ -133,7 +133,7 @@ namespace TinhToan
                 lblVnutVal.Text = $"{v_nut:F2} km/h"; lblRminVal.Text = $"{r_min:F2} m"; lblEVal.Text = $"{e_req:F2} m";
                 pnlCanvas?.Invalidate();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void PnlCanvas_Paint(object? sender, PaintEventArgs e)

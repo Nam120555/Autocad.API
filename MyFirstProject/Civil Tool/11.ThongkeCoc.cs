@@ -769,14 +769,14 @@ namespace MyFirstProject
                     if (profileTN != null)
                         caoDoTN = profileTN.ElevationAt(sampleLine.Station);
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 try
                 {
                     if (profileTK != null)
                         caoDoTK = profileTK.ElevationAt(sampleLine.Station);
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 CocInfo cocInfo = new()
                 {

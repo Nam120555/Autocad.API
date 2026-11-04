@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ApplicationPackage SchemaVersion="1.0" AppVersion="1.1.0" Name="MyFirstProject Civil Tool" Description="Bo Cong Cu Tu Dong Hoa Cho Civil 3D" Author="Huynh Ngoc Nam">
+<!-- Version duoc build.ps1 tu dong cap nhat theo <Version> trong MyFirstProject.csproj -->
+<ApplicationPackage SchemaVersion="1.0" AutodeskProduct="AutoCAD" ProductType="Application" AppVersion="1.2.0" Name="MyFirstProject Civil Tool" Description="Bo Cong Cu Tu Dong Hoa Cho Civil 3D" Author="Huynh Ngoc Nam" ProductCode="{DA4B24B3-D7F4-44C9-8802-A62E8F18579C}">
   <CompanyDetails Name="Huynh Ngoc Nam" Email="Namhuynh1205@gmail.com" />
   <Components>
-    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" />
-    <ComponentEntry AppName="MyFirstProject" Version="1.1.0" ModuleName="./Contents/MyFirstProject.dll" AppDescription="Civil Tool Extensions" LoadOnAutoCADStartup="True" />
+    <!-- SeriesMin R25.0 = AutoCAD 2025 (.NET 8) tro len: khong nap vao ban 2024 tro ve (.NET Framework) de tranh crash -->
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R25.0" />
+    <ComponentEntry AppName="MyFirstProject" Version="1.2.0" ModuleName="./Contents/MyFirstProject.dll" AppDescription="Civil Tool Extensions" LoadOnAutoCADStartup="True" />
   </Components>
 </ApplicationPackage>

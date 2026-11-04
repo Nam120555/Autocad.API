@@ -288,7 +288,7 @@ namespace MyFirstProject
                 UpdateCombo(cboColY, colItems, lastCol >= 3 ? 3 : 0);
                 UpdateCombo(cboColZ, colItems, lastCol >= 4 ? 4 : 0);
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void UpdateCombo(ComboBox cbo, List<string> items, int selectedIndex)

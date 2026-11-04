@@ -34,6 +34,7 @@ namespace MyFirstProject.Helpers
             }
             catch (System.Exception ex)
             {
+                MyFirstProject.Core.NxLog.Error(ex, $"Lệnh {commandName}");
                 ShowErrorDialog(commandName, ex);
             }
             finally
@@ -52,7 +53,7 @@ namespace MyFirstProject.Helpers
                 // Hộp thông báo lỗi UI Pro (có nút "Chi tiết" + "Sao chép" để gửi hỗ trợ)
                 MyFirstProject.UI.NxMessageBox.Error(
                     $"Lỗi tại lệnh {commandName}",
-                    ex.Message + "\n\nVui lòng liên hệ hỗ trợ kỹ thuật nếu lỗi vẫn tiếp diễn.",
+                    ex.Message + "\n\nChi tiết đã được ghi vào log (gõ CT_LOG để mở).\nVui lòng liên hệ hỗ trợ kỹ thuật nếu lỗi vẫn tiếp diễn.",
                     ex.ToString());
 
                 // Ghi thêm log chi tiết ra Editor

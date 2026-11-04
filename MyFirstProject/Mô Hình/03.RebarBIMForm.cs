@@ -603,7 +603,7 @@ namespace MyFirstProject.MoHinh
                 double weight = qty * len * (0.006165 * dia * dia) / 1000.0;
                 row.Cells[7].Value = weight.ToString("N1");
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void UpdateSummaryStats()

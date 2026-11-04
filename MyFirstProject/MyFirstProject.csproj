@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <NoWarn>$(NoWarn);1705;CS1705;NU1701;CA1416</NoWarn>
     <WarningsNotAsErrors>1705;CS1705</WarningsNotAsErrors>
@@ -23,11 +23,26 @@
     <Compile Remove="NetReload\obj\**;NetReload\bin\**" />
   </ItemGroup>
 
+  <!-- ===== Thong tin phien ban: CHI SUA O DAY khi phat hanh ===== -->
+  <PropertyGroup>
+    <Version>1.2.0</Version>
+    <Product>Civil Tool - NXSOFT</Product>
+    <AssemblyTitle>Civil Tool - Bo cong cu tu dong hoa Civil 3D</AssemblyTitle>
+    <Company>Huynh Ngoc Nam</Company>
+    <Authors>Huynh Ngoc Nam</Authors>
+    <Copyright>Copyright (c) Huynh Ngoc Nam</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <Optimize>true</Optimize>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
   <PropertyGroup>
     <UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>
     <AssemblyName>MyFirstProject</AssemblyName>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
@@ -46,16 +61,5 @@
     <PackageReference Include="SixLabors.Fonts" Version="1.0.1" />
     <PackageReference Include="RBush" Version="4.0.0" />
     <PackageReference Include="XstReader.Api" Version="1.0.6" />
-  </ItemGroup>
-
-  <ItemGroup Condition="Exists('C:\Program Files\Autodesk\AutoCAD 2027\AcCui.dll')">
-    <Reference Include="AcCui">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2027\AcCui.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="AdWindows">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2027\AdWindows.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
 </Project>

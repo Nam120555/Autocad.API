@@ -185,7 +185,7 @@ namespace MyFirstProject
                         sampleLineStyles.Add(style.Name);
                     }
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 // Load SampleLine Label Styles
                 try
@@ -196,11 +196,11 @@ namespace MyFirstProject
                         labelStyles.Add(style.Name);
                     }
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void InitializeUI()
@@ -899,7 +899,7 @@ namespace MyFirstProject
                 ApplyNamingConvention(alInfo, stations, specialCurveStations);
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         /// <summary>
@@ -937,7 +937,7 @@ namespace MyFirstProject
                 }
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             return curves;
         }
 
@@ -1010,7 +1010,7 @@ namespace MyFirstProject
 
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             return dict;
         }
 
@@ -1258,7 +1258,7 @@ namespace MyFirstProject
                         CreateSamplelineWithWidth(tr, tempName, slgId, alignment, station, form.BeRongTrai, form.BeRongPhai);
                         created++;
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 // Rename theo quy cách
@@ -1335,7 +1335,7 @@ namespace MyFirstProject
                         CreateSamplelineWithWidth(tr, listTenCoc[i], slgId, alignment, listLyTrinh[i], form.BeRongTrai, form.BeRongPhai);
                         created++;
                     }
-                    catch { }
+                    catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
                 }
 
                 A.Ed.WriteMessage($"\n✅ Đã phát sinh {created}/{listTenCoc.Count} cọc từ bảng trên tuyến {alignment.Name}");
@@ -1534,7 +1534,7 @@ namespace MyFirstProject
                         }
                     }
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
 
             // 2. Tạo Label Group nếu có chọn Label Style
@@ -1558,7 +1558,7 @@ namespace MyFirstProject
                         SampleLineLabelGroup.Create(slgId, labelStyleId);
                     }
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
             }
         }
 

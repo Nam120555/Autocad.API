@@ -690,10 +690,7 @@ namespace MyFirstProject.Extensions
                     
 
                 }
-                catch
-                {
-
-                }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
             }
             return pointOnAlignmentId;

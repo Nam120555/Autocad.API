@@ -177,7 +177,7 @@ namespace MyFirstProject
                     cboPointGroup.SelectedIndex = 0;
                 tr.Commit();
             }
-            catch { }
+            catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
         }
 
         private void BtnPreview_Click(object? sender, EventArgs e)
@@ -354,7 +354,7 @@ namespace MyFirstProject
                 {
                     civilDoc.PointGroups.UpdateAllPointGroups();
                 }
-                catch { }
+                catch (global::System.Exception __nxEx) { global::MyFirstProject.Core.NxLog.Swallow(__nxEx); }
 
                 tr.Commit();
                 ed.WriteMessage($"\n✅ Đã đổi tên thành công {count} CogoPoints.");
