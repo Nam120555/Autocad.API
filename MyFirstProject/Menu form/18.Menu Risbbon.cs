@@ -113,34 +113,6 @@ namespace MyFirstProject
 
     public class Autocad
     {
-        [CommandMethod("ShowForm")]
-        public static void ShowForm()
-        {
-            TestForm frmTest = new();
-            frmTest.Show();
-        }
-
-        [CommandMethod("AdskGreeting")]
-        public static void AdskGreeting()
-        {
-            Document? acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument ?? throw new InvalidOperationException("No active document found.");
-            Database? acCurDb = acDoc.Database ?? throw new InvalidOperationException("No database found for the active document.");
-
-            using Transaction acTrans = acCurDb.TransactionManager.StartTransaction();
-            BlockTable acBlkTbl = (BlockTable)acTrans.GetObject(acCurDb.BlockTableId, OpenMode.ForRead) ?? throw new InvalidOperationException("BlockTable could not be retrieved.");
-            BlockTableRecord acBlkTblRec = (BlockTableRecord)acTrans.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) ?? throw new InvalidOperationException("BlockTableRecord could not be retrieved.");
-
-            using (MText objText = new())
-            {
-                objText.Location = new Autodesk.AutoCAD.Geometry.Point3d(2, 2, 0);
-                objText.Contents = "Greetings, Welcome to AutoCAD .NET";
-                objText.TextStyleId = acCurDb.Textstyle;
-                acBlkTblRec.AppendEntity(objText);
-                acTrans.AddNewlyCreatedDBObject(objText, true);
-            }
-            acTrans.Commit();
-        }
-
         [CommandMethod("show_menu")]
         public static void ShowMenu()
         {

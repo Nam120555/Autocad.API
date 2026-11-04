@@ -1193,7 +1193,7 @@ namespace MyFirstProject
         {
             // ─── Form ──────────────────────────────────────────
             InitBaseTheme("PHÁT SINH CỌC", 780, 720);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             var header = CreateHeader("PHÁT SINH CỌC");
             this.Controls.Add(header);

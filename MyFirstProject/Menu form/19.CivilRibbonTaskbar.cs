@@ -11,6 +11,7 @@ using Autodesk.AutoCAD.Runtime;
 using Autodesk.Windows;
 
 using AcadApplication = Autodesk.AutoCAD.ApplicationServices.Application;
+using WColor = System.Windows.Media.Color;
 using AcadException = Autodesk.AutoCAD.Runtime.Exception;
 
 [assembly: CommandClass(typeof(MyFirstProject.CivilRibbonTaskbar))]
@@ -19,20 +20,36 @@ namespace MyFirstProject
 {
     /// <summary>
     /// Civil Ribbon Taskbar - Thiết kế hiện đại theo phong cách Civil 3D
-    /// Gộp tất cả lệnh Civil + ACAD vào 1 tab duy nhất
+    /// Chia lệnh thành 3 tab riêng: Civil N / CAD N / Tính toán N
     /// </summary>
     public class CivilRibbonTaskbar
     {
-        // ═══ Bảng màu Navy thống nhất ═══
-        private static readonly System.Windows.Media.Color PrimaryBlue = System.Windows.Media.Color.FromRgb(27, 42, 74);      // #1B2A4A Navy đậm
-        private static readonly System.Windows.Media.Color LightBlue = System.Windows.Media.Color.FromRgb(210, 220, 235);     // Highlight nhạt
-        private static readonly System.Windows.Media.Color DarkBlue = System.Windows.Media.Color.FromRgb(16, 28, 52);         // Navy tối
-        private static readonly System.Windows.Media.Color AccentBlue = System.Windows.Media.Color.FromRgb(46, 74, 122);      // #2E4A7A Navy vừa
-        private static readonly System.Windows.Media.Color AccentTeal = System.Windows.Media.Color.FromRgb(46, 74, 122);      // Dùng Navy thay Teal
-        private static readonly System.Windows.Media.Color SoftGray = System.Windows.Media.Color.FromRgb(122, 122, 122);      // Xám
-        
-        // Số lệnh featured (hiện nút lớn) cho mỗi panel
-        private const int FEATURED_COUNT = 1;
+        // ═══ Bảng màu thanh tiêu đề panel — chuyển dần cam → đỏ → tím → xanh → lá (kiểu Visual Infra) ═══
+        private static readonly WColor[] PanelPalette =
+        {
+            Hex("#C8781E"), // cam
+            Hex("#B8312F"), // đỏ
+            Hex("#C2185B"), // hồng đậm
+            Hex("#A0279E"), // tím hồng
+            Hex("#7B3FC4"), // tím
+            Hex("#5A3DB5"), // chàm
+            Hex("#2462C2"), // xanh dương
+            Hex("#1E88B4"), // xanh biển
+            Hex("#12A0A0"), // xanh ngọc
+            Hex("#1E9E5A"), // xanh lá
+            Hex("#3E9E2E"), // lá mạ
+            Hex("#7A9A1A"), // ô liu
+        };
+        private static readonly WColor SystemPanelColor = Hex("#3E9E2E");
+
+        // ═══ Bố cục panel ═══
+        private const int MAX_ALL_LARGE = 3;        // panel ≤ 3 lệnh: toàn bộ là nút lớn
+        private const int SPLIT_THRESHOLD = 4;      // nhóm con > 4 lệnh: gộp thành split button
+        private const int SMALL_ROWS = 3;           // số nút nhỏ mỗi cột
+        private const int MAX_VISIBLE_COLUMNS = 2;  // số cột nút nhỏ hiển thị; còn lại vào panel mở rộng ▾
+
+        private static readonly CivilRibbonCommandHandler SharedHandler = new CivilRibbonCommandHandler();
+
 
         [CommandMethod("CIVIL_RIBBON")]
         public static void ShowCivilRibbon()
@@ -52,14 +69,20 @@ namespace MyFirstProject
                     }
                 }
 
+                // Xóa cache icon để áp dụng theme sáng/tối hiện tại
+                CivilIconLibrary.ClearCache();
+
                 // Xóa tab cũ nếu có
                 RemoveExistingTabs(ribbon);
 
                 // Load config đã lưu (từ MenuSettingsForm)
                 var config = MenuSettingsForm.LoadSavedConfig();
 
-                // Gộp tất cả vào 1 tab duy nhất
-                CreateSingleCivilTab(ribbon, config);
+                // Chia thành 3 tab: Civil / CAD / Tính toán
+                CreateCivilTabs(ribbon, config);
+
+                // Tạo thêm Tab Tính Toán độc lập
+                // TinhToan.TT_RibbonCommands.ShowCalcRibbon();
 
                 var ed = AcadApplication.DocumentManager.MdiActiveDocument?.Editor;
                 ed?.WriteMessage("\n Civil Ribbon đã sẵn sàng!");
@@ -73,7 +96,7 @@ namespace MyFirstProject
 
         private static void RemoveExistingTabs(RibbonControl ribbon)
         {
-            var tabIds = new[] { "CivilTool.MainTab", "CivilTool.AcadTab", "MyFirstProject.C3DTab", "MyFirstProject.AcadTab" };
+            var tabIds = new[] { TAB_CIVIL, TAB_CAD, TAB_CALC, "MyFirstProject.C3DTab", "MyFirstProject.AcadTab" };
             foreach (var id in tabIds)
             {
                 var existing = ribbon.Tabs.FirstOrDefault(t => t.Id == id);
@@ -82,744 +105,392 @@ namespace MyFirstProject
             }
         }
 
+
         /// <summary>
-        /// Gộp tất cả Civil + ACAD groups vào 1 tab duy nhất
+        /// Chia lệnh thành 3 tab ribbon riêng:
+        ///   • "Civil N"     — các nhóm lệnh Civil 3D (bề mặt, tuyến, trắc dọc, trắc ngang, cọc, khối lượng...)
+        ///   • "CAD N"       — các nhóm lệnh AutoCAD (đo lường, chỉnh sửa, layout)
+        ///   • "Tính toán N" — các bảng tính thiết kế (nhóm "Tính Toán", lệnh TT_...)
+        /// Mỗi panel có thanh tiêu đề màu riêng; mỗi tab có panel "Hệ thống" ở cuối.
         /// </summary>
-        private static void CreateSingleCivilTab(RibbonControl ribbon, MenuConfig config)
+        private static void CreateCivilTabs(RibbonControl ribbon, MenuConfig config)
         {
-            RibbonTab tab = new RibbonTab
+            var civilGroups = new List<MenuGroupItem>();
+            var calcGroups = new List<MenuGroupItem>();
+            foreach (var g in config.CivilGroups)
+                (IsCalculationGroup(g) ? calcGroups : civilGroups).Add(g);
+            var cadGroups = config.AcadGroups.Where(g => !IsCalculationGroup(g)).ToList();
+            calcGroups.AddRange(config.AcadGroups.Where(IsCalculationGroup));
+
+            // ── Tab CIVIL ──
+            var civilTab = CreateTab(ribbon, "Civil N", TAB_CIVIL);
+            int ci = 0;
+            AddCivilPanel(civilTab, "Hộp lệnh", "UTILITY", new List<(string Command, string Label, string SubIcon)>
             {
-                Title = "Civil N", // Changed from Civil Tool to Civil N
-                Id = "CivilTool.MainTab"
-            };
+                ("NX", "Hộp lệnh NX", "UTILITY"),
+                ("CT_DemoHopThoai", "Hộp thoại mẫu", "SETTINGS"),
+            }, PanelPalette[ci++ % PanelPalette.Length]);
+            AddGroupPanels(civilTab, civilGroups, ref ci);
+            AddSystemPanel(civilTab);
+
+            // ── Tab CAD ──
+            if (cadGroups.Count > 0)
+            {
+                var cadTab = CreateTab(ribbon, "CAD N", TAB_CAD);
+                int ki = 0;
+                AddGroupPanels(cadTab, cadGroups, ref ki);
+                AddSystemPanel(cadTab);
+            }
+
+            // ── Tab TÍNH TOÁN ──
+            if (calcGroups.Count > 0)
+            {
+                var calcTab = CreateTab(ribbon, "Tính toán N", TAB_CALC);
+                int ti = 0;
+                AddGroupPanels(calcTab, calcGroups, ref ti);
+                AddSystemPanel(calcTab);
+            }
+
+            civilTab.IsActive = true;
+        }
+
+        private const string TAB_CIVIL = "CivilTool.MainTab";
+        private const string TAB_CAD = "CivilTool.AcadTab";
+        private const string TAB_CALC = "CivilTool.CalcTab";
+
+        private static RibbonTab CreateTab(RibbonControl ribbon, string title, string id)
+        {
+            var tab = new RibbonTab { Title = title, Id = id };
             ribbon.Tabs.Add(tab);
+            return tab;
+        }
 
-            // Thêm tất cả Civil groups
-            foreach (var group in config.CivilGroups)
+        private static void AddGroupPanels(RibbonTab tab, IEnumerable<MenuGroupItem> groups, ref int colorIndex)
+        {
+            foreach (var group in groups)
             {
-                if (group.Commands.Count == 0) continue;
-                var cmds = group.Commands.Select(c => (c.Command, c.Label, c.SubIcon)).ToList();
-                AddCivilPanel(tab, group.GroupName, group.IconType, cmds);
+                var cmds = group.Commands
+                    .Where(c => c.Command == "---" || c.IsEnabled)
+                    .Select(c => (c.Command, c.Label, c.SubIcon))
+                    .ToList();
+                if (!cmds.Any(c => c.Command != "---" && !string.IsNullOrWhiteSpace(c.Command))) continue;
+                AddCivilPanel(tab, group.GroupName, group.IconType, cmds, PanelPalette[colorIndex++ % PanelPalette.Length]);
             }
+        }
 
-            // Thêm tất cả ACAD groups vào cùng tab
-            foreach (var group in config.AcadGroups)
+        private static void AddSystemPanel(RibbonTab tab)
+        {
+            AddCivilPanel(tab, "Hệ thống", "ACCOUNT", new List<(string Command, string Label, string SubIcon)>
             {
-                if (group.Commands.Count == 0) continue;
-                var cmds = group.Commands.Select(c => (c.Command, c.Label, c.SubIcon)).ToList();
-                AddCivilPanel(tab, group.GroupName, group.IconType, cmds);
-            }
-
-            tab.IsActive = true;
+                ("CT_Palette", "Toolspace N", "LAYOUT"),
+                ("CIVIL_RIBBON", "Tải lại Ribbon", "RELOAD"),
+                ("CT_MENU_SETTINGS", "Cài đặt Menu", "SETTINGS"),
+                ("CT_DanhSachLenh", "Danh sách lệnh", "TABLE"),
+                ("CT_DoiIcon", "Đổi icon lệnh", "EDIT"),
+            }, SystemPanelColor);
         }
 
         /// <summary>
-        /// Tạo panel theo đúng phong cách Civil 3D:
-        /// ┌─────────────────────────┐
-        /// │  [LARGE ICON]           │
-        /// │  Lệnh đầu tiên ★       │  ← Nút LỚN (execute trực tiếp)
-        /// │─────────────────────────│
-        /// │  [▼] Tất cả lệnh...    │  ← SplitButton LIST (dropdown giống Civil 3D)
-        /// └─────────────────────────┘
-        ///  Panel Title
+        /// Nhóm thuộc tab Tính toán: tên nhóm chứa "Tính toán" / "Tinh toan" / "Calc",
+        /// hoặc phần lớn lệnh bắt đầu bằng "TT_".
+        /// </summary>
+        internal static bool IsCalculationGroup(MenuGroupItem g)
+        {
+            string name = RemoveDiacritics(g.GroupName ?? "").ToLowerInvariant();
+            if (name.Contains("tinh toan") || name.Contains("calc")) return true;
+            var real = g.Commands.Where(c => c.Command != "---" && !string.IsNullOrWhiteSpace(c.Command)).ToList();
+            return real.Count > 0 && real.Count(c => c.Command.StartsWith("TT_", StringComparison.OrdinalIgnoreCase)) * 2 > real.Count;
+        }
+
+        internal static string RemoveDiacritics(string text)
+        {
+            var normalized = text.Normalize(System.Text.NormalizationForm.FormD);
+            var sb = new System.Text.StringBuilder(normalized.Length);
+            foreach (char ch in normalized)
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                    sb.Append(ch);
+            return sb.ToString().Normalize(System.Text.NormalizationForm.FormC).Replace('đ', 'd').Replace('Đ', 'D');
+        }
+
+        /// <summary>
+        /// Dựng panel theo phong cách Visual Infra / Civil 3D:
+        /// ┌──────────────────────────────────────────────────────┐
+        /// │ [ICON LỚN] [ICON LỚN▾] │ ▪ Lệnh nhỏ   │ ▪ Lệnh nhỏ    │
+        /// │  Lệnh       Nhóm lệnh  │ ▪ Lệnh nhỏ ▾ │ ▪ Lệnh nhỏ    │
+        /// │  chính      phụ        │ ▪ Lệnh nhỏ   │ ▪ Lệnh nhỏ    │
+        /// ├──────────────────────────────────────────────────────┤
+        /// │████████████ Tên panel ▾ (thanh màu riêng) ███████████│
+        /// └──────────────────────────────────────────────────────┘
+        ///  - Lệnh có ⭐ (hoặc lệnh đầu tiên) → nút LỚN
+        ///  - Nhóm con đầu tiên có > 4 lệnh → nút LỚN dạng split (nhớ lệnh dùng gần nhất)
+        ///  - Các nhóm con khác → cột 3 nút nhỏ; nhóm > 4 lệnh gộp thành split nhỏ
+        ///  - Quá 2 cột → phần còn lại đưa vào panel mở rộng (mũi tên ▾ ở tiêu đề)
         /// </summary>
         public static void AddCivilPanel(RibbonTab tab, string title, string iconType,
-            List<(string Command, string Label, string SubIcon)> commands)
+            List<(string Command, string Label, string SubIcon)> commands, WColor? panelColor = null)
         {
-            if (commands.Count == 0) return;
+            if (commands == null || commands.Count == 0) return;
 
-            // Tách separator và lệnh thực
-            var allItems = commands; // giữ lại separator để biết nhóm
-            var realCmds = commands.Where(c => c.Command != "---" && !string.IsNullOrEmpty(c.Command)).ToList();
+            WColor accent = panelColor ?? PanelPalette[tab.Panels.Count % PanelPalette.Length];
+
+            var sections = SplitSections(commands);
+            var realCmds = sections.SelectMany(s => s).ToList();
             if (realCmds.Count == 0) return;
 
-            RibbonPanelSource panelSource = new RibbonPanelSource { Title = title };
-            RibbonPanel panel = new RibbonPanel { Source = panelSource };
-
-            // ═══ 1. NÚT LỚN - Lệnh đầu tiên (starred / featured) ═══
-            // Chọn lệnh featured: ưu tiên lệnh có ⭐ trong tên, nếu không dùng lệnh đầu tiên
-            var featured = realCmds.FirstOrDefault(c => c.Label.Contains("⭐"));
-            if (string.IsNullOrEmpty(featured.Command))
-                featured = realCmds[0];
-
-            var remainingCmds = realCmds.Where(c => c.Command != featured.Command).ToList();
-
-            // Nút lớn chính
-            RibbonButton largeBtn = new RibbonButton
+            RibbonPanelSource source = new RibbonPanelSource { Title = title };
+            RibbonPanel panel = new RibbonPanel
             {
-                Text = featured.Label.Replace("⭐ ", "").Replace("⭐", "").Trim(),
-                ShowText = true,
-                ShowImage = true,
-                Image = CreateCivilIcon(featured.SubIcon, 16),
-                LargeImage = CreateCivilIcon(featured.SubIcon, 32),
-                Size = RibbonItemSize.Large,
-                Orientation = System.Windows.Controls.Orientation.Vertical,
-                CommandHandler = new CivilRibbonCommandHandler(),
-                Tag = featured.Command,
-                CommandParameter = featured.Command,
-                ToolTip = new RibbonToolTip
-                {
-                    Title = featured.Label.Replace("⭐ ", ""),
-                    Content = $"Lệnh: {featured.Command}",
-                    Command = featured.Command
-                }
+                Source = source,
+                CustomPanelTitleBarBackground = CreateTitleBarBrush(accent),
+                CustomSlideOutPanelBackground = CreateSlideOutBrush(accent),
             };
-            panelSource.Items.Add(largeBtn);
 
-            // ═══ 2. SPLITBUTTON DROPDOWN KIỂU CIVIL 3D ═══
-            // Chỉ tạo nếu còn lệnh khác
-            if (remainingCmds.Count > 0)
+            // ── Panel ít lệnh: toàn bộ là nút lớn ──
+            if (realCmds.Count <= MAX_ALL_LARGE)
             {
-                // Tên của SplitButton = tên panel (giống Civil 3D)
-                RibbonSplitButton splitBtn = new RibbonSplitButton
-                {
-                    Text = title,
-                    ShowText = true,
-                    ShowImage = true,
-                    Image = CreateCivilIcon(iconType, 16),
-                    LargeImage = CreateCivilIcon(iconType, 32),
-                    Size = RibbonItemSize.Large,
-                    Orientation = System.Windows.Controls.Orientation.Vertical,
-                    ListStyle = RibbonSplitButtonListStyle.List,  // ← KIỂU LIST GIỐNG CIVIL 3D
-                    IsSplit = false,                               // Chỉ dropdown, không split
-                    ToolTip = new RibbonToolTip
-                    {
-                        Title = title,
-                        Content = $"Tất cả lệnh {title}",
-                    }
-                };
+                foreach (var c in realCmds)
+                    source.Items.Add(CreateLargeButton(c, title, accent));
+                tab.Panels.Add(panel);
+                return;
+            }
 
-                // Thêm từng lệnh vào dropdown list
-                // Giải thích Civil 3D style: mỗi item = 1 dòng với icon nhỏ + tên lệnh
-                foreach (var (command, label, subIcon) in allItems)
-                {
-                    if (command == "---")
-                    {
-                        // Separator giữa nhóm lệnh
-                        splitBtn.Items.Add(new RibbonSeparator());
-                        continue;
-                    }
-                    if (command == featured.Command) continue; // Đã có nút lớn rồi
+            // ── 1. Nút lớn chính (⭐ hoặc lệnh đầu tiên) ──
+            var featured = realCmds.FirstOrDefault(c => c.Label.Contains("⭐"));
+            if (string.IsNullOrEmpty(featured.Command)) featured = realCmds[0];
+            source.Items.Add(CreateLargeButton(featured, title, accent));
 
-                    RibbonButton item = new RibbonButton
-                    {
-                        Text = label.Replace("⭐ ", "").Replace("⭐", "").Trim(),
-                        ShowText = true,
-                        ShowImage = true,
-                        Image = CreateCivilIcon(subIcon, 16),
-                        LargeImage = CreateCivilIcon(subIcon, 32),
-                        Size = RibbonItemSize.Standard,
-                        Orientation = System.Windows.Controls.Orientation.Horizontal,
-                        CommandHandler = new CivilRibbonCommandHandler(),
-                        Tag = command,
-                        CommandParameter = command,
-                        ToolTip = new RibbonToolTip
-                        {
-                            Title = label,
-                            Content = $"Lệnh: {command}",
-                            Command = command
-                        }
-                    };
-                    splitBtn.Items.Add(item);
-                }
+            sections = sections
+                .Select(s => s.Where(c => c.Command != featured.Command).ToList())
+                .Where(s => s.Count > 0)
+                .ToList();
 
-                panelSource.Items.Add(splitBtn);
+            // ── 2. Nhóm con lớn đầu tiên → nút lớn dạng split ──
+            var bigSection = sections.FirstOrDefault(s => s.Count > SPLIT_THRESHOLD);
+            if (bigSection != null)
+            {
+                source.Items.Add(CreateSplitButton(bigSection, title, accent, large: true));
+                sections.Remove(bigSection);
+            }
+
+            // ── 3. Các nhóm còn lại → danh sách nút nhỏ / split nhỏ ──
+            var entries = new List<RibbonItem>();
+            foreach (var sec in sections)
+            {
+                if (sec.Count > SPLIT_THRESHOLD)
+                    entries.Add(CreateSplitButton(sec, title, accent, large: false));
+                else
+                    entries.AddRange(sec.Select(c => (RibbonItem)CreateSmallButton(c.Command, c.Label, c.SubIcon, title, accent)));
+            }
+
+            // ── 4. Xếp thành cột 3 nút; quá MAX_VISIBLE_COLUMNS cột thì cho vào panel mở rộng ▾ ──
+            var columns = entries
+                .Select((item, i) => (item, i))
+                .GroupBy(x => x.i / SMALL_ROWS)
+                .Select(g => g.Select(x => x.item).ToList())
+                .ToList();
+
+            int visibleCols = bigSection != null ? MAX_VISIBLE_COLUMNS - 1 : MAX_VISIBLE_COLUMNS;
+            for (int col = 0; col < columns.Count; col++)
+            {
+                if (col == visibleCols)
+                    source.Items.Add(new RibbonPanelBreak());
+                source.Items.Add(CreateColumn(columns[col]));
             }
 
             tab.Panels.Add(panel);
         }
 
-        /// <summary>
-        /// Tạo nút nhỏ chuẩn (Standard size, icon 12px + text bên cạnh)
-        /// </summary>
-        private static RibbonButton CreateSmallButton(string command, string label, string subIcon)
+        // ═══════════════════════ Các hàm dựng nút ═══════════════════════
+
+        private static List<List<(string Command, string Label, string SubIcon)>> SplitSections(
+            List<(string Command, string Label, string SubIcon)> commands)
         {
+            var result = new List<List<(string Command, string Label, string SubIcon)>>();
+            var current = new List<(string Command, string Label, string SubIcon)>();
+            foreach (var c in commands)
+            {
+                if (c.Command == "---")
+                {
+                    if (current.Count > 0) result.Add(current);
+                    current = new List<(string Command, string Label, string SubIcon)>();
+                    continue;
+                }
+                if (string.IsNullOrWhiteSpace(c.Command)) continue;
+                current.Add(c);
+            }
+            if (current.Count > 0) result.Add(current);
+            return result;
+        }
+
+        /// <summary>Một cột xếp dọc tối đa 3 nút nhỏ</summary>
+        private static RibbonRowPanel CreateColumn(List<RibbonItem> items)
+        {
+            var row = new RibbonRowPanel();
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (i > 0) row.Items.Add(new RibbonRowBreak());
+                row.Items.Add(items[i]);
+            }
+            return row;
+        }
+
+        private static RibbonButton CreateLargeButton((string Command, string Label, string SubIcon) c,
+            string group, WColor accent)
+        {
+            string label = CleanLabel(c.Label);
             return new RibbonButton
             {
-                Text = label,
+                Text = WrapLabel(label),
                 ShowText = true,
                 ShowImage = true,
-                Image = CreateCivilIcon(subIcon, 12),
-                LargeImage = CreateCivilIcon(subIcon, 24),
+                Image = CreateCivilIcon(c.SubIcon, 16, accent),
+                LargeImage = CreateCivilIcon(c.SubIcon, 32, accent),
+                Size = RibbonItemSize.Large,
+                Orientation = System.Windows.Controls.Orientation.Vertical,
+                CommandHandler = SharedHandler,
+                Tag = c.Command,
+                CommandParameter = c.Command,
+                ToolTip = CreateToolTip(label, c.Command, group),
+            };
+        }
+
+        /// <summary>
+        /// Nút nhỏ chuẩn (icon 16px + chữ bên phải). Giữ chữ ký cũ để các file khác vẫn gọi được.
+        /// </summary>
+        private static RibbonButton CreateSmallButton(string command, string label, string subIcon)
+            => CreateSmallButton(command, label, subIcon, "", PanelPalette[0]);
+
+        private static RibbonButton CreateSmallButton(string command, string label, string subIcon,
+            string group, WColor accent)
+        {
+            string clean = CleanLabel(label);
+            return new RibbonButton
+            {
+                Text = clean,
+                ShowText = true,
+                ShowImage = true,
+                Image = CreateCivilIcon(subIcon, 16, accent),
+                LargeImage = CreateCivilIcon(subIcon, 32, accent),
                 Size = RibbonItemSize.Standard,
                 Orientation = System.Windows.Controls.Orientation.Horizontal,
-                CommandHandler = new CivilRibbonCommandHandler(),
+                CommandHandler = SharedHandler,
                 Tag = command,
                 CommandParameter = command,
-                ToolTip = new RibbonToolTip
-                {
-                    Title = label,
-                    Content = $"Lệnh: {command}",
-                    Command = command
-                }
+                ToolTip = CreateToolTip(clean, command, group),
             };
+        }
+
+        /// <summary>
+        /// Split button kiểu "Hiệu chỉnh MSS ▾": bấm phần trên chạy lệnh đang chọn,
+        /// bấm ▾ mở danh sách; lệnh vừa dùng sẽ được nhớ làm lệnh hiển thị.
+        /// </summary>
+        private static RibbonSplitButton CreateSplitButton(List<(string Command, string Label, string SubIcon)> cmds,
+            string group, WColor accent, bool large)
+        {
+            var first = cmds[0];
+            var split = new RibbonSplitButton
+            {
+                Text = CleanLabel(first.Label),
+                ShowText = true,
+                ShowImage = true,
+                Image = CreateCivilIcon(first.SubIcon, 16, accent),
+                LargeImage = CreateCivilIcon(first.SubIcon, 32, accent),
+                Size = large ? RibbonItemSize.Large : RibbonItemSize.Standard,
+                Orientation = large ? System.Windows.Controls.Orientation.Vertical
+                                    : System.Windows.Controls.Orientation.Horizontal,
+                ListStyle = RibbonSplitButtonListStyle.List,
+                IsSplit = true,
+                IsSynchronizedWithCurrentItem = true,
+                CommandHandler = SharedHandler,
+            };
+
+            foreach (var c in cmds)
+                split.Items.Add(CreateSmallButton(c.Command, c.Label, c.SubIcon, group, accent));
+
+            if (split.Items.Count > 0)
+                split.Current = split.Items[0];
+
+            return split;
+        }
+
+        private static RibbonToolTip CreateToolTip(string title, string command, string group)
+        {
+            return new RibbonToolTip
+            {
+                Title = title,
+                Content = string.IsNullOrEmpty(group) ? $"Lệnh: {command}" : $"Nhóm: {group}\nLệnh: {command}",
+                Command = command,
+            };
+        }
+
+        private static string CleanLabel(string label)
+            => (label ?? "").Replace("⭐", "").Trim();
+
+        /// <summary>Ngắt nhãn nút lớn thành 2 dòng tại khoảng trắng gần giữa nhất</summary>
+        private static string WrapLabel(string text)
+        {
+            if (text.Length <= 10 || text.Contains('\n')) return text;
+            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length < 2) return text;
+
+            int best = 1, bestDiff = int.MaxValue;
+            for (int i = 1; i < words.Length; i++)
+            {
+                int left = string.Join(" ", words.Take(i)).Length;
+                int right = string.Join(" ", words.Skip(i)).Length;
+                int diff = Math.Abs(left - right);
+                if (diff < bestDiff) { bestDiff = diff; best = i; }
+            }
+            return string.Join(" ", words.Take(best)) + "\n" + string.Join(" ", words.Skip(best));
+        }
+
+        // ═══════════════════════ Màu sắc ═══════════════════════
+
+        private static WColor Hex(string hex)
+            => (WColor)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+
+        private static WColor Mix(WColor a, WColor b, double t)
+            => WColor.FromRgb(
+                (byte)(a.R + (b.R - a.R) * t),
+                (byte)(a.G + (b.G - a.G) * t),
+                (byte)(a.B + (b.B - a.B) * t));
+
+        private static WColor Lighten(WColor c, double t) => Mix(c, Colors.White, t);
+        private static WColor Darken(WColor c, double t) => Mix(c, Colors.Black, t);
+
+        private static System.Windows.Media.Brush CreateTitleBarBrush(WColor accent)
+        {
+            var brush = new LinearGradientBrush(Lighten(accent, 0.12), Darken(accent, 0.12), 90);
+            brush.Freeze();
+            return brush;
+        }
+
+        private static System.Windows.Media.Brush CreateSlideOutBrush(WColor accent)
+        {
+            // Nền panel mở rộng: phủ nhẹ màu panel để nhận biết đang ở nhóm nào
+            var brush = new SolidColorBrush(WColor.FromArgb(40, accent.R, accent.G, accent.B));
+            brush.Freeze();
+            return brush;
         }
 
         #region Icon Generator - Civil Engineering Theme
 
+        /// <summary>
+        /// Icon chuyên ngành cầu đường — vẽ từ thư viện vector CivilIconLibrary (19.CivilIconLibrary.cs).
+        /// Tự đổi màu theo theme sáng/tối của AutoCAD.
+        /// </summary>
         public static ImageSource CreateCivilIcon(string iconType, int size)
-        {
-            // Tạo icon theo chuẩn ký hiệu kỹ thuật giao thông
-            DrawingVisual visual = new DrawingVisual();
-            using (DrawingContext dc = visual.RenderOpen())
-            {
-                // Gradient brushes cho icon hiện đại
-                var gradBlue = new LinearGradientBrush(PrimaryBlue, DarkBlue, 45);
-                var gradAccent = new LinearGradientBrush(AccentBlue, PrimaryBlue, 90);
-                var gradTeal = new LinearGradientBrush(AccentTeal, System.Windows.Media.Color.FromRgb(0, 130, 120), 45);
-                
-                var brushBlue = new SolidColorBrush(PrimaryBlue);
-                var brushLight = new SolidColorBrush(LightBlue);
-                var brushDark = new SolidColorBrush(DarkBlue);
-                var brushAccent = new SolidColorBrush(AccentBlue);
-                var brushWhite = System.Windows.Media.Brushes.White;
-                var brushRed = new SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 65, 78));
-                var brushGreen = new SolidColorBrush(System.Windows.Media.Color.FromRgb(45, 183, 80));
-                var brushBrown = new SolidColorBrush(System.Windows.Media.Color.FromRgb(155, 100, 50));
-                var brushOrange = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
-                
-                var penBlue = new System.Windows.Media.Pen(brushBlue, size / 10.0);
-                var penDark = new System.Windows.Media.Pen(brushDark, size / 8.0);
-                var penWhite = new System.Windows.Media.Pen(brushWhite, size / 12.0);
-                var penRed = new System.Windows.Media.Pen(brushRed, size / 10.0);
-                var penGreen = new System.Windows.Media.Pen(brushGreen, size / 10.0);
+            => CivilIconLibrary.Render(iconType, size);
 
-                double s = size;
-                double m = s * 0.08; // margin
-
-                switch (iconType.ToUpper())
-                {
-                    case "SURFACE":
-                        // TIN Surface - Lưới tam giác địa hình
-                        dc.DrawLine(penBlue, new System.Windows.Point(m, s * 0.8), new System.Windows.Point(s * 0.35, s * 0.3));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.35, s * 0.3), new System.Windows.Point(s * 0.65, s * 0.5));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.65, s * 0.5), new System.Windows.Point(s - m, s * 0.2));
-                        dc.DrawLine(penBlue, new System.Windows.Point(m, s * 0.8), new System.Windows.Point(s * 0.5, s * 0.7));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.5, s * 0.7), new System.Windows.Point(s - m, s * 0.8));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.35, s * 0.3), new System.Windows.Point(s * 0.5, s * 0.7));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.65, s * 0.5), new System.Windows.Point(s * 0.5, s * 0.7));
-                        // Điểm cao độ
-                        dc.DrawEllipse(brushDark, null, new System.Windows.Point(s * 0.35, s * 0.3), s * 0.05, s * 0.05);
-                        dc.DrawEllipse(brushDark, null, new System.Windows.Point(s * 0.65, s * 0.5), s * 0.05, s * 0.05);
-                        break;
-
-                    case "STATION":
-                        // Lý trình - Cọc Km trên tuyến đường
-                        // Tim tuyến
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 6.0), 
-                            new System.Windows.Point(m, s / 2), new System.Windows.Point(s - m, s / 2));
-                        // Cọc lý trình (ký hiệu gạch vuông góc)
-                        for (double x = s * 0.2; x <= s * 0.8; x += s * 0.2)
-                        {
-                            dc.DrawLine(penDark, new System.Windows.Point(x, s * 0.35), new System.Windows.Point(x, s * 0.65));
-                        }
-                        // Cọc Km chính (lớn hơn)
-                        dc.DrawLine(new System.Windows.Media.Pen(brushDark, size / 6.0), 
-                            new System.Windows.Point(s * 0.5, s * 0.25), new System.Windows.Point(s * 0.5, s * 0.75));
-                        // Mũi tên hướng tuyến
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.85, s * 0.4), new System.Windows.Point(s - m, s / 2));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.85, s * 0.6), new System.Windows.Point(s - m, s / 2));
-                        break;
-
-                    case "ALIGN":
-                        // Đường cong nằm - Horizontal Curve với PI, PC, PT
-                        var alignCurve = new StreamGeometry();
-                        using (var ctx = alignCurve.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(m, s * 0.7), false, false);
-                            ctx.QuadraticBezierTo(
-                                new System.Windows.Point(s * 0.5, s * 0.15), // PI point
-                                new System.Windows.Point(s - m, s * 0.7),
-                                true, true);
-                        }
-                        dc.DrawGeometry(null, new System.Windows.Media.Pen(brushBlue, size / 5.0), alignCurve);
-                        // PI - Điểm giao (tam giác)
-                        dc.DrawEllipse(brushRed, null, new System.Windows.Point(s * 0.5, s * 0.25), s * 0.08, s * 0.08);
-                        // PC, PT - Điểm tiếp đầu/cuối (vuông)
-                        dc.DrawRectangle(brushGreen, null, new System.Windows.Rect(s * 0.12, s * 0.65, s * 0.1, s * 0.1));
-                        dc.DrawRectangle(brushGreen, null, new System.Windows.Rect(s * 0.78, s * 0.65, s * 0.1, s * 0.1));
-                        break;
-
-                    case "CORRIDOR":
-                        // Mặt cắt ngang đường - Road Cross Section
-                        // Nền đường (hình thang)
-                        var roadGeom = new StreamGeometry();
-                        using (var ctx = roadGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(m, s * 0.7), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.2, s * 0.45), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.8, s * 0.45), true, true);
-                            ctx.LineTo(new System.Windows.Point(s - m, s * 0.7), true, true);
-                        }
-                        dc.DrawGeometry(brushLight, penDark, roadGeom);
-                        // Tim đường
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 8.0), 
-                            new System.Windows.Point(s * 0.5, s * 0.45), new System.Windows.Point(s * 0.5, s * 0.7));
-                        // Làn xe (vạch kẻ)
-                        dc.DrawLine(penWhite, new System.Windows.Point(s * 0.35, s * 0.5), new System.Windows.Point(s * 0.35, s * 0.55));
-                        dc.DrawLine(penWhite, new System.Windows.Point(s * 0.65, s * 0.5), new System.Windows.Point(s * 0.65, s * 0.55));
-                        break;
-
-                    case "SECTION":
-                        // Trắc ngang - Cross Section với đào/đắp
-                        // Địa hình tự nhiên (đường gấp khúc màu nâu)
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBrown, size / 10.0), 
-                            new System.Windows.Point(m, s * 0.6), new System.Windows.Point(s * 0.3, s * 0.4));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBrown, size / 10.0), 
-                            new System.Windows.Point(s * 0.3, s * 0.4), new System.Windows.Point(s * 0.5, s * 0.55));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBrown, size / 10.0), 
-                            new System.Windows.Point(s * 0.5, s * 0.55), new System.Windows.Point(s * 0.7, s * 0.35));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBrown, size / 10.0), 
-                            new System.Windows.Point(s * 0.7, s * 0.35), new System.Windows.Point(s - m, s * 0.5));
-                        // Đường thiết kế (đường thẳng màu xanh)
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 6.0), 
-                            new System.Windows.Point(s * 0.15, s * 0.5), new System.Windows.Point(s * 0.85, s * 0.5));
-                        // Mái taluy (gạch chéo)
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.15, s * 0.5), new System.Windows.Point(m, s * 0.7));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.85, s * 0.5), new System.Windows.Point(s - m, s * 0.7));
-                        break;
-
-                    case "GRADING":
-                        // San nền - Lưới ô vuông với cao độ
-                        double g = (s - 2 * m) / 4;
-                        // Vẽ lưới
-                        for (int i = 0; i <= 4; i++)
-                        {
-                            dc.DrawLine(new System.Windows.Media.Pen(brushBlue, 1), 
-                                new System.Windows.Point(m, m + i * g), new System.Windows.Point(s - m, m + i * g));
-                            dc.DrawLine(new System.Windows.Media.Pen(brushBlue, 1), 
-                                new System.Windows.Point(m + i * g, m), new System.Windows.Point(m + i * g, s - m));
-                        }
-                        // Điểm cao độ góc lưới
-                        dc.DrawEllipse(brushDark, null, new System.Windows.Point(m + g, m + g), s * 0.04, s * 0.04);
-                        dc.DrawEllipse(brushDark, null, new System.Windows.Point(m + 2*g, m + 2*g), s * 0.04, s * 0.04);
-                        dc.DrawEllipse(brushDark, null, new System.Windows.Point(m + 3*g, m + g), s * 0.04, s * 0.04);
-                        break;
-
-                    case "PIPE":
-                        // Cống thoát nước - Pipe với hố ga
-                        // Ống cống (hình chữ nhật nghiêng)
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 5.0), 
-                            new System.Windows.Point(m, s * 0.6), new System.Windows.Point(s * 0.4, s * 0.5));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 5.0), 
-                            new System.Windows.Point(s * 0.6, s * 0.5), new System.Windows.Point(s - m, s * 0.4));
-                        // Hố ga (hình vuông)
-                        dc.DrawRectangle(brushDark, penBlue, new System.Windows.Rect(s * 0.4, s * 0.35, s * 0.2, s * 0.3));
-                        // Mũi tên hướng chảy
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.75, s * 0.35), new System.Windows.Point(s * 0.85, s * 0.4));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.75, s * 0.45), new System.Windows.Point(s * 0.85, s * 0.4));
-                        break;
-
-                    case "POINT":
-                        // Điểm đo đạc - Survey Benchmark Symbol
-                        // Tam giác đo đạc
-                        var triangleGeom = new StreamGeometry();
-                        using (var ctx = triangleGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(s / 2, s * 0.15), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.2, s * 0.75), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.8, s * 0.75), true, true);
-                        }
-                        dc.DrawGeometry(null, new System.Windows.Media.Pen(brushBlue, size / 8.0), triangleGeom);
-                        // Tâm điểm
-                        dc.DrawEllipse(brushDark, null, new System.Windows.Point(s / 2, s * 0.55), s * 0.08, s * 0.08);
-                        break;
-
-                    case "UTILITY":
-                        // Tiện ích - Cài đặt (bánh răng)
-                        dc.DrawEllipse(brushBlue, null, new System.Windows.Point(s / 2, s / 2), s * 0.28, s * 0.28);
-                        dc.DrawEllipse(brushWhite, null, new System.Windows.Point(s / 2, s / 2), s * 0.12, s * 0.12);
-                        for (int i = 0; i < 6; i++)
-                        {
-                            double angle = i * Math.PI / 3;
-                            double x1 = s / 2 + s * 0.28 * Math.Cos(angle);
-                            double y1 = s / 2 + s * 0.28 * Math.Sin(angle);
-                            double x2 = s / 2 + s * 0.4 * Math.Cos(angle);
-                            double y2 = s / 2 + s * 0.4 * Math.Sin(angle);
-                            dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 5.0), 
-                                new System.Windows.Point(x1, y1), new System.Windows.Point(x2, y2));
-                        }
-                        break;
-
-                    case "ACCOUNT":
-                        // Tài khoản - User icon
-                        dc.DrawEllipse(brushBlue, null, new System.Windows.Point(s / 2, s * 0.32), s * 0.2, s * 0.2);
-                        var bodyGeom = new StreamGeometry();
-                        using (var ctx = bodyGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(s * 0.2, s * 0.9), true, true);
-                            ctx.QuadraticBezierTo(
-                                new System.Windows.Point(s / 2, s * 0.55),
-                                new System.Windows.Point(s * 0.8, s * 0.9), true, true);
-                        }
-                        dc.DrawGeometry(brushBlue, null, bodyGeom);
-                        break;
-
-                    case "MEASURE":
-                        // Đo lường - Thước đo
-                        dc.DrawRectangle(brushBlue, null, new System.Windows.Rect(m, s * 0.35, s - 2 * m, s * 0.3));
-                        for (int i = 0; i <= 10; i++)
-                        {
-                            double x = m + (s - 2 * m) * i / 10;
-                            double h = i % 5 == 0 ? s * 0.2 : (i % 2 == 0 ? s * 0.12 : s * 0.08);
-                            dc.DrawLine(penWhite, new System.Windows.Point(x, s * 0.35), new System.Windows.Point(x, s * 0.35 + h));
-                        }
-                        break;
-
-                    case "EDIT":
-                        // Chỉnh sửa - Bút vẽ
-                        var pencilGeom = new StreamGeometry();
-                        using (var ctx = pencilGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(s * 0.15, s * 0.85), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.1, s * 0.78), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.72, s * 0.16), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.84, s * 0.22), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.22, s * 0.84), true, true);
-                        }
-                        dc.DrawGeometry(brushBlue, penDark, pencilGeom);
-                        break;
-
-                    case "LAYOUT":
-                        // Layout - Bản vẽ khung
-                        dc.DrawRectangle(null, penBlue, new System.Windows.Rect(m, m, s - 2 * m, s - 2 * m));
-                        dc.DrawRectangle(brushLight, null, new System.Windows.Rect(s * 0.15, s * 0.15, s * 0.5, s * 0.35));
-                        dc.DrawRectangle(brushBlue, null, new System.Windows.Rect(s * 0.15, s * 0.55, s * 0.7, s * 0.3));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.7, s * 0.15), new System.Windows.Point(s * 0.7, s * 0.5));
-                        break;
-
-                    // ===== SUB ICONS cho menu items =====
-                    case "ADD":
-                        dc.DrawEllipse(brushBlue, null, new System.Windows.Point(s / 2, s / 2), s * 0.38, s * 0.38);
-                        dc.DrawLine(new System.Windows.Media.Pen(brushWhite, size / 6.0), 
-                            new System.Windows.Point(s * 0.25, s / 2), new System.Windows.Point(s * 0.75, s / 2));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushWhite, size / 6.0), 
-                            new System.Windows.Point(s / 2, s * 0.25), new System.Windows.Point(s / 2, s * 0.75));
-                        break;
-
-                    case "RENAME":
-                        dc.DrawRectangle(brushLight, penBlue, new System.Windows.Rect(m, s * 0.3, s - 2 * m, s * 0.4));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushDark, 2), 
-                            new System.Windows.Point(s * 0.2, s / 2), new System.Windows.Point(s * 0.6, s / 2));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.7, s * 0.4), new System.Windows.Point(s * 0.7, s * 0.6));
-                        break;
-
-                    case "TABLE":
-                        dc.DrawRectangle(null, penBlue, new System.Windows.Rect(m, m, s - 2 * m, s - 2 * m));
-                        dc.DrawLine(penBlue, new System.Windows.Point(m, s * 0.35), new System.Windows.Point(s - m, s * 0.35));
-                        dc.DrawLine(penBlue, new System.Windows.Point(m, s * 0.55), new System.Windows.Point(s - m, s * 0.55));
-                        dc.DrawLine(penBlue, new System.Windows.Point(m, s * 0.75), new System.Windows.Point(s - m, s * 0.75));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.4, m), new System.Windows.Point(s * 0.4, s - m));
-                        break;
-
-                    case "EXPORT":
-                        // Mũi tên xuất file
-                        dc.DrawRectangle(brushLight, penBlue, new System.Windows.Rect(s * 0.25, m, s * 0.5, s * 0.4));
-                        var arrowGeom = new StreamGeometry();
-                        using (var ctx = arrowGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(s / 2, s * 0.45), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.3, s * 0.65), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.42, s * 0.65), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.42, s * 0.9), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.58, s * 0.9), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.58, s * 0.65), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.7, s * 0.65), true, true);
-                        }
-                        dc.DrawGeometry(brushBlue, null, arrowGeom);
-                        break;
-
-                    case "SYNC":
-                        // Hai mũi tên vòng tròn
-                        dc.DrawEllipse(null, new System.Windows.Media.Pen(brushBlue, size / 7.0), 
-                            new System.Windows.Point(s / 2, s / 2), s * 0.32, s * 0.32);
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 7.0), 
-                            new System.Windows.Point(s * 0.82, s * 0.4), new System.Windows.Point(s * 0.82, s * 0.2));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 7.0), 
-                            new System.Windows.Point(s * 0.82, s * 0.2), new System.Windows.Point(s * 0.68, s * 0.28));
-                        break;
-
-                    case "SETTINGS":
-                        dc.DrawEllipse(brushBlue, null, new System.Windows.Point(s / 2, s / 2), s * 0.32, s * 0.32);
-                        dc.DrawEllipse(brushWhite, null, new System.Windows.Point(s / 2, s / 2), s * 0.15, s * 0.15);
-                        break;
-
-                    case "INFO":
-                        dc.DrawEllipse(brushBlue, null, new System.Windows.Point(s / 2, s / 2), s * 0.38, s * 0.38);
-                        dc.DrawEllipse(brushWhite, null, new System.Windows.Point(s / 2, s * 0.32), s * 0.06, s * 0.06);
-                        dc.DrawRectangle(brushWhite, null, new System.Windows.Rect(s * 0.44, s * 0.45, s * 0.12, s * 0.3));
-                        break;
-
-                    case "DELETE":
-                        dc.DrawEllipse(brushRed, null, new System.Windows.Point(s / 2, s / 2), s * 0.38, s * 0.38);
-                        dc.DrawLine(new System.Windows.Media.Pen(brushWhite, size / 6.0), 
-                            new System.Windows.Point(s * 0.3, s * 0.3), new System.Windows.Point(s * 0.7, s * 0.7));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushWhite, size / 6.0), 
-                            new System.Windows.Point(s * 0.7, s * 0.3), new System.Windows.Point(s * 0.3, s * 0.7));
-                        break;
-
-                    case "CALCULATE":
-                        // Máy tính - Calculator
-                        dc.DrawRectangle(brushBlue, null, new System.Windows.Rect(s * 0.15, m, s * 0.7, s - 2 * m));
-                        dc.DrawRectangle(brushLight, null, new System.Windows.Rect(s * 0.22, s * 0.15, s * 0.56, s * 0.2));
-                        // Các nút
-                        for (int row = 0; row < 3; row++)
-                            for (int col = 0; col < 3; col++)
-                                dc.DrawRectangle(brushWhite, null, 
-                                    new System.Windows.Rect(s * 0.22 + col * s * 0.18, s * 0.42 + row * s * 0.16, s * 0.14, s * 0.12));
-                        break;
-
-                    case "DRAW":
-                        // Đường polyline
-                        var drawGeom = new StreamGeometry();
-                        using (var ctx = drawGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(m, s * 0.75), false, false);
-                            ctx.PolyLineTo(new[] {
-                                new System.Windows.Point(s * 0.3, s * 0.35),
-                                new System.Windows.Point(s * 0.55, s * 0.6),
-                                new System.Windows.Point(s * 0.75, s * 0.25),
-                                new System.Windows.Point(s - m, s * 0.45)
-                            }, true, true);
-                        }
-                        dc.DrawGeometry(null, new System.Windows.Media.Pen(brushBlue, size / 5.0), drawGeom);
-                        break;
-
-                    case "VIEW":
-                        // Mắt - View
-                        var eyeGeom = new StreamGeometry();
-                        using (var ctx = eyeGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(m, s / 2), false, false);
-                            ctx.QuadraticBezierTo(new System.Windows.Point(s / 2, s * 0.2), new System.Windows.Point(s - m, s / 2), true, true);
-                            ctx.QuadraticBezierTo(new System.Windows.Point(s / 2, s * 0.8), new System.Windows.Point(m, s / 2), true, true);
-                        }
-                        dc.DrawGeometry(brushLight, penBlue, eyeGeom);
-                        dc.DrawEllipse(brushBlue, null, new System.Windows.Point(s / 2, s / 2), s * 0.15, s * 0.15);
-                        dc.DrawEllipse(brushDark, null, new System.Windows.Point(s / 2, s / 2), s * 0.07, s * 0.07);
-                        break;
-
-                    case "COPY":
-                        dc.DrawRectangle(brushLight, penBlue, new System.Windows.Rect(m, m, s * 0.55, s * 0.55));
-                        dc.DrawRectangle(brushBlue, penDark, new System.Windows.Rect(s * 0.35, s * 0.35, s * 0.55, s * 0.55));
-                        break;
-
-                    case "MOVE":
-                        // 4 mũi tên
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 6.0), 
-                            new System.Windows.Point(s / 2, s * 0.15), new System.Windows.Point(s / 2, s * 0.85));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 6.0), 
-                            new System.Windows.Point(s * 0.15, s / 2), new System.Windows.Point(s * 0.85, s / 2));
-                        // Mũi tên
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.4, s * 0.25), new System.Windows.Point(s / 2, s * 0.15));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.6, s * 0.25), new System.Windows.Point(s / 2, s * 0.15));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.75, s * 0.4), new System.Windows.Point(s * 0.85, s / 2));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.75, s * 0.6), new System.Windows.Point(s * 0.85, s / 2));
-                        break;
-
-                    case "RELOAD":
-                        // Vòng tròn với mũi tên
-                        dc.DrawEllipse(null, new System.Windows.Media.Pen(brushBlue, size / 5.0), 
-                            new System.Windows.Point(s / 2, s / 2), s * 0.32, s * 0.32);
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 5.0), 
-                            new System.Windows.Point(s * 0.82, s * 0.38), new System.Windows.Point(s * 0.82, s * 0.55));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 5.0), 
-                            new System.Windows.Point(s * 0.65, s * 0.38), new System.Windows.Point(s * 0.82, s * 0.38));
-                        break;
-
-                    // ===== THÊM ICON CHUYÊN NGÀNH GIAO THÔNG =====
-                    case "PROFILE":
-                        // Trắc dọc - Profile View (đường cao độ lên xuống)
-                        var profileGeom = new StreamGeometry();
-                        using (var ctx = profileGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(m, s * 0.7), false, false);
-                            ctx.PolyLineTo(new[] {
-                                new System.Windows.Point(s * 0.2, s * 0.5),
-                                new System.Windows.Point(s * 0.35, s * 0.6),
-                                new System.Windows.Point(s * 0.5, s * 0.35),
-                                new System.Windows.Point(s * 0.7, s * 0.45),
-                                new System.Windows.Point(s - m, s * 0.3)
-                            }, true, true);
-                        }
-                        dc.DrawGeometry(null, new System.Windows.Media.Pen(brushBlue, size / 5.0), profileGeom);
-                        // Đường cơ sở
-                        dc.DrawLine(penDark, new System.Windows.Point(m, s * 0.8), new System.Windows.Point(s - m, s * 0.8));
-                        // Các vạch chia lý trình
-                        for (double x = s * 0.2; x <= s * 0.8; x += s * 0.2)
-                            dc.DrawLine(penDark, new System.Windows.Point(x, s * 0.78), new System.Windows.Point(x, s * 0.82));
-                        break;
-
-                    case "SPIRAL":
-                        // Đường cong chuyển tiếp - Clothoid/Spiral
-                        var spiralGeom = new StreamGeometry();
-                        using (var ctx = spiralGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(m, s * 0.8), false, false);
-                            ctx.BezierTo(
-                                new System.Windows.Point(s * 0.3, s * 0.8),
-                                new System.Windows.Point(s * 0.4, s * 0.5),
-                                new System.Windows.Point(s * 0.5, s * 0.35),
-                                true, true);
-                            ctx.BezierTo(
-                                new System.Windows.Point(s * 0.6, s * 0.2),
-                                new System.Windows.Point(s * 0.8, s * 0.2),
-                                new System.Windows.Point(s - m, s * 0.2),
-                                true, true);
-                        }
-                        dc.DrawGeometry(null, new System.Windows.Media.Pen(brushBlue, size / 5.0), spiralGeom);
-                        // Ký hiệu TS, SC
-                        dc.DrawEllipse(brushGreen, null, new System.Windows.Point(s * 0.15, s * 0.8), s * 0.06, s * 0.06);
-                        dc.DrawEllipse(brushRed, null, new System.Windows.Point(s * 0.5, s * 0.35), s * 0.06, s * 0.06);
-                        break;
-
-                    case "SUPERELEVATION":
-                        // Siêu cao - Độ nghiêng ngang mặt đường
-                        // Mặt đường nghiêng
-                        var superGeom = new StreamGeometry();
-                        using (var ctx = superGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(m, s * 0.6), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.5, s * 0.4), true, true);
-                            ctx.LineTo(new System.Windows.Point(s - m, s * 0.5), true, true);
-                            ctx.LineTo(new System.Windows.Point(s - m, s * 0.7), true, true);
-                            ctx.LineTo(new System.Windows.Point(m, s * 0.8), true, true);
-                        }
-                        dc.DrawGeometry(brushLight, penBlue, superGeom);
-                        // Mũi tên chỉ hướng nghiêng
-                        dc.DrawLine(penDark, new System.Windows.Point(s * 0.3, s * 0.5), new System.Windows.Point(s * 0.45, s * 0.42));
-                        dc.DrawLine(penDark, new System.Windows.Point(s * 0.4, s * 0.38), new System.Windows.Point(s * 0.45, s * 0.42));
-                        dc.DrawLine(penDark, new System.Windows.Point(s * 0.48, s * 0.48), new System.Windows.Point(s * 0.45, s * 0.42));
-                        break;
-
-                    case "CULVERT":
-                        // Cống hộp - Box Culvert
-                        dc.DrawRectangle(brushLight, new System.Windows.Media.Pen(brushDark, size / 8.0), 
-                            new System.Windows.Rect(s * 0.25, s * 0.3, s * 0.5, s * 0.4));
-                        // Nước chảy qua cống
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 6.0), 
-                            new System.Windows.Point(m, s * 0.55), new System.Windows.Point(s * 0.25, s * 0.55));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 6.0), 
-                            new System.Windows.Point(s * 0.75, s * 0.55), new System.Windows.Point(s - m, s * 0.55));
-                        // Mũi tên hướng chảy
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.85, s * 0.48), new System.Windows.Point(s - m, s * 0.55));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.85, s * 0.62), new System.Windows.Point(s - m, s * 0.55));
-                        break;
-
-                    case "BRIDGE":
-                        // Cầu - Bridge
-                        // Mặt cầu
-                        dc.DrawRectangle(brushBlue, penDark, new System.Windows.Rect(m, s * 0.35, s - 2 * m, s * 0.15));
-                        // Trụ cầu
-                        dc.DrawRectangle(brushDark, null, new System.Windows.Rect(s * 0.2, s * 0.5, s * 0.1, s * 0.35));
-                        dc.DrawRectangle(brushDark, null, new System.Windows.Rect(s * 0.7, s * 0.5, s * 0.1, s * 0.35));
-                        // Nước bên dưới
-                        dc.DrawLine(new System.Windows.Media.Pen(brushLight, size / 8.0), 
-                            new System.Windows.Point(m, s * 0.75), new System.Windows.Point(s - m, s * 0.75));
-                        break;
-
-                    case "VOLUME":
-                        // Khối lượng đào đắp - Cut/Fill Volume
-                        // Vùng đào (màu đỏ nhạt)
-                        var cutGeom = new StreamGeometry();
-                        using (var ctx = cutGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(m, s * 0.5), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.4, s * 0.5), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.25, s * 0.25), true, true);
-                            ctx.LineTo(new System.Windows.Point(m, s * 0.35), true, true);
-                        }
-                        dc.DrawGeometry(new SolidColorBrush(System.Windows.Media.Color.FromArgb(150, 220, 53, 69)), null, cutGeom);
-                        // Vùng đắp (màu xanh nhạt)
-                        var fillGeom = new StreamGeometry();
-                        using (var ctx = fillGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(s * 0.6, s * 0.5), true, true);
-                            ctx.LineTo(new System.Windows.Point(s - m, s * 0.5), true, true);
-                            ctx.LineTo(new System.Windows.Point(s - m, s * 0.7), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.75, s * 0.65), true, true);
-                        }
-                        dc.DrawGeometry(new SolidColorBrush(System.Windows.Media.Color.FromArgb(150, 40, 167, 69)), null, fillGeom);
-                        // Đường thiết kế
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 6.0), 
-                            new System.Windows.Point(m, s * 0.5), new System.Windows.Point(s - m, s * 0.5));
-                        break;
-
-                    case "SLOPE":
-                        // Taluy - Mái dốc
-                        var slopeGeom = new StreamGeometry();
-                        using (var ctx = slopeGeom.Open())
-                        {
-                            ctx.BeginFigure(new System.Windows.Point(m, s * 0.8), true, true);
-                            ctx.LineTo(new System.Windows.Point(s * 0.4, s * 0.3), true, true);
-                            ctx.LineTo(new System.Windows.Point(s - m, s * 0.3), true, true);
-                            ctx.LineTo(new System.Windows.Point(s - m, s * 0.8), true, true);
-                        }
-                        dc.DrawGeometry(brushLight, penBlue, slopeGeom);
-                        // Gạch chéo taluy
-                        for (double i = 0; i < 5; i++)
-                        {
-                            double x1 = m + i * (s * 0.3) / 4;
-                            double y1 = s * 0.8 - i * (s * 0.5) / 4;
-                            dc.DrawLine(penBlue, new System.Windows.Point(x1 + s * 0.08, y1 - s * 0.1), new System.Windows.Point(x1, y1));
-                        }
-                        break;
-
-                    case "EXCEL":
-                        // Xuất Excel - Spreadsheet
-                        dc.DrawRectangle(brushGreen, null, new System.Windows.Rect(m, m, s - 2 * m, s - 2 * m));
-                        // Các ô bảng tính
-                        for (int row = 0; row < 4; row++)
-                            for (int col = 0; col < 3; col++)
-                                dc.DrawRectangle(brushWhite, null, 
-                                    new System.Windows.Rect(m + s * 0.08 + col * s * 0.25, m + s * 0.08 + row * s * 0.2, s * 0.2, s * 0.15));
-                        break;
-
-                    case "CAD":
-                        // Xuất CAD - AutoCAD
-                        dc.DrawRectangle(brushDark, null, new System.Windows.Rect(m, m, s - 2 * m, s - 2 * m));
-                        // Chữ DWG
-                        dc.DrawRectangle(brushBlue, null, new System.Windows.Rect(s * 0.15, s * 0.4, s * 0.7, s * 0.25));
-                        break;
-
-                    case "WIDENING":
-                        // Mở rộng đường - Road Widening
-                        dc.DrawLine(new System.Windows.Media.Pen(brushDark, size / 8.0), 
-                            new System.Windows.Point(m, s * 0.4), new System.Windows.Point(s - m, s * 0.4));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushDark, size / 8.0), 
-                            new System.Windows.Point(m, s * 0.6), new System.Windows.Point(s - m, s * 0.6));
-                        // Phần mở rộng (đường đứt)
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 8.0) { DashStyle = System.Windows.Media.DashStyles.Dash }, 
-                            new System.Windows.Point(s * 0.4, s * 0.25), new System.Windows.Point(s - m, s * 0.25));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 8.0) { DashStyle = System.Windows.Media.DashStyles.Dash }, 
-                            new System.Windows.Point(s * 0.4, s * 0.75), new System.Windows.Point(s - m, s * 0.75));
-                        // Vùng mở rộng
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.4, s * 0.25), new System.Windows.Point(s * 0.4, s * 0.4));
-                        dc.DrawLine(penBlue, new System.Windows.Point(s * 0.4, s * 0.6), new System.Windows.Point(s * 0.4, s * 0.75));
-                        break;
-
-                    case "INTERSECTION":
-                        // Nút giao - Intersection
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 5.0), 
-                            new System.Windows.Point(s / 2, m), new System.Windows.Point(s / 2, s - m));
-                        dc.DrawLine(new System.Windows.Media.Pen(brushBlue, size / 5.0), 
-                            new System.Windows.Point(m, s / 2), new System.Windows.Point(s - m, s / 2));
-                        // Bo góc
-                        dc.DrawEllipse(null, penDark, new System.Windows.Point(s / 2, s / 2), s * 0.22, s * 0.22);
-                        break;
-
-                    default:
-                        dc.DrawEllipse(brushBlue, null, new System.Windows.Point(s / 2, s / 2), s * 0.35, s * 0.35);
-                        break;
-                }
-            }
-
-            RenderTargetBitmap rtb = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
-            rtb.Render(visual);
-            return rtb;
-        }
+        /// <summary>
+        /// Giữ chữ ký cũ. Icon dùng màu theo quy ước bản vẽ (đường đỏ, mặt đất nâu, đào/đắp...)
+        /// nên không tô theo màu panel nữa — tham số accent được bỏ qua.
+        /// </summary>
+        public static ImageSource CreateCivilIcon(string iconType, int size, WColor? accent)
+            => CivilIconLibrary.Render(iconType, size);
 
         #endregion
+
 
         // ═══ CIVIL TOOL Commands - theo bảng thống kê ═══
 
@@ -992,11 +663,16 @@ namespace MyFirstProject
 
     }
 
+
     /// <summary>
-    /// Command Handler cho Ribbon buttons
+    /// Command Handler cho Ribbon buttons (kể cả split button).
+    /// Có chống chạy lặp: cùng một lệnh bị gọi 2 lần trong 400ms chỉ chạy 1 lần.
     /// </summary>
     public class CivilRibbonCommandHandler : System.Windows.Input.ICommand
     {
+        private static string? _lastCommand;
+        private static DateTime _lastTime = DateTime.MinValue;
+
         public bool CanExecute(object? parameter) => true;
 
         public event EventHandler? CanExecuteChanged { add { } remove { } }
@@ -1005,24 +681,23 @@ namespace MyFirstProject
         {
             try
             {
-                string? commandToRun = null;
-
-                if (parameter is string cmd)
+                string? commandToRun = parameter switch
                 {
-                    commandToRun = cmd;
-                }
-                else if (parameter is RibbonButton rb)
-                {
-                    commandToRun = rb.CommandParameter as string;
-                }
+                    string cmd => cmd,
+                    RibbonSplitButton sb => (sb.Current as RibbonButton)?.CommandParameter as string,
+                    RibbonButton rb => rb.CommandParameter as string,
+                    _ => null
+                };
 
                 if (string.IsNullOrWhiteSpace(commandToRun)) return;
 
+                var now = DateTime.Now;
+                if (commandToRun == _lastCommand && (now - _lastTime).TotalMilliseconds < 400) return;
+                _lastCommand = commandToRun;
+                _lastTime = now;
+
                 var doc = AcadApplication.DocumentManager.MdiActiveDocument;
-                if (doc != null)
-                {
-                    doc.SendStringToExecute(commandToRun + " ", true, false, true);
-                }
+                doc?.SendStringToExecute(commandToRun + " ", true, false, true);
             }
             catch (System.Exception ex)
             {

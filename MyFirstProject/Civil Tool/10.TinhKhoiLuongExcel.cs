@@ -520,7 +520,6 @@ namespace MyFirstProject
         private Button btnExportExcel = null!;
         private Button btnExportCad = null!;
         private Button btnClose = null!;
-        private FormLabel lblTitle = null!;
 
         // Biến static để lưu instance duy nhất
         private static VolumeTaskbar? _instance;
@@ -1068,7 +1067,7 @@ namespace MyFirstProject
                 var selectedAlign = formChon.SelectedAlignments[0];
 
                 // Mở SampleLineGroup với ForWrite để truy cập SectionViewGroups
-                SampleLineGroup? slg = tr.GetObject(selectedAlign.SampleLineGroupId, AcadDb.OpenMode.ForWrite) as SampleLineGroup;
+                SampleLineGroup? slg = tr.GetObject(selectedAlign.SampleLineGroupId, AcadDb.OpenMode.ForRead) as SampleLineGroup;
                 if (slg == null)
                 {
                     A.Ed.WriteMessage("\n❌ Không thể mở SampleLineGroup.");
@@ -1291,7 +1290,7 @@ namespace MyFirstProject
         {
             List<CrossSectionVolumeData> results = new();
 
-            SampleLineGroup? slg = tr.GetObject(sampleLineGroupId, AcadDb.OpenMode.ForWrite, false, true) as SampleLineGroup;
+            SampleLineGroup? slg = tr.GetObject(sampleLineGroupId, AcadDb.OpenMode.ForRead, false, true) as SampleLineGroup;
             if (slg == null) return results;
 
             Alignment? alignment = tr.GetObject(alignmentId, AcadDb.OpenMode.ForRead) as Alignment;
@@ -1637,7 +1636,7 @@ namespace MyFirstProject
         {
             List<SectionAreaInfo> sectionInfos = new();
 
-            SampleLineGroup? slg = tr.GetObject(sampleLineGroupId, AcadDb.OpenMode.ForWrite, false, true) as SampleLineGroup;
+            SampleLineGroup? slg = tr.GetObject(sampleLineGroupId, AcadDb.OpenMode.ForRead, false, true) as SampleLineGroup;
             if (slg == null) return sectionInfos;
 
             Alignment? alignment = tr.GetObject(alignmentId, AcadDb.OpenMode.ForRead) as Alignment;
@@ -2698,7 +2697,7 @@ namespace MyFirstProject
             List<StakeInfo> stakeInfos = new();
 
             // Mở SampleLineGroup với ForWrite để có thể truy cập MaterialLists
-            SampleLineGroup? slg = tr.GetObject(sampleLineGroupId, AcadDb.OpenMode.ForWrite, false, true) as SampleLineGroup;
+            SampleLineGroup? slg = tr.GetObject(sampleLineGroupId, AcadDb.OpenMode.ForRead, false, true) as SampleLineGroup;
             if (slg == null) return stakeInfos;
 
             Alignment? alignment = tr.GetObject(alignmentId, AcadDb.OpenMode.ForRead) as Alignment;
@@ -4093,7 +4092,7 @@ namespace MyFirstProject
         {
             List<MaterialStatInfo> stats = new();
 
-            SampleLineGroup? slg = tr.GetObject(sampleLineGroupId, AcadDb.OpenMode.ForWrite, false, true) as SampleLineGroup;
+            SampleLineGroup? slg = tr.GetObject(sampleLineGroupId, AcadDb.OpenMode.ForRead, false, true) as SampleLineGroup;
             if (slg == null) return stats;
 
             Alignment? alignment = tr.GetObject(alignmentId, AcadDb.OpenMode.ForRead) as Alignment;
@@ -4737,10 +4736,10 @@ namespace MyFirstProject
                 A.Ed.WriteMessage("\n" + new string('─', 50));
 
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                string safeMatName = string.Join("_", materialName.Split(Path.GetInvalidFileNameChars()));
+                string safeMatName = string.Join("_", materialName.Split(System.IO.Path.GetInvalidFileNameChars()));
                 string fileName = $"KhoiLuong_{safeMatName}_{timestamp}.xlsx";
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string filePath = Path.Combine(desktopPath, fileName);
+                string filePath = System.IO.Path.Combine(desktopPath, fileName);
 
                 using (var workbook = new XLWorkbook())
                 {
@@ -4946,7 +4945,7 @@ namespace MyFirstProject
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 string fileName = $"KhoiLuong_Poly_{materialName}_{timestamp}.xlsx";
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string filePath = Path.Combine(desktopPath, fileName);
+                string filePath = System.IO.Path.Combine(desktopPath, fileName);
 
                 using (var workbook = new XLWorkbook())
                 {

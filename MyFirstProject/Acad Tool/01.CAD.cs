@@ -1,4 +1,4 @@
-﻿// (C) Copyright 2015 by  
+// (C) Copyright 2015 by  
 //
 using System;
 using System.Windows.Forms;
@@ -61,15 +61,13 @@ namespace MyFirstProject
                 }
 
                 //tính tổng data file
-                string formatTong = "0";
-                string str3 = "%<\\AcExpr (";
-                string str4 = ") \\f \" %lu2\">%";
-                foreach (String item in listLengthPolyline)
+                var sb = new StringBuilder("0");
+                foreach (string item in listLengthPolyline)
                 {
-                    formatTong = formatTong + "+" + item;
+                    sb.Append('+').Append(item);
                 }
-                String formatTong_Lite = formatTong[2..];
-                formatTong = formatTong_Lite + "=" + str3 + formatTong + str4 + "m";
+                string formatTong = sb.ToString();
+                formatTong = formatTong[2..] + "=" + "%<\\AcExpr (" + sb.ToString() + ") \\f \" %lu2\">%" + "m";
                 // vẽ text
                 Point3d point = UserInput.GPoint("Chọn vị trí đặt text: \n");
                 LayerTableRecord layer = UtilitiesCAD.CCreateLayer("TinhTong");
@@ -112,14 +110,12 @@ namespace MyFirstProject
                 }
 
                 //tính tổng data file
-                string formatTong = "0";
-                string str3 = "%<\\AcExpr (";
-                string str4 = ") \\f \" %lu2\">%";
-                foreach (String item in listLengthPolyline)
+                var sb = new StringBuilder("0");
+                foreach (string item in listLengthPolyline)
                 {
-                    formatTong = formatTong + "+" + item;
+                    sb.Append('+').Append(item);
                 }
-                formatTong = str3 + formatTong + str4 + "m";
+                string formatTong = "%<\\AcExpr (" + sb.ToString() + ") \\f \" %lu2\">%" + "m";
                 // vẽ text
                 ObjectId textId = UserInput.GDbText("Chọn text cần nhập nội dung: \n");
                 DBText? text = tr.GetObject(textId, OpenMode.ForWrite) as DBText;
@@ -162,14 +158,12 @@ namespace MyFirstProject
                 }
 
                 //tính tổng data file
-                string formatTong = "0";
-                string str3 = "%<\\AcExpr (";
-                string str4 = ") \\f \" %lu2\">%";
-                foreach (String item in listLengthPolyline)
+                var sb = new StringBuilder("0");
+                foreach (string item in listLengthPolyline)
                 {
-                    formatTong = formatTong + "+" + item;
+                    sb.Append('+').Append(item);
                 }
-                formatTong = str3 + formatTong + str4;
+                string formatTong = "%<\\AcExpr (" + sb.ToString() + ") \\f \" %lu2\">%";
                 // vẽ text
                 ObjectId textId = UserInput.GDbText("Chọn text cần nhập nội dung: \n");
                 DBText? text = tr.GetObject(textId, OpenMode.ForWrite) as DBText;
@@ -216,16 +210,12 @@ namespace MyFirstProject
                 }
 
                 //tính tổng data file
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                string formatTong = text.TextString;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                string str3 = "%<\\AcExpr (";
-                string str4 = ") \\f \" %lu2\">%";
-                foreach (String item in listLengthPolyline)
+                var sb = new StringBuilder(text.TextString);
+                foreach (string item in listLengthPolyline)
                 {
-                    formatTong = formatTong + "+" + item;
+                    sb.Append('+').Append(item);
                 }
-                formatTong = str3 + formatTong + str4;
+                string formatTong = "%<\\AcExpr (" + sb.ToString() + ") \\f \" %lu2\">%";
 
                 text.TextString = formatTong;
                 A.Ed.Command("_UPDATEFIELD", textId);
@@ -264,15 +254,13 @@ namespace MyFirstProject
                 }
 
                 //tính tổng data file
-                string formatTong = "0";
-                string str3 = "%<\\AcExpr (";
-                string str4 = ") \\f \" %lu2\">%";
-                foreach (String item in listLengthPolyline)
+                var sb = new StringBuilder("0");
+                foreach (string item in listLengthPolyline)
                 {
-                    formatTong = formatTong + "+" + item;
+                    sb.Append('+').Append(item);
                 }
-                String formatTong_Lite = formatTong[2..];
-                formatTong = formatTong_Lite + "=" + str3 + formatTong + str4 + "m2";
+                string formatTong = sb.ToString();
+                formatTong = formatTong[2..] + "=" + "%<\\AcExpr (" + sb.ToString() + ") \\f \" %lu2\">%" + "m2";
                 // vẽ text
                 MText text = new();
                 Point3d point = UserInput.GPoint("Chọn vị trí đặt text: \n");
@@ -314,14 +302,12 @@ namespace MyFirstProject
                 }
 
                 //tính tổng data file
-                string formatTong = "0";
-                string str3 = "%<\\AcExpr (";
-                string str4 = ") \\f \" %lu2\">%";
-                foreach (String item in listLengthPolyline)
+                var sb = new StringBuilder("0");
+                foreach (string item in listLengthPolyline)
                 {
-                    formatTong = formatTong + "+" + item;
+                    sb.Append('+').Append(item);
                 }
-                formatTong = str3 + formatTong + str4 + "m2";
+                string formatTong = "%<\\AcExpr (" + sb.ToString() + ") \\f \" %lu2\">%" + "m2";
                 // vẽ text
                 ObjectId textId = UserInput.GDbText("Chọn text cần nhập nội dung: \n");
                 DBText? text = tr.GetObject(textId, OpenMode.ForWrite) as DBText;
@@ -364,14 +350,12 @@ namespace MyFirstProject
                 }
 
                 //tính tổng data file
-                string formatTong = "0";
-                string str3 = "%<\\AcExpr (";
-                string str4 = ") \\f \" %lu2\">%";
-                foreach (String item in listLengthPolyline)
+                var sb = new StringBuilder("0");
+                foreach (string item in listLengthPolyline)
                 {
-                    formatTong = formatTong + "+" + item;
+                    sb.Append('+').Append(item);
                 }
-                formatTong = str3 + formatTong + str4;
+                string formatTong = "%<\\AcExpr (" + sb.ToString() + ") \\f \" %lu2\">%";
                 // vẽ text
                 ObjectId textId = UserInput.GDbText("Chọn text cần nhập nội dung: \n");
                 DBText? text = tr.GetObject(textId, OpenMode.ForWrite) as DBText;
@@ -417,16 +401,12 @@ namespace MyFirstProject
                 }
 
                 //tính tổng data file
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                string formatTong = text.TextString;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                string str3 = "%<\\AcExpr (";
-                string str4 = ") \\f \" %lu2\">%";
-                foreach (String item in listLengthPolyline)
+                var sb = new StringBuilder(text.TextString);
+                foreach (string item in listLengthPolyline)
                 {
-                    formatTong = formatTong + "+" + item;
+                    sb.Append('+').Append(item);
                 }
-                formatTong = str3 + formatTong + str4;
+                string formatTong = "%<\\AcExpr (" + sb.ToString() + ") \\f \" %lu2\">%";
 
                 text.TextString = formatTong;
                 A.Ed.Command("_UPDATEFIELD", textId);
@@ -446,9 +426,6 @@ namespace MyFirstProject
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
                 // Open the Block table for read
                 BlockTable? acBlkTbl;
                 acBlkTbl = tr.GetObject(A.Db.BlockTableId, OpenMode.ForRead) as BlockTable;
@@ -512,10 +489,7 @@ namespace MyFirstProject
         public static void ET_DanhSoThuTu()
         {
             // start transantion
-            _ = new            // start transantion
-            UserInput();
-            _ = new UtilitiesCAD();
-            _ = new UtilitiesC3D();
+
             //start here
             int soThuTu = UserInput.GInt("\n Nhập số thứ tự cần đánh số: ");
             String ans = "Enter";
@@ -948,9 +922,7 @@ namespace MyFirstProject
         {
             // start transantion
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            UserInput UI = new();
-            UtilitiesCAD CAD = new();
-            UtilitiesC3D C3D = new();
+
             try
             {
                 ObjectId objectId = UserInput.GObjId("/n Chọn đối tượng (TEXT, MTEXT, POLYLINE, LINE) nằm trên layer cần xóa: \n");
@@ -1001,9 +973,7 @@ namespace MyFirstProject
         {
             // start transantion
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
-            UserInput UI = new();
-            UtilitiesCAD CAD = new();
-            UtilitiesC3D C3D = new();
+
             try
             {
                 BlockTable bt = (BlockTable)tr.GetObject(A.Doc.Database.BlockTableId, OpenMode.ForRead);
@@ -1195,9 +1165,6 @@ namespace MyFirstProject
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput uI = new();
-                UtilitiesCAD uti = new();
-                UtilitiesC3D C3D = new();
                 // start here
 
                 //get a selection set with annotative objects

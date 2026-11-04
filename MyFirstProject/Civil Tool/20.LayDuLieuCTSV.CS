@@ -434,7 +434,7 @@ namespace MyFirstProject
             private void InitializeComponent()
             {
                 InitBaseTheme("Chọn Alignment để vẽ đường bao", 450, 350);
-                this.FormBorderStyle = FormBorderStyle.FixedDialog;
+                this.FormBorderStyle = FormBorderStyle.Sizable;
 
                 var header = CreateHeader("CHỌN ALIGNMENT");
                 this.Controls.Add(header);

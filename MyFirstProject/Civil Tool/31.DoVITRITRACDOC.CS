@@ -114,7 +114,7 @@ namespace MyFirstProject
         {
             // ── Form ──
             InitBaseTheme("TẠO POLYLINE VUÔNG GÓC TẠI LÝ TRÌNH", 750, 680);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             // ── HEADER ──
             var header = CreateHeader("TẠO POLYLINE VUÔNG GÓC TẠI LÝ TRÌNH");

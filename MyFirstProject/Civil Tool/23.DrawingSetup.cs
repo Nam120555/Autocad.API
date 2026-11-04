@@ -1,4 +1,4 @@
-﻿// DrawingSetup.cs - Thiết lập bản vẽ CAD chuẩn
+// DrawingSetup.cs - Thiết lập bản vẽ CAD chuẩn
 // Chuyển đổi từ LISP: TLBV, SAVC, PAL, PCL, IP
 
 using Autodesk.AutoCAD.Runtime;
@@ -55,8 +55,8 @@ namespace MyFirstProject
                 AcadApp.SetSystemVariable("INDEXCTL", 0);
                 AcadApp.SetSystemVariable("XLOADCTL", 2);
                 AcadApp.SetSystemVariable("DEMANDLOAD", 3);
-                AcadApp.SetSystemVariable("LAYOUTREGENCTL", 0);
-                AcadApp.SetSystemVariable("BACKGROUNDPLOT", 2);
+                AcadApp.SetSystemVariable("LAYOUTREGENCTL", 2);  // Cache cả Model + Layout tabs → không regen khi chuyển tab
+                AcadApp.SetSystemVariable("BACKGROUNDPLOT", 0);   // In foreground → nhanh hơn nhiều cho file nặng
                 
                 // Objects
                 AcadApp.SetSystemVariable("MIRRTEXT", 0);
@@ -263,6 +263,183 @@ namespace MyFirstProject
             doc.SendStringToExecute("SCALE ALL  0,0,0 0.01 ", true, false, false);
             AcadApp.SetSystemVariable("INSUNITS", 6); // Meters
             ed.WriteMessage("\n◎ Đã chuyển đổi xong và đặt INSUNITS = 6 (Meters)");
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // TURBO MODE - BẬT/TẮT CHẾ ĐỘ HIỆU SUẤT CAO
+        // ══════════════════════════════════════════════════════════════
+        
+        private static bool _turboModeActive = false;
+        
+        /// <summary>
+        /// Bật/tắt chế độ Turbo Mode - tối ưu hiệu suất tối đa cho file nặng.
+        /// Tắt toàn bộ hiệu ứng hiển thị, preview, tooltip để giảm tải GPU/CPU.
+        /// Gõ lại lệnh để tắt Turbo Mode và khôi phục cài đặt bình thường.
+        /// </summary>
+        [CommandMethod("CTDS_TurboMode")]
+        public static void CTDS_TurboMode()
+        {
+            var doc = AcadApp.DocumentManager.MdiActiveDocument;
+            if (doc == null) return;
+
+            var ed = doc.Editor;
+
+            try
+            {
+                if (!_turboModeActive)
+                {
+                    // ═══ BẬT TURBO MODE ═══
+                    ed.WriteMessage("\n╔══════════════════════════════════════════════════════════╗");
+                    ed.WriteMessage("\n║              🚀 TURBO MODE - ĐANG BẬT...                ║");
+                    ed.WriteMessage("\n╚══════════════════════════════════════════════════════════╝");
+
+                    // --- Selection & Preview (giảm lag khi di chuột) ---
+                    AcadApp.SetSystemVariable("SELECTIONPREVIEW", 0);  // Tắt preview khi hover
+                    AcadApp.SetSystemVariable("HIGHLIGHT", 0);         // Tắt highlight khi chọn
+                    AcadApp.SetSystemVariable("SELECTIONEFFECT", 0);   // Dùng nét đứt thay glow
+                    AcadApp.SetSystemVariable("ROLLOVERTIPS", 0);      // Tắt tooltip khi hover
+                    AcadApp.SetSystemVariable("TOOLTIPS", 0);          // Tắt tooltips
+                    AcadApp.SetSystemVariable("PROPERTYPREVIEW", 0);   // Tắt property preview
+                    AcadApp.SetSystemVariable("COMMANDPREVIEW", 0);    // Tắt command preview
+                    AcadApp.SetSystemVariable("DYNMODE", 0);           // Tắt Dynamic Input
+                    AcadApp.SetSystemVariable("CURSORBADGE", 0);       // Tắt cursor badge
+                    AcadApp.SetSystemVariable("UCSDETECT", 0);         // Tắt UCS detect
+
+                    // --- Display Performance ---
+                    AcadApp.SetSystemVariable("HPQUICKPREVIEW", 0);    // Tắt hatch preview
+                    AcadApp.SetSystemVariable("VTENABLE", 0);          // Tắt view transitions
+                    AcadApp.SetSystemVariable("LAYLOCKFADECTL", 0);    // Tắt fade locked layers
+                    AcadApp.SetSystemVariable("TEXTFILL", 0);          // Không fill text (nhanh hơn)
+                    AcadApp.SetSystemVariable("DRAWORDERCTL", 0);      // Tắt draw order (nhanh hơn)
+                    AcadApp.SetSystemVariable("GRIPSIZE", 2);          // Giảm grip size
+                    AcadApp.SetSystemVariable("GRIPS", 1);             // Grip đơn giản
+                    AcadApp.SetSystemVariable("ANNOALLVISIBLE", 0);    // Chỉ hiện anno đúng scale
+
+                    // --- Regen & Cache ---
+                    AcadApp.SetSystemVariable("LAYOUTREGENCTL", 2);    // Cache Model + Layout
+                    AcadApp.SetSystemVariable("WHIPTHREAD", 3);        // Multithreaded display
+                    AcadApp.SetSystemVariable("CACHEMAXFILES", 512);   // Tăng cache files
+                    AcadApp.SetSystemVariable("BACKGROUNDPLOT", 0);    // In foreground
+                    
+                    // --- Xref & Proxy ---
+                    AcadApp.SetSystemVariable("XLOADCTL", 2);          // Demand load xrefs
+                    AcadApp.SetSystemVariable("DEMANDLOAD", 3);        // ObjectARX demand load
+                    AcadApp.SetSystemVariable("INDEXCTL", 0);          // Tắt layer/spatial index
+                    AcadApp.SetSystemVariable("PROXYGRAPHICS", 0);     // Không hiện proxy graphics
+                    
+                    // --- Layer ---
+                    AcadApp.SetSystemVariable("LAYEREVALCTL", 0);      // Tắt layer eval notifications
+                    AcadApp.SetSystemVariable("LAYERNOTIFY", 0);       // Tắt layer notifications
+
+                    _turboModeActive = true;
+                    
+                    ed.WriteMessage("\n  ✓ Đã tắt Selection Preview, Highlight, Tooltips");
+                    ed.WriteMessage("\n  ✓ Đã tắt Dynamic Input, Command Preview");
+                    ed.WriteMessage("\n  ✓ Đã tắt View Transitions, Hatch Preview");
+                    ed.WriteMessage("\n  ✓ Đã bật Multithreaded Display (WHIPTHREAD=3)");
+                    ed.WriteMessage("\n  ✓ Đã tối ưu Cache, Xref, Proxy");
+                    ed.WriteMessage("\n");
+                    ed.WriteMessage("\n  ⚡ TURBO MODE ĐÃ BẬT! Gõ lại CTDS_TurboMode để tắt.");
+                }
+                else
+                {
+                    // ═══ TẮT TURBO MODE - Khôi phục mặc định ═══
+                    ed.WriteMessage("\n▸ Đang tắt Turbo Mode...");
+
+                    AcadApp.SetSystemVariable("SELECTIONPREVIEW", 3);
+                    AcadApp.SetSystemVariable("HIGHLIGHT", 1);
+                    AcadApp.SetSystemVariable("SELECTIONEFFECT", 1);
+                    AcadApp.SetSystemVariable("ROLLOVERTIPS", 1);
+                    AcadApp.SetSystemVariable("TOOLTIPS", 1);
+                    AcadApp.SetSystemVariable("PROPERTYPREVIEW", 1);
+                    AcadApp.SetSystemVariable("COMMANDPREVIEW", 1);
+                    AcadApp.SetSystemVariable("DYNMODE", 1);
+                    AcadApp.SetSystemVariable("CURSORBADGE", 1);
+                    AcadApp.SetSystemVariable("UCSDETECT", 1);
+                    AcadApp.SetSystemVariable("HPQUICKPREVIEW", 1);
+                    AcadApp.SetSystemVariable("VTENABLE", 3);
+                    AcadApp.SetSystemVariable("LAYLOCKFADECTL", 50);
+                    AcadApp.SetSystemVariable("TEXTFILL", 1);
+                    AcadApp.SetSystemVariable("DRAWORDERCTL", 3);
+                    AcadApp.SetSystemVariable("GRIPSIZE", 5);
+                    AcadApp.SetSystemVariable("GRIPS", 2);
+                    AcadApp.SetSystemVariable("ANNOALLVISIBLE", 1);
+                    AcadApp.SetSystemVariable("PROXYGRAPHICS", 1);
+                    AcadApp.SetSystemVariable("LAYERNOTIFY", 15);
+
+                    _turboModeActive = false;
+
+                    ed.WriteMessage("\n◎ Turbo Mode đã TẮT. Các cài đặt hiển thị đã khôi phục.");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage($"\n⊘ Lỗi: {ex.Message}");
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // THIẾT LẬP NÂNG CAO CHO CIVIL 3D (Bổ sung cho CTDS_ThietLap)
+        // ══════════════════════════════════════════════════════════════
+        /// <summary>
+        /// Thiết lập nâng cao tối ưu cho Civil 3D: purge DGN linestyle,
+        /// tắt auto-rebuild corridor, và các cài đặt đặc biệt khác.
+        /// </summary>
+        [CommandMethod("CTDS_ThietLapNangCao")]
+        public static void CTDS_ThietLapNangCao()
+        {
+            var doc = AcadApp.DocumentManager.MdiActiveDocument;
+            if (doc == null) return;
+
+            var ed = doc.Editor;
+            int optimized = 0;
+
+            try
+            {
+                // ── 1. Purge DGN Linestyles (thường gây file phình to) ──
+                ed.WriteMessage("\n▸ Đang dọn DGN Linestyles...");
+                try
+                {
+                    doc.SendStringToExecute("-PURGE O ", true, false, false);
+                    optimized++;
+                }
+                catch { }
+
+                // ── 2. System Variables cho Civil 3D ──
+                ed.WriteMessage("\n▸ Đang tối ưu Civil 3D settings...");
+
+                // Tắt auto-update các object phụ thuộc khi thay đổi surface
+                try { AcadApp.SetSystemVariable("OBJECTISOLATIONMODE", 0); optimized++; } catch { }
+
+                // Multithreaded regeneration
+                try { AcadApp.SetSystemVariable("WHIPTHREAD", 3); optimized++; } catch { }
+                
+                // Tắt annotation monitor (chậm với nhiều label)
+                try { AcadApp.SetSystemVariable("ANNOMONITOR", 0); optimized++; } catch { }
+                
+                // Tối ưu undo - giảm memory footprint
+                try { AcadApp.SetSystemVariable("UNDOCTL", 1); optimized++; } catch { }
+                
+                // Tắt selection cycling (chậm với file phức tạp)  
+                try { AcadApp.SetSystemVariable("SELECTIONCYCLING", 0); optimized++; } catch { }
+
+                // ── 3. Cleanup Orphaned Data ──
+                ed.WriteMessage("\n▸ Đang dọn Regapps...");
+                try
+                {
+                    doc.SendStringToExecute("-PURGE R * N ", true, false, false);
+                    optimized++;
+                }
+                catch { }
+
+                ed.WriteMessage($"\n◎ Đã tối ưu nâng cao xong! ({optimized} cài đặt đã áp dụng)");
+                ed.WriteMessage("\n  💡 Tip: Gõ CTDS_TurboMode để bật chế độ hiệu suất tối đa");
+                ed.WriteMessage("\n  💡 Tip: Gõ CTDS_SaveClean để purge và lưu file sạch");
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage($"\n⊘ Lỗi: {ex.Message}");
+            }
         }
     }
 }

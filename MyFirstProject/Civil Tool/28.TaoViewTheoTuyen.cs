@@ -148,7 +148,7 @@ namespace MyFirstProject
         {
             // ── Form ──
             InitBaseTheme("TẠO MVIEW THEO TUYẾN — Civil Tool", 720, 820);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             // ── HEADER ──
             var header = CreateHeader("TẠO MVIEW THEO TUYẾN ALIGNMENT");

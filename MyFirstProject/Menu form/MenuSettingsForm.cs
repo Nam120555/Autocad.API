@@ -188,7 +188,8 @@ namespace MyFirstProject
                 "VOLUME", "SLOPE", "EXCEL", "CALCULATE", "DRAW", "SETTINGS",
                 "ADD", "RENAME", "TABLE", "EXPORT", "SYNC", "INFO", "DELETE",
                 "COPY", "MOVE", "RELOAD", "VIEW", "EDIT", "LAYOUT", "MEASURE",
-                "SPIRAL", "SUPERELEVATION", "CULVERT", "BRIDGE", "WIDENING", "INTERSECTION", "CAD" };
+                "SPIRAL", "SUPERELEVATION", "CULVERT", "BRIDGE", "WIDENING", "INTERSECTION", "CAD",
+                "BENCH", "PAVEMENT", "PRINT" };
             cmbCmdIcon.Items.AddRange(cmdIconTypes);
             cmbCmdIcon.SelectedIndexChanged += (s, e) =>
             {
@@ -257,7 +258,8 @@ namespace MyFirstProject
             };
             var iconTypes = new[] { "SURFACE", "STATION", "ALIGN", "CORRIDOR", "SECTION",
                 "GRADING", "PIPE", "POINT", "UTILITY", "ACCOUNT", "PROFILE",
-                "VOLUME", "SLOPE", "EXCEL", "CALCULATE", "DRAW", "SETTINGS" };
+                "VOLUME", "SLOPE", "EXCEL", "CALCULATE", "DRAW", "SETTINGS",
+                "SECTION", "BRIDGE", "CULVERT", "INTERSECTION", "PAVEMENT", "LAYOUT", "MEASURE", "EDIT" };
             cmbIcon.Items.AddRange(iconTypes);
             cmbIcon.SelectedIndexChanged += (s, e) =>
             {
@@ -499,9 +501,51 @@ namespace MyFirstProject
             }
             catch { config = GetDefaultConfig(); }
 
+            // Gỡ nhóm NXSOFT và các lệnh vỏ rỗng (kể cả trong config đã lưu)
+            RemoveRetiredCommands(config);
+
             // Tự động xóa lệnh không tồn tại khỏi config đã lưu
             CleanupInvalidCommands(config);
             return config;
+        }
+
+        /// <summary>Nhóm lệnh đã gỡ khỏi menu (phần mềm NXsoft ngoài — không dùng được)</summary>
+        private static readonly HashSet<string> RetiredGroups = new(StringComparer.OrdinalIgnoreCase) { "NXSOFT" };
+
+        /// <summary>Lệnh đã gỡ khỏi menu: vỏ lệnh rỗng chờ mã NXsoft, chưa có chức năng</summary>
+        private static readonly HashSet<string> RetiredCommands = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "CTP_FixTDTN", "CTP_DienCaoDoMB", "CTSV_CCTN", "CTPI_PipeNX", "CTA_NhapNTD",
+            "NXrenameSL", "CWPL", "NXFIXTDTN", "NXCCTN", "NXdcdtd", "NXdcdcoc", "NXNoiText", "NXPIPE", "NXNTDADD",
+        };
+
+        /// <summary>Lệnh đã gỡ (dùng để ẩn khỏi Hộp lệnh NX)</summary>
+        public static bool IsRetiredCommand(string command) => RetiredCommands.Contains(command ?? "");
+
+        private static void RemoveRetiredCommands(MenuConfig config)
+        {
+            void Clean(List<MenuGroupItem> groups)
+            {
+                groups.RemoveAll(g => RetiredGroups.Contains((g.GroupName ?? "").Trim()));
+                foreach (var g in groups)
+                {
+                    g.Commands.RemoveAll(c => !string.IsNullOrEmpty(c.Command) && RetiredCommands.Contains(c.Command));
+                    foreach (var c in g.Commands)
+                        if (c.Label != null && c.Label.EndsWith(" (NX)"))
+                            c.Label = c.Label.Substring(0, c.Label.Length - 5);
+                    // Bỏ dấu ngăn cách thừa (đầu, cuối, liên tiếp) sau khi gỡ lệnh
+                    for (int i = g.Commands.Count - 1; i >= 0; i--)
+                    {
+                        bool sep = g.Commands[i].Command == "---";
+                        bool atEdge = i == 0 || i == g.Commands.Count - 1;
+                        bool dup = i > 0 && g.Commands[i - 1].Command == "---";
+                        if (sep && (atEdge || dup)) g.Commands.RemoveAt(i);
+                    }
+                }
+                groups.RemoveAll(g => g.Commands.All(c => string.IsNullOrEmpty(c.Command) || c.Command == "---"));
+            }
+            Clean(config.CivilGroups);
+            Clean(config.AcadGroups);
         }
 
         /// <summary>
@@ -590,10 +634,10 @@ namespace MyFirstProject
                     ("CTS_RebuildSurface", "Rebuild Surface", "SYNC"),
                     ("---", "", ""),
                     ("CTSV_DaoDap", "Cut/Fill Heatmap", "VOLUME"),
-                    ("CTSV_HienThiMaterialList", "Show Material List", "INFO"),
-                    ("CTSV_ChiTietMaterialSection", "Material Section Details", "INFO"),
-                    ("CTSV_PhanTichArea", "Analyze Section Area", "CALCULATE"),
-                    ("CTSV_KiemTraKhoiLuong", "Verify Volumes", "CALCULATE"),
+                    //("CTSV_HienThiMaterialList", "Show Material List", "INFO"),
+                    //("CTSV_ChiTietMaterialSection", "Material Section Details", "INFO"),
+                    //("CTSV_PhanTichArea", "Analyze Section Area", "CALCULATE"),
+                    //("CTSV_KiemTraKhoiLuong", "Verify Volumes", "CALCULATE"),
                 }) },
 
                 // ─── 3. ALIGNMENTS ───
@@ -601,8 +645,8 @@ namespace MyFirstProject
                 {
                     ("CTC_ThongSoDuongCong_4054", "Curve Params (4054)", "CALCULATE"),
                     ("CTC_ThongSoDuongCong_13592", "Curve Params (13592)", "CALCULATE"),
-                    ("CTC_KiemTraDuongCong_4054", "Check Curve (4054)", "INFO"),
-                    ("CTC_KiemTraDuongCong_13592", "Check Curve (13592)", "INFO"),
+                    //("CTC_KiemTraDuongCong_4054", "Check Curve (4054)", "INFO"),
+                    //("CTC_KiemTraDuongCong_13592", "Check Curve (13592)", "INFO"),
                     ("CTC_TraCuuDuongCong", "Curve Lookup Table", "INFO"),
                     ("CTC_ThietLapDuongCong", "Curve Form Settings", "SETTINGS"),
                 }) },
@@ -610,14 +654,12 @@ namespace MyFirstProject
                 // ─── 4. PROFILES ───
                 new() { GroupName = "Profiles", IconType = "PROFILE", Commands = ConvertCmds(new[]
                 {
-                    ("CTP_VeTracDoc_TuNhien", "Vẽ Trắc Dọc TN", "DRAW"),
-                    ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ TD TN - Tất cả tuyến", "DRAW"),
+                    ("CTP_VeTracDoc_TuNhien", "Vẽ Trắc Dọc TN", "PROFILE"),
+                    ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ TD TN - Tất cả tuyến", "PROFILE"),
                     ("CTP_Fix_DuongTuNhien_TheoCoc", "Sửa đường TN theo cọc", "SYNC"),
-                    ("CTP_FixTDTN", "Fix Trắc Dọc TN (NX)", "SYNC"),
                     ("---", "", ""),
                     ("CTP_GanNhanNutGiao_LenTracDoc", "Nhãn nút giao → Trắc dọc", "ADD"),
                     ("CTP_TaoCogoPointTuPVI", "Tạo Point từ PVI", "POINT"),
-                    ("CTP_DienCaoDoMB", "Điền CĐ thiết kế lên MB", "ADD"),
                     ("CTP_XuatBangCivil", "Xuất dữ liệu Trắc Dọc", "EXPORT"),
                     ("CTP_AddParcelLabels", "Thêm nhãn Parcel", "ADD"),
                 }) },
@@ -626,7 +668,7 @@ namespace MyFirstProject
                 new() { GroupName = "Corridors", IconType = "CORRIDOR", Commands = ConvertCmds(new[]
                 {
                     ("CTC_AddAllSection", "Add All Sections to Baselines", "ADD"),
-                    ("CTC_TaoCooridor_DuongDoThi_RePhai", "Right-Turn Corridor", "DRAW"),
+                    ("CTC_TaoCooridor_DuongDoThi_RePhai", "Right-Turn Corridor", "CORRIDOR"),
                     ("CTC_TaoMViewTheoTuyen", "Create Viewport by Alignment", "LAYOUT"),
                 }) },
 
@@ -634,14 +676,14 @@ namespace MyFirstProject
                 new() { GroupName = "Sample Lines", IconType = "STATION", Commands = ConvertCmds(new[]
                 {
                     // Phát sinh cọc
-                    ("CTS_PhatSinhCoc", "⭐ Phát sinh cọc (Tổng hợp)", "ADD"),
+                    ("CTS_PhatSinhCoc", "⭐ Phát sinh cọc (Tổng hợp)", "STATION"),
                     ("CTS_PhatSinhCoc_ChiTiet", "Phát sinh cọc chi tiết", "ADD"),
                     ("CTS_PhatSinhCoc_theoKhoangDelta", "Phát sinh cọc theo Delta", "ADD"),
                     ("CTS_PhatSinhCoc_TuCogoPoint", "Phát sinh từ CogoPoint", "POINT"),
                     ("CTS_PhatSinhCoc_TheoBang", "Phát sinh theo bảng Excel", "EXCEL"),
                     ("---", "", ""),
                     // Đổi tên cọc
-                    ("CTS_DoiTenCoc", "Đổi tên cọc (NX)", "RENAME"),
+                    ("CTS_DoiTenCoc", "Đổi tên cọc", "RENAME"),
                     ("CTS_DoiTenCoc2", "Đổi tên cọc (Thập phân)", "RENAME"),
                     ("CTS_DoiTenCoc3", "Đổi tên cọc (Lý trình)", "RENAME"),
                     ("CTS_DoiTenCoc_fromCogoPoint", "Đổi tên từ CogoPoint", "RENAME"),
@@ -678,21 +720,20 @@ namespace MyFirstProject
                 new() { GroupName = "Section Views", IconType = "SECTION", Commands = ConvertCmds(new[]
                 {
                     // Vẽ trắc ngang
-                    ("CTSV_VeTracNgangThietKe", "⭐ Vẽ TN thiết kế", "DRAW"),
-                    ("CVSV_VeTatCa_TracNgangThietKe", "Vẽ tất cả TN thiết kế", "DRAW"),
+                    ("CTSV_VeTracNgangThietKe", "⭐ Vẽ TN thiết kế", "SECTION"),
+                    ("CVSV_VeTatCa_TracNgangThietKe", "Vẽ tất cả TN thiết kế", "SECTION"),
                     ("CTSV_ChuyenDoi_TNTK_TNTN", "Chuyển TNTK → TNTN", "SYNC"),
-                    ("CTSV_CCTN", "Điền chênh cao tim cọc", "MEASURE"),
                     ("---", "", ""),
                     // Đánh cấp
-                    ("CTSV_DanhCap", "Đánh cấp VHC", "SLOPE"),
+                    ("CTSV_DanhCap", "Đánh cấp VHC", "BENCH"),
                     ("CTSV_DanhCap_XoaBo", "Xóa đánh cấp", "DELETE"),
-                    ("CTSV_DanhCap_VeThem", "Vẽ thêm đánh cấp", "SLOPE"),
+                    ("CTSV_DanhCap_VeThem", "Vẽ thêm đánh cấp", "BENCH"),
                     ("CTSV_DanhCap_VeThem1", "Vẽ thêm ĐC 1m", "ADD"),
                     ("CTSV_DanhCap_VeThem2", "Vẽ thêm ĐC 2m", "ADD"),
                     ("CTSV_DanhCap_CapNhat", "Cập nhật đánh cấp", "SYNC"),
                     ("---", "", ""),
                     // Vật liệu & Hiệu chỉnh
-                    ("CTSV_ThemVatLieu_TrenCatNgang", "Điền vật liệu trắc ngang", "VOLUME"),
+                    ("CTSV_ThemVatLieu_TrenCatNgang", "Điền vật liệu trắc ngang", "PAVEMENT"),
                     ("CTSV_ThayDoi_MSS_Min_Max", "Thay đổi Min/Max Section", "SETTINGS"),
                     ("CTSV_ThayDoi_GioiHan_traiPhai", "Giới hạn Trái/Phải SV", "SETTINGS"),
                     ("CTSV_KhoaCatNgang_AddPoint", "Khóa + Thêm điểm", "ADD"),
@@ -713,7 +754,7 @@ namespace MyFirstProject
                 new() { GroupName = "Quantities", IconType = "VOLUME", Commands = ConvertCmds(new[]
                 {
                     // Tính khối lượng cắt ngang
-                    ("CTSV_TinhKhoiLuongTracNgang", "⭐ Tính KL Trắc Ngang", "CALCULATE"),
+                    ("CTSV_TinhKhoiLuongTracNgang", "⭐ Tính KL Trắc Ngang", "VOLUME"),
                     ("CTSV_Taskbar", "Taskbar Khối Lượng", "VOLUME"),
                     ("CTSV_CaiDatBang", "Cài đặt bảng KL", "SETTINGS"),
                     ("---", "", ""),
@@ -731,10 +772,10 @@ namespace MyFirstProject
                     // So sánh & Phân tích
                     ("CTSV_SoSanhSurface", "So sánh 2 Surface", "CALCULATE"),
                     ("CTSV_DaoDap", "KL đào đắp Surface-Surface", "VOLUME"),
-                    ("CTSV_HienThiMaterialList", "Hiển thị Material List", "INFO"),
-                    ("CTSV_ChiTietMaterialSection", "Chi tiết Material Section", "INFO"),
-                    ("CTSV_PhanTichArea", "Phân tích chi tiết AREA", "CALCULATE"),
-                    ("CTSV_KiemTraKhoiLuong", "Kiểm tra khối lượng", "CALCULATE"),
+                    //("CTSV_HienThiMaterialList", "Hiển thị Material List", "INFO"),
+                    //("CTSV_ChiTietMaterialSection", "Chi tiết Material Section", "INFO"),
+                    //("CTSV_PhanTichArea", "Phân tích chi tiết AREA", "CALCULATE"),
+                    //("CTSV_KiemTraKhoiLuong", "Kiểm tra khối lượng", "CALCULATE"),
                     ("---", "", ""),
                     // Polyline Area
                     ("CTSV_PolyArea", "Menu tính DT Polyline", "CALCULATE"),
@@ -777,13 +818,12 @@ namespace MyFirstProject
                 // ─── 11. IN ẤN / XUẤT FILE ───
                 new() { GroupName = "Print & Export", IconType = "LAYOUT", Commands = ConvertCmds(new[]
                 {
-                    ("CT_PrintCenter", "⭐ Print Center", "DRAW"),
+                    ("CT_PrintCenter", "⭐ Print Center", "PRINT"),
                     ("CTSV_TaoTrangInTD", "Tạo trang in Trắc Dọc", "LAYOUT"),
-                    ("INL", "In Layout hàng loạt (INL)", "EXPORT"),
-                    ("INM", "In Model hàng loạt (INM)", "EXPORT"),
+
                     ("---", "", ""),
-                    ("CTDS_PrintAllLayouts", "In tất cả Layout", "EXPORT"),
-                    ("CTDS_PrintCurrentLayout", "In Layout hiện tại", "EXPORT"),
+                    ("CTDS_PrintAllLayouts", "In tất cả Layout", "PRINT"),
+                    ("CTDS_PrintCurrentLayout", "In Layout hiện tại", "PRINT"),
                     ("CTDS_ExportPDF", "Xuất PDF", "EXPORT"),
                 }) },
 
@@ -793,7 +833,25 @@ namespace MyFirstProject
                     ("CTPA_TaoParcel_CacLoaiNha", "Tạo Parcel từ nhà", "DRAW"),
                 }) },
 
-                // ─── 13. UTILITIES ───
+                // ─── 13. TÍNH TOÁN ───
+                new() { GroupName = "Tính Toán", IconType = "CALCULATE", Commands = ConvertCmds(new[]
+                {
+                    ("TT_TinhToanBanKinhRe", "Bán kính rẽ phải", "CALCULATE"),
+                    ("TT_LanRePhai", "Làn rẽ phải", "CALCULATE"),
+                    ("TT_NhapDong", "Chiều dài nhập dòng", "CALCULATE"),
+                    ("TT_TamNhinNutGiao", "Tầm nhìn nút giao", "INTERSECTION"),
+                    ("TT_VongXuyen", "Đảo vòng xuyến", "INTERSECTION"),
+                    ("TT_TangGiamToc", "Làn tăng/giảm tốc", "CALCULATE"),
+                    ("TT_MoRongXeChay", "Mở rộng xe chạy", "WIDENING"),
+                    ("TT_LanReTrai", "Làn rẽ trái", "CALCULATE"),
+                    ("---", "", ""),
+                    ("TT_AODUONG", "Kết cấu áo đường", "PAVEMENT"),
+                    ("TT_ThuyLucCongTran", "Thủy lực cống tràn", "CULVERT"),
+                    ("---", "", ""),
+                    ("CTS_PHANTICHEXCEL", "Phân tích file TT", "INFO"),
+                }) },
+
+                // ─── 14. UTILITIES ───
                 new() { GroupName = "Utilities", IconType = "UTILITY", Commands = ConvertCmds(new[]
                 {
                     // Xuất file
@@ -809,7 +867,7 @@ namespace MyFirstProject
                     ("CTU_FindIntersections", "Tìm điểm giao", "CALCULATE"),
                     ("CTU_AddPolylineVertices", "Thêm vertex Polyline", "ADD"),
                     ("AT_ChinhBeDayPLine", "Chỉnh bề dày Polyline", "SETTINGS"),
-                    ("CTU_DrawTaluy", "Vẽ taluy", "DRAW"),
+                    ("CTU_DrawTaluy", "Vẽ taluy", "SLOPE"),
                     ("---", "", ""),
                     // Style & Object Info
                     ("CTU_StyleAutoOff", "Tắt Auto-Style", "SETTINGS"),
@@ -828,21 +886,13 @@ namespace MyFirstProject
                     ("CT_MENU_SETTINGS", "Cài đặt Menu", "SETTINGS"),
                 }) },
 
-                // ─── 14. NXSOFT ───
-                new() { GroupName = "NXSOFT", IconType = "UTILITY", Commands = ConvertCmds(new[]
+                // ─── 14. BR TOOL / CẦU ───
+                new() { GroupName = "BR Tool / Cầu", IconType = "BRIDGE", Commands = ConvertCmds(new[]
                 {
-                    ("NXrenameSL", "⭐ Đổi tên cọc hàng loạt", "RENAME"),
-                    ("CWPL", "Chỉnh bề dày Polyline (CWPL)", "SETTINGS"),
-                    ("---", "", ""),
-                    ("NXFIXTDTN", "Sửa đường TN (NXFIXTDTN)", "SYNC"),
-                    ("NXCCTN", "Điền chênh cao tim cọc (NX)", "MEASURE"),
-                    ("NXdcdtd", "Điền chênh cao 2 trắc dọc", "MEASURE"),
-                    ("NXdcdcoc", "Điền CĐ thiết kế lên MB", "ADD"),
-                    ("NXNoiText", "Gộp text khảo sát", "SYNC"),
-                    ("---", "", ""),
-                    ("NXPIPE", "Thiết kế mạng lưới thoát nước", "PIPE"),
-                    ("NXNTDADD", "Nhập dữ liệu NTD vào tuyến", "ADD"),
+                    ("XTB",     "⭐ Xuất tọa độ Block → Excel", "EXCEL"),
+                    ("TAONHAN", "Tạo nhãn Block Attribute",     "ADD"),
                 }) },
+
             };
 
             // ══ ACAD TOOL panels ══
@@ -1020,14 +1070,14 @@ namespace MyFirstProject
                 if (_dgvAliases != null)
                 {
                     string alias = "";
-                    if (_config.CommandAliases != null && _config.CommandAliases.TryGetValue(cmd.Command, out string existingAlias))
-                        alias = existingAlias;
+                    if (_config.CommandAliases != null && _config.CommandAliases.TryGetValue(cmd.Command, out string? existingAlias))
+                        alias = existingAlias ?? "";
 
                     string desc = "";
-                    if (_config.CommandDescriptions != null && _config.CommandDescriptions.TryGetValue(cmd.Command, out string existingDesc))
-                        desc = existingDesc;
-                    else if (defaultDescriptions.TryGetValue(cmd.Command, out string defDesc))
-                        desc = defDesc; // Fallback to predefined descriptions
+                    if (_config.CommandDescriptions != null && _config.CommandDescriptions.TryGetValue(cmd.Command, out string? existingDesc))
+                        desc = existingDesc ?? "";
+                    else if (defaultDescriptions.TryGetValue(cmd.Command, out string? defDesc))
+                        desc = defDesc ?? ""; // Fallback to predefined descriptions
 
                     _dgvAliases.Rows.Add(cmd.Label, cmd.Command, alias, desc);
                 }
@@ -1388,7 +1438,7 @@ namespace MyFirstProject
                 Text = title,
                 Size = new Size(400, 160),
                 StartPosition = FormStartPosition.CenterParent,
-                FormBorderStyle = FormBorderStyle.FixedDialog,
+                FormBorderStyle = FormBorderStyle.Sizable,
                 BackColor = Color.FromArgb(45, 45, 48),
                 ForeColor = Color.White,
                 MaximizeBox = false,

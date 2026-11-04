@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
@@ -7,57 +7,55 @@
     <PlatformTarget>x64</PlatformTarget>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <NoWarn>$(NoWarn);1705;CS1705;NU1701;CA1416</NoWarn>
+    <WarningsNotAsErrors>1705;CS1705</WarningsNotAsErrors>
+    <RollForward>LatestMajor</RollForward>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <Target Name="OverrideCS1705" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <DisabledWarnings>$(DisabledWarnings);1705;CS1705</DisabledWarnings>
+    </PropertyGroup>
+  </Target>
+
+  <ItemGroup>
+    <Compile Remove="NetReload\obj\**;NetReload\bin\**" />
+  </ItemGroup>
 
   <PropertyGroup>
     <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <AssemblyName>MyFirstProject</AssemblyName>
     <OutputPath>bin\Debug\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.WindowsDesktop.App"></FrameworkReference>
-  </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="accoremgd">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\accoremgd.dll</HintPath>
-    </Reference>
+    <PackageReference Include="Chuongmep.Civil3D.Api.accoremgd" Version="2025.0.0" />
+    <PackageReference Include="Chuongmep.Civil3D.Api.acdbmgd" Version="2025.0.0" />
+    <PackageReference Include="Chuongmep.Civil3D.Api.acmgd" Version="2025.0.0" />
+    <PackageReference Include="Chuongmep.Civil3D.Api.AdWindows" Version="2025.0.0" />
+    <PackageReference Include="Chuongmep.Civil3D.Api.AecBaseMgd" Version="2025.0.0" />
+    <PackageReference Include="Chuongmep.Civil3D.Api.AeccDbMgd" Version="2025.0.0" />
+    <PackageReference Include="Chuongmep.Civil3D.Api.AecPropDataMgd" Version="2025.0.0" />
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="ExcelNumberFormat" Version="1.1.0" />
+    <PackageReference Include="SixLabors.Fonts" Version="1.0.1" />
+    <PackageReference Include="RBush" Version="4.0.0" />
+    <PackageReference Include="XstReader.Api" Version="1.0.6" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('C:\Program Files\Autodesk\AutoCAD 2027\AcCui.dll')">
     <Reference Include="AcCui">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\AcCui.dll</HintPath>
-    </Reference>
-    <Reference Include="Acdbmgd">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\acdbmgd.dll</HintPath>
-    </Reference>
-    <Reference Include="acdbmgdbrep">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\acdbmgdbrep.dll</HintPath>
-    </Reference>
-    <Reference Include="Acmgd">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\acmgd.dll</HintPath>
-    </Reference>
-    <Reference Include="AecBaseMgd">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\ACA\AecBaseMgd.dll</HintPath>
-    </Reference>
-    <Reference Include="AeccDbMgd">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\C3D\AeccDbMgd.dll</HintPath>
+      <HintPath>C:\Program Files\Autodesk\AutoCAD 2027\AcCui.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="AdWindows">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\AdWindows.dll</HintPath>
+      <HintPath>C:\Program Files\Autodesk\AutoCAD 2027\AdWindows.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="AecPropDataMgd">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\ACA\AecPropDataMgd.dll</HintPath>
-    </Reference>
-    <Reference Include="Autodesk.AutoCAD.Interop">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\Autodesk.AutoCAD.Interop.dll</HintPath>
-    </Reference>
-    <Reference Include="Autodesk.AutoCAD.Interop.Common">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2026\Autodesk.AutoCAD.Interop.Common.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.105.0" />
   </ItemGroup>
 </Project>

@@ -73,6 +73,20 @@ namespace MyFirstProject
         private Button btnRemoveRow = null!;
         private WinLabel lblStatus = null!;
 
+        // ═══ Controls chế độ nhẹ (Block + Text) ═══
+        private CheckBox chkLightMode = null!;
+        private ComboBox cboBlock = null!;
+        private NumericUpDown nudScale = null!;
+        private NumericUpDown nudTextHeight = null!;
+        private Panel grpLightConfig = null!;
+        private Button btnPickSample = null!;
+        private Button btnRun = null!;
+
+        // ═══ Panels Civil 3D (để ẩn/hiện) ═══
+        private WinLabel lblPointGroup = null!;
+        private WinLabel lblPointStyle = null!;
+        private WinLabel lblLabelStyle = null!;
+
         // ═══ Dữ liệu ═══
         public List<DirectPointData> PointDataList { get; private set; } = new();
         public string SelectedPointGroup { get; private set; } = "";
@@ -80,6 +94,12 @@ namespace MyFirstProject
         public string SelectedLabelStyle { get; private set; } = "";
         public string LayerName { get; private set; } = "COGO_POINTS";
         public bool IsConfirmed { get; private set; }
+
+        // ═══ Dữ liệu chế độ nhẹ ═══
+        public bool IsLightMode { get; private set; }
+        public string SelectedBlockName { get; private set; } = "";
+        public double BlockScale { get; private set; } = 1.0;
+        public double TextHeight { get; private set; } = 1.0;
 
         public FormNhapPointTrucTiep()
         {
@@ -114,20 +134,28 @@ namespace MyFirstProject
             var grpConfig = CreateGroupBox("Cấu hình Point", 0, y, 770, 90);
             mainPanel.Controls.Add(grpConfig);
 
-            // Hàng 1: Point Group + Layer
-            grpConfig.Controls.Add(CreateLabel("Point Group:", 12, 28));
-            cboPointGroup = CreateComboBox(120, 25, 250);
-            grpConfig.Controls.Add(cboPointGroup);
+            // ═══ CHẾ ĐỘ NHẸ (TOGGLE) ═══
+            chkLightMode = new CheckBox
+            {
+                Text = "⚡ Chế độ nhẹ (Block + Text, KHÔNG tạo COGO Point)",
+                Location = new Point(12, 25),
+                Size = new Size(400, 22),
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(200, 80, 20),
+                Cursor = Cursors.Hand
+            };
+            chkLightMode.CheckedChanged += ChkLightMode_CheckedChanged;
+            grpConfig.Controls.Add(chkLightMode);
 
-            grpConfig.Controls.Add(CreateLabel("Layer:", 390, 28));
-            txtLayer = CreateTextBox(440, 25, 160, "COGO_POINTS");
+            grpConfig.Controls.Add(CreateLabel("Layer:", 500, 25));
+            txtLayer = CreateTextBox(550, 22, 160, "COGO_POINTS");
             grpConfig.Controls.Add(txtLayer);
 
-            grpConfig.Controls.Add(CreateLabel("STT bắt đầu:", 620, 28));
+            grpConfig.Controls.Add(CreateLabel("STT bắt đầu:", 730, 25));
             nudStartSTT = new NumericUpDown
             {
-                Location = new Point(710, 25),
-                Size = new Size(50, 26),
+                Location = new Point(820, 22),
+                Size = new Size(60, 26),
                 Minimum = 1,
                 Maximum = 99999,
                 Value = 1,
@@ -135,19 +163,27 @@ namespace MyFirstProject
             };
             grpConfig.Controls.Add(nudStartSTT);
 
-            // Hàng 2: Point Style + Label Style
-            grpConfig.Controls.Add(CreateLabel("Point Style:", 12, 60));
-            cboPointStyle = CreateComboBox(120, 57, 240);
+            // Hàng 2: Point Group + Point Style + Label Style (Civil 3D)
+            lblPointGroup = CreateLabel("Point Group:", 12, 55);
+            grpConfig.Controls.Add(lblPointGroup);
+            cboPointGroup = CreateComboBox(120, 52, 200);
+            grpConfig.Controls.Add(cboPointGroup);
+
+            lblPointStyle = CreateLabel("Point Style:", 330, 55);
+            grpConfig.Controls.Add(lblPointStyle);
+            cboPointStyle = CreateComboBox(420, 52, 180);
             grpConfig.Controls.Add(cboPointStyle);
 
-            grpConfig.Controls.Add(CreateLabel("Label Style:", 375, 60));
-            cboLabelStyle = CreateComboBox(450, 57, 240);
+            lblLabelStyle = CreateLabel("Label Style:", 610, 55);
+            grpConfig.Controls.Add(lblLabelStyle);
+            cboLabelStyle = CreateComboBox(700, 52, 180);
             grpConfig.Controls.Add(cboLabelStyle);
 
-            var btnPickSample = new Button
+            // Hàng 3: Nút lấy mẫu (Civil 3D)
+            btnPickSample = new Button
             {
                 Text = "Lấy mẫu điểm có sẵn",
-                Location = new Point(700, 57),
+                Location = new Point(12, 82),
                 Size = new Size(180, 26),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.White,
@@ -160,10 +196,47 @@ namespace MyFirstProject
             btnPickSample.Click += BtnPickSample_Click;
             grpConfig.Controls.Add(btnPickSample);
 
-            // Tăng chiều rộng group box
-            grpConfig.Size = new Size(890, 95);
+            // Tăng chiều cao group box để chứa thêm hàng
+            grpConfig.Size = new Size(890, 115);
+
+            // ═══ LIGHT MODE CONFIG (ẩn mặc định) ═══
+            grpLightConfig = CreateGroupBox("⚡ Cấu hình Block + Text", 0, y + 118, 890, 70);
+            grpLightConfig.Visible = false;
+            mainPanel.Controls.Add(grpLightConfig);
+
+            grpLightConfig.Controls.Add(CreateLabel("Block:", 12, 28));
+            cboBlock = CreateComboBox(60, 25, 250);
+            grpLightConfig.Controls.Add(cboBlock);
+
+            grpLightConfig.Controls.Add(CreateLabel("Tỷ lệ:", 325, 28));
+            nudScale = new NumericUpDown
+            {
+                Location = new Point(375, 25),
+                Size = new Size(70, 26),
+                Minimum = (decimal)0.001,
+                Maximum = 10000,
+                Value = 1,
+                DecimalPlaces = 2,
+                Increment = (decimal)0.1,
+                Font = new Font("Segoe UI", 9.5f)
+            };
+            grpLightConfig.Controls.Add(nudScale);
+
+            grpLightConfig.Controls.Add(CreateLabel("Cao chữ:", 460, 28));
+            nudTextHeight = new NumericUpDown
+            {
+                Location = new Point(525, 25),
+                Size = new Size(70, 26),
+                Minimum = (decimal)0.01,
+                Maximum = 1000,
+                Value = 1,
+                DecimalPlaces = 2,
+                Increment = (decimal)0.1,
+                Font = new Font("Segoe UI", 9.5f)
+            };
+            grpLightConfig.Controls.Add(nudTextHeight);
             
-            y += 98;
+            y += 118;
 
             // ═══ 2. TOOLBAR ═══
             var grpToolbar = new Panel
@@ -276,6 +349,8 @@ namespace MyFirstProject
             dgvPoints.CellEndEdit += DgvPoints_CellEndEdit;
             dgvPoints.RowsAdded += (s, e) => UpdateStatus();
             dgvPoints.RowsRemoved += (s, e) => UpdateStatus();
+            dgvPoints.KeyDown += DgvPoints_KeyDown;
+            dgvPoints.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText;
 
             grpTable.Controls.Add(dgvPoints);
 
@@ -316,7 +391,7 @@ namespace MyFirstProject
             };
             bottomBar.Controls.Add(lblInfo);
 
-            var btnRun = CreateSuccessButton("Tạo COGO Points", 640, 10, 240, 36, bottomBar);
+            btnRun = CreateSuccessButton("Tạo COGO Points", 640, 10, 240, 36, bottomBar);
             btnRun.Click += BtnRun_Click;
 
             this.AcceptButton = btnRun;
@@ -327,6 +402,9 @@ namespace MyFirstProject
 
             // Pre-populate 10 dòng trống
             AddEmptyRows(10);
+
+            // Load danh sách Block cho chế độ nhẹ
+            LoadBlockList();
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -395,6 +473,61 @@ namespace MyFirstProject
                 tr.Commit();
             }
             catch { }
+        }
+
+        private void LoadBlockList()
+        {
+            try
+            {
+                cboBlock.Items.Clear();
+                cboBlock.Items.Add("(Không dùng Block — chỉ tạo Text + dấu +)");
+
+                var doc = AcadApp.DocumentManager.MdiActiveDocument;
+                if (doc == null) { cboBlock.SelectedIndex = 0; return; }
+
+                var db = doc.Database;
+                using var tr = db.TransactionManager.StartOpenCloseTransaction();
+                var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+                foreach (ObjectId btrId in bt)
+                {
+                    var btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
+                    if (!btr.IsAnonymous && !btr.IsLayout && !btr.Name.StartsWith("*"))
+                    {
+                        cboBlock.Items.Add(btr.Name);
+                    }
+                }
+                tr.Commit();
+                cboBlock.SelectedIndex = 0;
+            }
+            catch { cboBlock.SelectedIndex = 0; }
+        }
+
+        private void ChkLightMode_CheckedChanged(object? sender, EventArgs e)
+        {
+            bool isLight = chkLightMode.Checked;
+
+            // Ẩn/hiện controls Civil 3D
+            lblPointGroup.Visible = !isLight;
+            cboPointGroup.Visible = !isLight;
+            lblPointStyle.Visible = !isLight;
+            cboPointStyle.Visible = !isLight;
+            lblLabelStyle.Visible = !isLight;
+            cboLabelStyle.Visible = !isLight;
+            btnPickSample.Visible = !isLight;
+
+            // Hiện/ẩn panel Block + Text
+            grpLightConfig.Visible = isLight;
+
+            // Đổi text nút chạy
+            if (btnRun != null)
+                btnRun.Text = isLight ? "⚡ Tạo Block + Text" : "Tạo COGO Points";
+
+            // Đổi layer mặc định
+            if (isLight && txtLayer.Text == "COGO_POINTS")
+                txtLayer.Text = "POINTS_LIGHT";
+            else if (!isLight && txtLayer.Text == "POINTS_LIGHT")
+                txtLayer.Text = "COGO_POINTS";
         }
 
         private void BtnPickSample_Click(object? sender, EventArgs e)
@@ -515,6 +648,68 @@ namespace MyFirstProject
             }
             int totalRows = dgvPoints.Rows.Count - (dgvPoints.AllowUserToAddRows ? 1 : 0);
             lblStatus.Text = $"Tổng: {totalRows} dòng | Dữ liệu hợp lệ: {validCount} điểm";
+        }
+
+        private void DgvPoints_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.V)
+            {
+                PasteToDataGridView();
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+            }
+        }
+
+        private void PasteToDataGridView()
+        {
+            try
+            {
+                string s = Clipboard.GetText();
+                if (string.IsNullOrEmpty(s)) return;
+                
+                string[] lines = s.Split(new char[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length == 0) return;
+
+                int rowIdx = dgvPoints.CurrentCell?.RowIndex ?? -1;
+                int colIdx = dgvPoints.CurrentCell?.ColumnIndex ?? -1;
+                
+                if (rowIdx == -1 || colIdx == -1) return;
+
+                foreach (string line in lines)
+                {
+                    if (rowIdx >= dgvPoints.Rows.Count)
+                    {
+                        if (dgvPoints.AllowUserToAddRows)
+                        {
+                            dgvPoints.Rows.Add();
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    string[] cells = line.Split(new char[] { '\t' });
+                    int currentCol = colIdx;
+
+                    foreach (string cell in cells)
+                    {
+                        if (currentCol < dgvPoints.Columns.Count)
+                        {
+                            dgvPoints[currentCol, rowIdx].Value = cell.Trim();
+                            currentCol++;
+                        }
+                    }
+                    rowIdx++;
+                }
+
+                ReNumberSTT();
+                UpdateStatus();
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Lỗi dán dữ liệu: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void BtnRemoveRow_Click(object? sender, EventArgs e)
@@ -821,10 +1016,19 @@ namespace MyFirstProject
             }
 
             // Lưu settings
+            IsLightMode = chkLightMode.Checked;
             SelectedPointGroup = cboPointGroup.SelectedIndex > 0 ? cboPointGroup.Text : "";
             SelectedPointStyle = cboPointStyle.SelectedIndex > 0 ? cboPointStyle.Text : "";
             SelectedLabelStyle = cboLabelStyle.SelectedIndex > 0 ? cboLabelStyle.Text : "";
             LayerName = string.IsNullOrWhiteSpace(txtLayer.Text) ? "COGO_POINTS" : txtLayer.Text.Trim();
+
+            // Lưu settings chế độ nhẹ
+            if (IsLightMode)
+            {
+                SelectedBlockName = cboBlock.SelectedIndex > 0 ? cboBlock.Text : "";
+                BlockScale = (double)nudScale.Value;
+                TextHeight = (double)nudTextHeight.Value;
+            }
 
             IsConfirmed = true;
             this.Close();
@@ -868,11 +1072,13 @@ namespace MyFirstProject
             if (doc == null) return;
             var ed = doc.Editor;
             var db = doc.Database;
-            var civilDoc = CivilApplication.ActiveDocument;
 
             // 1. Mở form nhập liệu
             List<DirectPointData> pointList;
             string pointGroupName, pointStyleName, labelStyleName, layerName;
+            bool isLightMode;
+            string blockName;
+            double blockScale, textHeight;
 
             using (var form = new FormNhapPointTrucTiep())
             {
@@ -884,6 +1090,10 @@ namespace MyFirstProject
                 pointStyleName = form.SelectedPointStyle;
                 labelStyleName = form.SelectedLabelStyle;
                 layerName = form.LayerName;
+                isLightMode = form.IsLightMode;
+                blockName = form.SelectedBlockName;
+                blockScale = form.BlockScale;
+                textHeight = form.TextHeight;
             }
 
             if (pointList.Count == 0)
@@ -891,6 +1101,177 @@ namespace MyFirstProject
                 ed.WriteMessage("\n⚠ Không có dữ liệu để tạo.");
                 return;
             }
+
+            // ═══════════════════════════════════════════════════════════
+            // CHẾ ĐỘ NHẸ: TẠO BLOCK + TEXT (KHÔNG TẠO COGO POINT)
+            // ═══════════════════════════════════════════════════════════
+            if (isLightMode)
+            {
+                ed.WriteMessage($"\n⚡ Chế độ nhẹ — Bắt đầu tạo {pointList.Count} Block + Text...");
+
+                try
+                {
+                    using var tr = db.TransactionManager.StartTransaction();
+
+                    var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                    var modelSpace = (BlockTableRecord)tr.GetObject(
+                        bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+
+                    // Tạo layer nếu chưa có
+                    EnsureLayer(db, tr, layerName);
+
+                    bool useBlock = !string.IsNullOrEmpty(blockName) && bt.Has(blockName);
+                    int created = 0;
+                    int errors = 0;
+
+                    foreach (var pt in pointList)
+                    {
+                        try
+                        {
+                            Point3d insertPt = new(pt.X, pt.Y, pt.Z);
+
+                            if (useBlock)
+                            {
+                                // ── Chèn BlockReference ──
+                                ObjectId blockDefId = bt[blockName];
+                                BlockReference blkRef = new(insertPt, blockDefId)
+                                {
+                                    Layer = layerName,
+                                    ScaleFactors = new Scale3d(blockScale, blockScale, blockScale)
+                                };
+
+                                modelSpace.AppendEntity(blkRef);
+                                tr.AddNewlyCreatedDBObject(blkRef, true);
+
+                                // Gán Attribute nếu block có AttributeDefinition
+                                var blockDef = (BlockTableRecord)tr.GetObject(blockDefId, OpenMode.ForRead);
+                                foreach (ObjectId attDefId in blockDef)
+                                {
+                                    var obj = tr.GetObject(attDefId, OpenMode.ForRead);
+                                    if (obj is AttributeDefinition attDef)
+                                    {
+                                        AttributeReference attRef = new();
+                                        attRef.SetAttributeFromBlock(attDef, blkRef.BlockTransform);
+
+                                        string tagUpper = attDef.Tag.ToUpper();
+                                        if (tagUpper == "NAME" || tagUpper == "TEN" || tagUpper == "LABEL"
+                                            || tagUpper == "TEXT" || tagUpper == "TITLE")
+                                        {
+                                            attRef.TextString = pt.PointName;
+                                        }
+                                        else if (tagUpper == "X" || tagUpper == "EASTING")
+                                        {
+                                            attRef.TextString = pt.X.ToString("F3");
+                                        }
+                                        else if (tagUpper == "Y" || tagUpper == "NORTHING")
+                                        {
+                                            attRef.TextString = pt.Y.ToString("F3");
+                                        }
+                                        else if (tagUpper == "Z" || tagUpper == "ELEVATION" || tagUpper == "CAODO")
+                                        {
+                                            attRef.TextString = pt.Z.ToString("F3");
+                                        }
+                                        else if (tagUpper == "DESC" || tagUpper == "DESCRIPTION" || tagUpper == "GHICHU")
+                                        {
+                                            attRef.TextString = pt.Description;
+                                        }
+                                        else
+                                        {
+                                            attRef.TextString = pt.PointName;
+                                        }
+
+                                        attRef.Layer = layerName;
+                                        blkRef.AttributeCollection.AppendAttribute(attRef);
+                                        tr.AddNewlyCreatedDBObject(attRef, true);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                // ── Không dùng Block: Tạo dấu "+" marker ──
+                                double markerSize = textHeight * 0.8;
+
+                                // Vạch ngang
+                                var lineH = new Line(
+                                    new Point3d(pt.X - markerSize, pt.Y, pt.Z),
+                                    new Point3d(pt.X + markerSize, pt.Y, pt.Z))
+                                { Layer = layerName };
+                                modelSpace.AppendEntity(lineH);
+                                tr.AddNewlyCreatedDBObject(lineH, true);
+
+                                // Vạch dọc
+                                var lineV = new Line(
+                                    new Point3d(pt.X, pt.Y - markerSize, pt.Z),
+                                    new Point3d(pt.X, pt.Y + markerSize, pt.Z))
+                                { Layer = layerName };
+                                modelSpace.AppendEntity(lineV);
+                                tr.AddNewlyCreatedDBObject(lineV, true);
+                            }
+
+                            // ── Tạo Text hiển thị tên điểm ──
+                            if (!string.IsNullOrWhiteSpace(pt.PointName))
+                            {
+                                DBText nameText = new()
+                                {
+                                    Position = new Point3d(pt.X + textHeight * 0.5, pt.Y + textHeight * 0.5, pt.Z),
+                                    Height = textHeight,
+                                    TextString = pt.PointName,
+                                    Layer = layerName
+                                };
+                                nameText.SetDatabaseDefaults();
+                                modelSpace.AppendEntity(nameText);
+                                tr.AddNewlyCreatedDBObject(nameText, true);
+                            }
+
+                            created++;
+                        }
+                        catch (System.Exception ex)
+                        {
+                            errors++;
+                            ed.WriteMessage($"\n  ⚠ Lỗi tạo điểm {pt.PointName}: {ex.Message}");
+                        }
+                    }
+
+                    tr.Commit();
+
+                    // ─── Hiển thị kết quả ───
+                    ed.WriteMessage("\n");
+                    ed.WriteMessage($"\n╔════════════════════════════════════════════════════╗");
+                    ed.WriteMessage($"\n║  ⚡ KẾT QUẢ NHẬP TỌA ĐỘ (CHẾ ĐỘ NHẸ)            ║");
+                    ed.WriteMessage($"\n╠════════════════════════════════════════════════════╣");
+                    ed.WriteMessage($"\n║  ✅ Đã tạo: {created,5} điểm (Block + Text)          ║");
+                    if (useBlock)
+                        ed.WriteMessage($"\n║  📦 Block:  {blockName,-38} ║");
+                    else
+                        ed.WriteMessage($"\n║  ✚ Marker:  Dấu + và Text                        ║");
+                    if (errors > 0)
+                        ed.WriteMessage($"\n║  ⚠ Lỗi:    {errors,5} điểm                          ║");
+                    ed.WriteMessage($"\n╚════════════════════════════════════════════════════╝");
+
+                    // Bảng chi tiết
+                    ed.WriteMessage($"\n\n{"STT",-5} {"Tên điểm",-15} {"X (Easting)",-14} {"Y (Northing)",-14} {"Z",-10} {"Ghi chú",-20}");
+                    ed.WriteMessage($"\n{new string('─', 80)}");
+
+                    foreach (var pt in pointList)
+                    {
+                        ed.WriteMessage($"\n{pt.STT,-5} {pt.PointName,-15} {pt.X,-14:F3} {pt.Y,-14:F3} {pt.Z,-10:F3} {pt.Description,-20}");
+                    }
+
+                    ed.WriteMessage($"\n{new string('═', 80)}");
+                    ed.WriteMessage($"\n\n⚡ HOÀN THÀNH — {created} điểm nhẹ (không COGO Point)!");
+                }
+                catch (System.Exception ex)
+                {
+                    ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                }
+
+                return; // Kết thúc luồng chế độ nhẹ
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // CHẾ ĐỘ THƯỜNG: TẠO COGO POINT (GIỮ NGUYÊN LOGIC CŨ)
+            // ═══════════════════════════════════════════════════════════
+            var civilDoc = CivilApplication.ActiveDocument;
 
             ed.WriteMessage($"\n📍 Bắt đầu tạo {pointList.Count} COGO Points...");
 
@@ -1024,6 +1405,26 @@ namespace MyFirstProject
             catch (System.Exception ex)
             {
                 ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Tạo layer nếu chưa tồn tại
+        /// </summary>
+        private static void EnsureLayer(Database db, Transaction tr, string layerName)
+        {
+            var lt = (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead);
+            if (!lt.Has(layerName))
+            {
+                lt.UpgradeOpen();
+                var ltr = new LayerTableRecord()
+                {
+                    Name = layerName,
+                    Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(
+                        Autodesk.AutoCAD.Colors.ColorMethod.ByAci, 3) // Green
+                };
+                lt.Add(ltr);
+                tr.AddNewlyCreatedDBObject(ltr, true);
             }
         }
     }

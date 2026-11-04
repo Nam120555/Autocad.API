@@ -4,7 +4,7 @@
 
 (defun C:LOADNRL ()
   (princ "\nLoading NetReload.dll...")
-  (command "._NETLOAD" "c:\\Google\\Autocad 2026_API\\Autocad 2026_API\\MyFirstProject\\NetReload\\bin\\Debug\\NetReload.dll")
+  (command "._NETLOAD" "d:\\Autocad 2026_API\\Autocad 2026_API\\MyFirstProject\\NetReload\\bin\\Debug\\NetReload2.dll")
   (princ "\nNetReload.dll loaded successfully!")
   (princ "\nAvailable commands: NRL, RELOAD")
   (princ)

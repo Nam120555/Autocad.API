@@ -1,6 +1,7 @@
 // 10.Addsection.cs - Form và logic thêm Section vào Corridor
 // Chế độ 1: Từ SampleLine (logic cũ)
 // Chế độ 2: Từ Polyline giao cắt alignment
+// HỖ TRỢ: Chọn NHIỀU corridor bằng checkbox (CheckedListBox)
 
 using System;
 using System.Collections.Generic;
@@ -35,21 +36,33 @@ namespace MyFirstProject
 {
     /// <summary>
     /// Form tùy chọn cho lệnh CTC_AddAllSection
+    /// Hỗ trợ chọn NHIỀU corridor bằng checkbox
     /// Dark theme giống các form khác trong project
     /// </summary>
     public class AddSectionForm : CivilFormBase
     {
 
         // ─── Controls ───
-        private ComboBox cboCorridor = null!;
+        private CheckedListBox clbCorridors = null!;
         private WinLabel lblCorridorInfo = null!;
+        private Button btnSelectAllCorridors = null!;
+        private Button btnDeselectAllCorridors = null!;
+
+        // Alignment selection
+        private CheckedListBox clbAlignments = null!;
+        private WinLabel lblAlignmentInfo = null!;
+        private Button btnSelectAllAlignments = null!;
+        private Button btnDeselectAllAlignments = null!;
+        private Button btnPickAlignmentOnPlan = null!;
 
         private RadioButton rdoSampleLine = null!;
         private RadioButton rdoPolyline = null!;
 
         // Panel SampleLine
         private Panel pnlSampleLine = null!;
-        private ComboBox cboSampleLineGroup = null!;
+        private CheckedListBox clbSampleLineGroups = null!;
+        private Button btnSelectAllSLG = null!;
+        private Button btnDeselectAllSLG = null!;
 
         // Panel Polyline
         private Panel pnlPolyline = null!;
@@ -67,15 +80,37 @@ namespace MyFirstProject
 
         // ─── Data ───
         private List<CorridorInfo> corridors = new();
+        private List<AlignmentDisplayInfo> alignmentDisplayInfos = new();
         private List<SampleLineGroupInfo> sampleLineGroups = new();
         private List<ObjectId> selectedPolylineIds = new();
         private List<StationPreviewItem> previewStations = new();
 
         public bool IsConfirmed { get; private set; } = false;
-        public ObjectId SelectedCorridorId { get; private set; } = ObjectId.Null;
+
+        /// <summary>
+        /// Danh sách các CorridorId đã chọn (multi-select)
+        /// </summary>
+        public List<ObjectId> SelectedCorridorIds { get; private set; } = new();
+
+        // Backward compat: trả corridor đầu tiên
+        public ObjectId SelectedCorridorId => SelectedCorridorIds.Count > 0 ? SelectedCorridorIds[0] : ObjectId.Null;
+
         public bool UseSampleLineMode => rdoSampleLine.Checked;
         public bool UsePolylineMode => rdoPolyline.Checked;
-        public int SelectedSampleLineGroupIndex { get; private set; } = 0;
+
+        /// <summary>
+        /// Danh sách index SampleLineGroup đã chọn (multi-select)
+        /// </summary>
+        public List<int> SelectedSampleLineGroupIndices { get; private set; } = new();
+
+        // Backward compat
+        public int SelectedSampleLineGroupIndex => SelectedSampleLineGroupIndices.Count > 0 ? SelectedSampleLineGroupIndices[0] : 0;
+
+        /// <summary>
+        /// Danh sách AlignmentId đã chọn (multi-select)
+        /// </summary>
+        public List<ObjectId> SelectedAlignmentIds { get; private set; } = new();
+
         public List<ObjectId> SelectedPolylineIds => selectedPolylineIds;
         public bool ClearOldStations => chkClearOld.Checked;
         public List<StationPreviewItem> PreviewStations => previewStations;
@@ -87,19 +122,32 @@ namespace MyFirstProject
             public int BaselineCount { get; set; }
         }
 
+        private class AlignmentDisplayInfo
+        {
+            public ObjectId AlignmentId { get; set; }
+            public string AlignmentName { get; set; } = "";
+            public string CorridorName { get; set; } = "";
+            public string BaselineName { get; set; } = "";
+            public ObjectId CorridorId { get; set; }
+        }
+
         private class SampleLineGroupInfo
         {
             public ObjectId Id { get; set; }
             public string Name { get; set; } = "";
             public int SampleLineCount { get; set; }
+            public ObjectId CorridorId { get; set; }    // Corridor chứa group này
+            public ObjectId AlignmentId { get; set; }   // Alignment chứa group này
         }
 
         public class StationPreviewItem
         {
             public int STT { get; set; }
+            public string CorridorName { get; set; } = "";
             public string BaselineName { get; set; } = "";
             public double Station { get; set; }
             public string Nguon { get; set; } = ""; // "SampleLine" hoặc "Polyline"
+            public ObjectId CorridorId { get; set; }
         }
 
         // ─── Constructor ───
@@ -135,8 +183,8 @@ namespace MyFirstProject
         private void InitializeUI()
         {
             // ── Form ──
-            InitBaseTheme("THÊM SECTION VÀO CORRIDOR", 750, 700);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            InitBaseTheme("THÊM SECTION VÀO CORRIDOR", 780, 920);
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             // ── HEADER ──
             var header = CreateHeader("THÊM SECTION VÀO CORRIDOR");
@@ -145,7 +193,7 @@ namespace MyFirstProject
             // ── SUBTITLE ──
             var subtitle = new WinLabel
             {
-                Text = "Thêm section tại vị trí SampleLine hoặc vị trí Polyline giao cắt alignment.",
+                Text = "Thêm section tại vị trí SampleLine hoặc vị trí Polyline giao cắt alignment. Hỗ trợ chọn nhiều tuyến.",
                 Font = new Font("Segoe UI", 9.5f),
                 ForeColor = TextDark,
                 AutoSize = false,
@@ -171,38 +219,120 @@ namespace MyFirstProject
             int y = 10;
 
             // ═══════════════════════════════════════════════════
-            // SECTION 1: CHỌN CORRIDOR
+            // SECTION 1: CHỌN CORRIDOR (CheckedListBox — multi-select)
             // ═══════════════════════════════════════════════════
-            var grpCorridor = CreateSection("Chọn Corridor", 0, y, 700, 85);
+            int corridorListHeight = Math.Max(60, Math.Min(corridors.Count * 22 + 10, 120));
+            var grpCorridor = CreateSection("Chọn Corridor (tích chọn nhiều tuyến)", 0, y, 730, corridorListHeight + 65);
             mainPanel.Controls.Add(grpCorridor);
 
-            grpCorridor.Controls.Add(CreateLabel("Corridor:", 12, 33));
-            cboCorridor = new ComboBox
+            // Buttons: Chọn tất cả / Bỏ chọn tất cả
+            btnSelectAllCorridors = CreateButton("✓ Chọn tất cả", 12, 28, 120, 28, grpCorridor);
+            btnSelectAllCorridors.Font = new Font("Segoe UI", 8.5f);
+            btnSelectAllCorridors.Click += (s, e) =>
             {
-                Location = new Point(100, 29),
-                Size = new Size(350, 28),
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = BgInput,
-                ForeColor = TextDark,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9.5f)
+                for (int i = 0; i < clbCorridors.Items.Count; i++)
+                    clbCorridors.SetItemChecked(i, true);
+                OnCorridorSelectionChanged();
             };
-            foreach (var cor in corridors)
-                cboCorridor.Items.Add(cor.Name);
-            if (cboCorridor.Items.Count > 0) cboCorridor.SelectedIndex = 0;
-            cboCorridor.SelectedIndexChanged += (s, e) => OnCorridorChanged();
-            grpCorridor.Controls.Add(cboCorridor);
 
-            lblCorridorInfo = CreateLabel("", 470, 33);
+            btnDeselectAllCorridors = CreateButton("✗ Bỏ chọn", 140, 28, 100, 28, grpCorridor);
+            btnDeselectAllCorridors.Font = new Font("Segoe UI", 8.5f);
+            btnDeselectAllCorridors.Click += (s, e) =>
+            {
+                for (int i = 0; i < clbCorridors.Items.Count; i++)
+                    clbCorridors.SetItemChecked(i, false);
+                OnCorridorSelectionChanged();
+            };
+
+            lblCorridorInfo = CreateLabel("", 260, 32);
             lblCorridorInfo.AutoSize = true;
+            lblCorridorInfo.ForeColor = NavyMedium;
+            lblCorridorInfo.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
             grpCorridor.Controls.Add(lblCorridorInfo);
 
-            y += 100;
+            clbCorridors = new CheckedListBox
+            {
+                Location = new Point(12, 60),
+                Size = new Size(706, corridorListHeight),
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f),
+                BorderStyle = BorderStyle.FixedSingle,
+                CheckOnClick = true,
+                IntegralHeight = false
+            };
+            foreach (var cor in corridors)
+                clbCorridors.Items.Add($"{cor.Name}  ({cor.BaselineCount} baselines)");
+            // Mặc định chọn tất cả
+            for (int i = 0; i < clbCorridors.Items.Count; i++)
+                clbCorridors.SetItemChecked(i, true);
+            clbCorridors.ItemCheck += (s, e) =>
+            {
+                // ItemCheck fires before the state changes, use BeginInvoke to get correct state
+                this.BeginInvoke(new Action(() => OnCorridorSelectionChanged()));
+            };
+            grpCorridor.Controls.Add(clbCorridors);
+
+            y += grpCorridor.Height + 10;
+
+            // ═══════════════════════════════════════════════════
+            // SECTION 1.5: CHỌN TUYẾN (ALIGNMENT) — BỘ LỌC
+            // ═══════════════════════════════════════════════════
+            int alignmentListHeight = 90;
+            var grpAlignment = CreateSection("Chọn Tuyến — Alignment (tích chọn tuyến cần xử lý)", 0, y, 730, alignmentListHeight + 65);
+            mainPanel.Controls.Add(grpAlignment);
+
+            btnSelectAllAlignments = CreateButton("✓ Chọn tất cả", 12, 28, 120, 28, grpAlignment);
+            btnSelectAllAlignments.Font = new Font("Segoe UI", 8.5f);
+            btnSelectAllAlignments.Click += (s, e) =>
+            {
+                for (int i = 0; i < clbAlignments.Items.Count; i++)
+                    clbAlignments.SetItemChecked(i, true);
+                OnAlignmentSelectionChanged();
+            };
+
+            btnDeselectAllAlignments = CreateButton("✗ Bỏ chọn", 140, 28, 100, 28, grpAlignment);
+            btnDeselectAllAlignments.Font = new Font("Segoe UI", 8.5f);
+            btnDeselectAllAlignments.Click += (s, e) =>
+            {
+                for (int i = 0; i < clbAlignments.Items.Count; i++)
+                    clbAlignments.SetItemChecked(i, false);
+                OnAlignmentSelectionChanged();
+            };
+
+            btnPickAlignmentOnPlan = CreateButton("📌 Chọn trên bình đồ", 248, 28, 170, 28, grpAlignment);
+            btnPickAlignmentOnPlan.Font = new Font("Segoe UI", 8.5f);
+            btnPickAlignmentOnPlan.Click += BtnPickAlignmentOnPlan_Click;
+
+            lblAlignmentInfo = CreateLabel("", 430, 32);
+            lblAlignmentInfo.AutoSize = true;
+            lblAlignmentInfo.ForeColor = NavyMedium;
+            lblAlignmentInfo.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
+            grpAlignment.Controls.Add(lblAlignmentInfo);
+
+            clbAlignments = new CheckedListBox
+            {
+                Location = new Point(12, 60),
+                Size = new Size(706, alignmentListHeight),
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                Font = new Font("Segoe UI", 9.5f),
+                BorderStyle = BorderStyle.FixedSingle,
+                CheckOnClick = true,
+                IntegralHeight = false
+            };
+            clbAlignments.ItemCheck += (s, e) =>
+            {
+                this.BeginInvoke(new Action(() => OnAlignmentSelectionChanged()));
+            };
+            grpAlignment.Controls.Add(clbAlignments);
+
+            y += grpAlignment.Height + 10;
 
             // ═══════════════════════════════════════════════════
             // SECTION 2: CHẾ ĐỘ THÊM SECTION
             // ═══════════════════════════════════════════════════
-            var grpMode = CreateSection("Chế độ thêm Section", 0, y, 700, 190);
+            var grpMode = CreateSection("Chế độ thêm Section", 0, y, 730, 250);
             mainPanel.Controls.Add(grpMode);
 
             rdoSampleLine = new RadioButton
@@ -229,33 +359,51 @@ namespace MyFirstProject
             };
             grpMode.Controls.Add(rdoPolyline);
 
-            // ── Panel SampleLine ──
+            // ── Panel SampleLine (CheckedListBox — multi-select) ──
             pnlSampleLine = new Panel
             {
                 Location = new Point(10, 95),
-                Size = new Size(680, 45),
+                Size = new Size(710, 145),
                 BackColor = BgPanel
             };
             grpMode.Controls.Add(pnlSampleLine);
 
-            pnlSampleLine.Controls.Add(CreateLabel("Nhóm SampleLine:", 5, 12));
-            cboSampleLineGroup = new ComboBox
+            pnlSampleLine.Controls.Add(CreateLabel("Nhóm SampleLine (tích chọn nhiều nhóm):", 5, 5));
+
+            btnSelectAllSLG = CreateButton("✓ Tất cả", 400, 0, 90, 26, pnlSampleLine);
+            btnSelectAllSLG.Font = new Font("Segoe UI", 8f);
+            btnSelectAllSLG.Click += (s, e) =>
             {
-                Location = new Point(160, 8),
-                Size = new Size(350, 28),
-                DropDownStyle = ComboBoxStyle.DropDownList,
+                for (int i = 0; i < clbSampleLineGroups.Items.Count; i++)
+                    clbSampleLineGroups.SetItemChecked(i, true);
+            };
+
+            btnDeselectAllSLG = CreateButton("✗ Bỏ chọn", 496, 0, 90, 26, pnlSampleLine);
+            btnDeselectAllSLG.Font = new Font("Segoe UI", 8f);
+            btnDeselectAllSLG.Click += (s, e) =>
+            {
+                for (int i = 0; i < clbSampleLineGroups.Items.Count; i++)
+                    clbSampleLineGroups.SetItemChecked(i, false);
+            };
+
+            clbSampleLineGroups = new CheckedListBox
+            {
+                Location = new Point(5, 28),
+                Size = new Size(700, 110),
                 BackColor = BgInput,
                 ForeColor = TextDark,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9.5f)
+                Font = new Font("Segoe UI", 9.5f),
+                BorderStyle = BorderStyle.FixedSingle,
+                CheckOnClick = true,
+                IntegralHeight = false
             };
-            pnlSampleLine.Controls.Add(cboSampleLineGroup);
+            pnlSampleLine.Controls.Add(clbSampleLineGroups);
 
             // ── Panel Polyline ──
             pnlPolyline = new Panel
             {
                 Location = new Point(10, 95),
-                Size = new Size(680, 80),
+                Size = new Size(710, 80),
                 BackColor = BgPanel,
                 Visible = false
             };
@@ -288,7 +436,7 @@ namespace MyFirstProject
             lblToleranceInfo.Font = new Font("Segoe UI", 8.5f);
             pnlPolyline.Controls.Add(lblToleranceInfo);
 
-            y += 205;
+            y += grpMode.Height + 10;
 
             // ── Checkbox Clear ──
             chkClearOld = new CheckBox
@@ -302,18 +450,18 @@ namespace MyFirstProject
                 FlatStyle = FlatStyle.Flat
             };
             mainPanel.Controls.Add(chkClearOld);
-            y += 40;
+            y += 35;
 
             // ═══════════════════════════════════════════════════
             // SECTION 3: PREVIEW
             // ═══════════════════════════════════════════════════
-            var grpPreview = CreateSection("Preview danh sách Station sẽ thêm", 0, y, 700, 200);
+            var grpPreview = CreateSection("Preview danh sách Station sẽ thêm", 0, y, 730, 220);
             mainPanel.Controls.Add(grpPreview);
 
             dgvPreview = new DataGridView
             {
                 Location = new Point(10, 30),
-                Size = new Size(680, 130),
+                Size = new Size(710, 150),
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
@@ -342,15 +490,17 @@ namespace MyFirstProject
                 ColumnHeadersHeight = 32
             };
             dgvPreview.Columns.Add("STT", "STT");
+            dgvPreview.Columns.Add("Corridor", "Corridor");
             dgvPreview.Columns.Add("Baseline", "Baseline");
             dgvPreview.Columns.Add("Station", "Station (m)");
             dgvPreview.Columns.Add("Nguon", "Nguồn");
-            dgvPreview.Columns["STT"]!.Width = 50;
-            dgvPreview.Columns["Station"]!.Width = 120;
-            dgvPreview.Columns["Nguon"]!.Width = 100;
+            dgvPreview.Columns["STT"]!.Width = 45;
+            dgvPreview.Columns["Corridor"]!.Width = 140;
+            dgvPreview.Columns["Station"]!.Width = 100;
+            dgvPreview.Columns["Nguon"]!.Width = 85;
             grpPreview.Controls.Add(dgvPreview);
 
-            lblTotal = CreateLabel("Tổng: 0 station", 10, 170);
+            lblTotal = CreateLabel("Tổng: 0 station", 10, 190);
             lblTotal.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
             grpPreview.Controls.Add(lblTotal);
 
@@ -363,67 +513,164 @@ namespace MyFirstProject
             btnPreview = CreateButton("Preview", 380, 8, 110, 36, pnlBottom);
             btnPreview.Click += BtnPreview_Click;
 
-            btnCancel = CreateButton("Hủy", 500, 8, 100, 36, pnlBottom);
+            btnCancel = CreateButton("Hủy", 510, 8, 100, 36, pnlBottom);
             btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
 
-            btnExecute = CreatePrimaryButton("Thực hiện", 610, 8, 120, 36, pnlBottom);
+            btnExecute = CreatePrimaryButton("Thực hiện", 620, 8, 140, 36, pnlBottom);
             btnExecute.Click += BtnExecute_Click;
 
-            // Initialize
-            if (corridors.Count > 0)
-                OnCorridorChanged();
+            // Initialize: load SampleLine groups cho tất cả corridor đã chọn
+            OnCorridorSelectionChanged();
         }
 
         // ═══════════════════════════════════════════════════
         // EVENT HANDLERS
         // ═══════════════════════════════════════════════════
 
-        private void OnCorridorChanged()
+        /// <summary>
+        /// Khi thay đổi corridor được chọn (checkbox) → cập nhật SampleLine groups
+        /// </summary>
+        private void OnCorridorSelectionChanged()
         {
-            if (cboCorridor.SelectedIndex < 0 || cboCorridor.SelectedIndex >= corridors.Count) return;
-            var cor = corridors[cboCorridor.SelectedIndex];
-            SelectedCorridorId = cor.Id;
-            lblCorridorInfo.Text = $"Baselines: {cor.BaselineCount}";
+            // Cập nhật danh sách corridor đã chọn
+            SelectedCorridorIds.Clear();
+            int checkedCount = 0;
+            for (int i = 0; i < clbCorridors.Items.Count; i++)
+            {
+                if (clbCorridors.GetItemChecked(i) && i < corridors.Count)
+                {
+                    SelectedCorridorIds.Add(corridors[i].Id);
+                    checkedCount++;
+                }
+            }
 
-            // Load SampleLine groups
-            LoadSampleLineGroups(cor.Id);
+            lblCorridorInfo.Text = $"Đã chọn {checkedCount}/{corridors.Count} corridor";
+
+            // Load Alignment cho tất cả corridor đã chọn
+            LoadAlignmentsForSelected();
+
+            // Load SampleLine groups cho tất cả corridor đã chọn
+            LoadSampleLineGroupsForSelected();
         }
 
-        private void LoadSampleLineGroups(ObjectId corridorId)
+        /// <summary>
+        /// Load tất cả Alignment (tuyến) từ các corridor đã chọn
+        /// </summary>
+        private void LoadAlignmentsForSelected()
         {
-            sampleLineGroups.Clear();
-            cboSampleLineGroup.Items.Clear();
+            alignmentDisplayInfos.Clear();
+            clbAlignments.Items.Clear();
+            SelectedAlignmentIds.Clear();
 
             try
             {
                 using Transaction tr = A.Db.TransactionManager.StartTransaction();
-                Corridor? corridor = tr.GetObject(corridorId, OpenMode.ForRead) as Corridor;
-                if (corridor == null) { tr.Commit(); return; }
 
-                foreach (Baseline baseline in corridor.Baselines)
+                foreach (ObjectId corridorId in SelectedCorridorIds)
                 {
-                    Alignment? alignment = tr.GetObject(baseline.AlignmentId, OpenMode.ForRead) as Alignment;
-                    if (alignment == null) continue;
+                    Corridor? corridor = tr.GetObject(corridorId, OpenMode.ForRead) as Corridor;
+                    if (corridor == null) continue;
 
-                    ObjectIdCollection groupIds = alignment.GetSampleLineGroupIds();
-                    for (int i = 0; i < groupIds.Count; i++)
+                    foreach (Baseline baseline in corridor.Baselines)
                     {
-                        SampleLineGroup? slg = tr.GetObject(groupIds[i], OpenMode.ForRead) as SampleLineGroup;
-                        if (slg == null) continue;
+                        Alignment? alignment = tr.GetObject(baseline.AlignmentId, OpenMode.ForRead) as Alignment;
+                        if (alignment == null) continue;
 
-                        int slCount = slg.GetSampleLineIds().Count;
-                        sampleLineGroups.Add(new SampleLineGroupInfo
+                        // Tránh trùng lặp alignment (1 alignment có thể thuộc nhiều baseline)
+                        bool alreadyAdded = alignmentDisplayInfos.Any(a =>
+                            a.AlignmentId == baseline.AlignmentId && a.CorridorId == corridorId);
+                        if (alreadyAdded) continue;
+
+                        alignmentDisplayInfos.Add(new AlignmentDisplayInfo
                         {
-                            Id = groupIds[i],
-                            Name = slg.Name,
-                            SampleLineCount = slCount
+                            AlignmentId = baseline.AlignmentId,
+                            AlignmentName = alignment.Name,
+                            CorridorName = corridor.Name,
+                            BaselineName = baseline.Name,
+                            CorridorId = corridorId
                         });
-                        cboSampleLineGroup.Items.Add($"{slg.Name} ({slCount} cọc) — {alignment.Name}");
+
+                        string displayText = $"{alignment.Name}  —  Baseline: {baseline.Name}  [{corridor.Name}]";
+                        clbAlignments.Items.Add(displayText);
                     }
                 }
 
-                if (cboSampleLineGroup.Items.Count > 0)
-                    cboSampleLineGroup.SelectedIndex = 0;
+                // Mặc định chọn tất cả alignment
+                for (int i = 0; i < clbAlignments.Items.Count; i++)
+                    clbAlignments.SetItemChecked(i, true);
+
+                tr.Commit();
+            }
+            catch { }
+
+            OnAlignmentSelectionChanged();
+        }
+
+        /// <summary>
+        /// Khi thay đổi alignment được chọn (checkbox)
+        /// </summary>
+        private void OnAlignmentSelectionChanged()
+        {
+            SelectedAlignmentIds.Clear();
+            int checkedCount = 0;
+            for (int i = 0; i < clbAlignments.Items.Count; i++)
+            {
+                if (clbAlignments.GetItemChecked(i) && i < alignmentDisplayInfos.Count)
+                {
+                    SelectedAlignmentIds.Add(alignmentDisplayInfos[i].AlignmentId);
+                    checkedCount++;
+                }
+            }
+            lblAlignmentInfo.Text = $"Đã chọn {checkedCount}/{alignmentDisplayInfos.Count} tuyến";
+        }
+
+        /// <summary>
+        /// Load tất cả SampleLine groups từ các corridor đã chọn
+        /// </summary>
+        private void LoadSampleLineGroupsForSelected()
+        {
+            sampleLineGroups.Clear();
+            clbSampleLineGroups.Items.Clear();
+
+            try
+            {
+                using Transaction tr = A.Db.TransactionManager.StartTransaction();
+
+                foreach (ObjectId corridorId in SelectedCorridorIds)
+                {
+                    Corridor? corridor = tr.GetObject(corridorId, OpenMode.ForRead) as Corridor;
+                    if (corridor == null) continue;
+
+                    foreach (Baseline baseline in corridor.Baselines)
+                    {
+                        Alignment? alignment = tr.GetObject(baseline.AlignmentId, OpenMode.ForRead) as Alignment;
+                        if (alignment == null) continue;
+
+                        ObjectIdCollection groupIds = alignment.GetSampleLineGroupIds();
+                        for (int i = 0; i < groupIds.Count; i++)
+                        {
+                            SampleLineGroup? slg = tr.GetObject(groupIds[i], OpenMode.ForRead) as SampleLineGroup;
+                            if (slg == null) continue;
+
+                            int slCount = slg.GetSampleLineIds().Count;
+                            sampleLineGroups.Add(new SampleLineGroupInfo
+                            {
+                                Id = groupIds[i],
+                                Name = slg.Name,
+                                SampleLineCount = slCount,
+                                CorridorId = corridorId,
+                                AlignmentId = baseline.AlignmentId
+                            });
+
+                            string displayText = $"{slg.Name} ({slCount} cọc) — {alignment.Name} [{corridor.Name}]";
+                            clbSampleLineGroups.Items.Add(displayText);
+                        }
+                    }
+                }
+
+                // Mặc định chọn tất cả SampleLine groups
+                for (int i = 0; i < clbSampleLineGroups.Items.Count; i++)
+                    clbSampleLineGroups.SetItemChecked(i, true);
 
                 tr.Commit();
             }
@@ -479,9 +726,9 @@ namespace MyFirstProject
             previewStations.Clear();
             dgvPreview.Rows.Clear();
 
-            if (SelectedCorridorId == ObjectId.Null)
+            if (SelectedCorridorIds.Count == 0)
             {
-                MessageBox.Show("Vui lòng chọn Corridor!", "Thông báo",
+                MessageBox.Show("Vui lòng tích chọn ít nhất 1 Corridor!", "Thông báo",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -489,16 +736,20 @@ namespace MyFirstProject
             try
             {
                 using Transaction tr = A.Db.TransactionManager.StartTransaction();
-                Corridor? corridor = tr.GetObject(SelectedCorridorId, OpenMode.ForRead) as Corridor;
-                if (corridor == null) { tr.Commit(); return; }
 
-                if (rdoSampleLine.Checked)
+                foreach (ObjectId corridorId in SelectedCorridorIds)
                 {
-                    PreviewSampleLineMode(tr, corridor);
-                }
-                else
-                {
-                    PreviewPolylineMode(tr, corridor);
+                    Corridor? corridor = tr.GetObject(corridorId, OpenMode.ForRead) as Corridor;
+                    if (corridor == null) continue;
+
+                    if (rdoSampleLine.Checked)
+                    {
+                        PreviewSampleLineMode(tr, corridor, corridorId);
+                    }
+                    else
+                    {
+                        PreviewPolylineMode(tr, corridor, corridorId);
+                    }
                 }
 
                 tr.Commit();
@@ -511,55 +762,87 @@ namespace MyFirstProject
 
             // Update grid
             int stt = 1;
-            foreach (var item in previewStations.OrderBy(s => s.Station))
+            foreach (var item in previewStations.OrderBy(s => s.CorridorName).ThenBy(s => s.BaselineName).ThenBy(s => s.Station))
             {
                 item.STT = stt++;
-                dgvPreview.Rows.Add(item.STT, item.BaselineName, Math.Round(item.Station, 3), item.Nguon);
+                dgvPreview.Rows.Add(item.STT, item.CorridorName, item.BaselineName, Math.Round(item.Station, 3), item.Nguon);
             }
-            lblTotal.Text = $"Tổng: {previewStations.Count} station";
+            lblTotal.Text = $"Tổng: {previewStations.Count} station trên {SelectedCorridorIds.Count} corridor";
         }
 
-        private void PreviewSampleLineMode(Transaction tr, Corridor corridor)
+        private void PreviewSampleLineMode(Transaction tr, Corridor corridor, ObjectId corridorId)
         {
-            if (cboSampleLineGroup.SelectedIndex < 0) return;
+            // Lấy danh sách SampleLineGroup đã chọn (checked) cho corridor này
+            List<ObjectId> checkedGroupIds = new();
+            for (int i = 0; i < clbSampleLineGroups.Items.Count; i++)
+            {
+                if (clbSampleLineGroups.GetItemChecked(i) && i < sampleLineGroups.Count)
+                {
+                    var slgInfo = sampleLineGroups[i];
+                    if (slgInfo.CorridorId == corridorId)
+                    {
+                        checkedGroupIds.Add(slgInfo.Id);
+                    }
+                }
+            }
+
+            if (checkedGroupIds.Count == 0) return;
 
             foreach (Baseline baseline in corridor.Baselines)
             {
+                // Bỏ qua baseline nếu alignment không được chọn
+                if (!SelectedAlignmentIds.Contains(baseline.AlignmentId)) continue;
+
                 Alignment? alignment = tr.GetObject(baseline.AlignmentId, OpenMode.ForRead) as Alignment;
                 if (alignment == null) continue;
 
                 ObjectIdCollection groupIds = alignment.GetSampleLineGroupIds();
                 if (groupIds.Count == 0) continue;
 
-                // Chọn nhóm sampleline theo index
-                int groupIdx = Math.Min(cboSampleLineGroup.SelectedIndex, groupIds.Count - 1);
-                SampleLineGroup? slGroup = tr.GetObject(groupIds[groupIdx], OpenMode.ForRead) as SampleLineGroup;
-                if (slGroup == null) continue;
-
-                foreach (ObjectId slId in slGroup.GetSampleLineIds())
+                // Duyệt tất cả groups đã chọn của alignment này
+                for (int gi = 0; gi < groupIds.Count; gi++)
                 {
-                    SampleLine? sl = tr.GetObject(slId, OpenMode.ForRead) as SampleLine;
-                    if (sl == null) continue;
+                    if (!checkedGroupIds.Contains(groupIds[gi])) continue;
 
-                    // Kiểm tra station nằm trong vùng baseline region
-                    foreach (BaselineRegion region in baseline.BaselineRegions)
+                    SampleLineGroup? slGroup = tr.GetObject(groupIds[gi], OpenMode.ForRead) as SampleLineGroup;
+                    if (slGroup == null) continue;
+
+                    foreach (ObjectId slId in slGroup.GetSampleLineIds())
                     {
-                        if (sl.Station > region.StartStation && sl.Station < region.EndStation)
+                        SampleLine? sl = tr.GetObject(slId, OpenMode.ForRead) as SampleLine;
+                        if (sl == null) continue;
+
+                        // Kiểm tra station nằm trong vùng baseline region
+                        foreach (BaselineRegion region in baseline.BaselineRegions)
                         {
-                            previewStations.Add(new StationPreviewItem
+                            if (sl.Station > region.StartStation && sl.Station < region.EndStation)
                             {
-                                BaselineName = baseline.Name,
-                                Station = sl.Station,
-                                Nguon = "SampleLine"
-                            });
-                            break;
+                                // Kiểm tra trùng
+                                bool exists = previewStations.Any(s =>
+                                    s.CorridorId == corridorId &&
+                                    s.BaselineName == baseline.Name &&
+                                    Math.Abs(s.Station - sl.Station) < 0.01);
+
+                                if (!exists)
+                                {
+                                    previewStations.Add(new StationPreviewItem
+                                    {
+                                        CorridorName = corridor.Name,
+                                        BaselineName = baseline.Name,
+                                        Station = sl.Station,
+                                        Nguon = "SampleLine",
+                                        CorridorId = corridorId
+                                    });
+                                }
+                                break;
+                            }
                         }
                     }
                 }
             }
         }
 
-        private void PreviewPolylineMode(Transaction tr, Corridor corridor)
+        private void PreviewPolylineMode(Transaction tr, Corridor corridor, ObjectId corridorId)
         {
             if (selectedPolylineIds.Count == 0)
             {
@@ -572,6 +855,9 @@ namespace MyFirstProject
 
             foreach (Baseline baseline in corridor.Baselines)
             {
+                // Bỏ qua baseline nếu alignment không được chọn
+                if (!SelectedAlignmentIds.Contains(baseline.AlignmentId)) continue;
+
                 Alignment? alignment = tr.GetObject(baseline.AlignmentId, OpenMode.ForRead) as Alignment;
                 if (alignment == null) continue;
 
@@ -587,6 +873,7 @@ namespace MyFirstProject
                     {
                         // Kiểm tra trùng lặp
                         bool exists = previewStations.Any(s =>
+                            s.CorridorId == corridorId &&
                             s.BaselineName == baseline.Name &&
                             Math.Abs(s.Station - station) < 0.01);
 
@@ -594,9 +881,11 @@ namespace MyFirstProject
                         {
                             previewStations.Add(new StationPreviewItem
                             {
+                                CorridorName = corridor.Name,
                                 BaselineName = baseline.Name,
                                 Station = station,
-                                Nguon = "Polyline"
+                                Nguon = "Polyline",
+                                CorridorId = corridorId
                             });
                         }
                     }
@@ -686,7 +975,7 @@ namespace MyFirstProject
             }
 
             var confirm = MessageBox.Show(
-                $"Bạn có muốn thêm {previewStations.Count} station vào corridor không?",
+                $"Bạn có muốn thêm {previewStations.Count} station vào {SelectedCorridorIds.Count} corridor không?",
                 "Xác nhận",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
@@ -694,10 +983,94 @@ namespace MyFirstProject
             if (confirm == DialogResult.Yes)
             {
                 IsConfirmed = true;
-                SelectedSampleLineGroupIndex = cboSampleLineGroup.SelectedIndex >= 0 ? cboSampleLineGroup.SelectedIndex : 0;
+                // Lưu danh sách SLG indices đã chọn
+                SelectedSampleLineGroupIndices.Clear();
+                for (int i = 0; i < clbSampleLineGroups.Items.Count; i++)
+                {
+                    if (clbSampleLineGroups.GetItemChecked(i))
+                        SelectedSampleLineGroupIndices.Add(i);
+                }
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
+        }
+
+        /// <summary>
+        /// Ẩn form, cho user pick alignment trực tiếp trên bình đồ (bản vẽ),
+        /// sau đó tự check/uncheck đúng alignment đã pick trong danh sách.
+        /// </summary>
+        private void BtnPickAlignmentOnPlan_Click(object? sender, EventArgs e)
+        {
+            this.Hide();
+
+            try
+            {
+                // Bỏ chọn tất cả trước
+                for (int i = 0; i < clbAlignments.Items.Count; i++)
+                    clbAlignments.SetItemChecked(i, false);
+
+                // Cho user pick nhiều alignment trên bình đồ
+                bool continueSelecting = true;
+                int pickedCount = 0;
+
+                while (continueSelecting)
+                {
+                    A.Ed.WriteMessage($"\n[{pickedCount} tuyến đã chọn] — Pick tuyến (Alignment) trên bình đồ (Enter/ESC để kết thúc): ");
+
+                    PromptEntityOptions peo = new("\nChọn tuyến (Alignment) trên bình đồ (Enter để kết thúc): ");
+                    peo.SetRejectMessage("\n— Đối tượng không phải Alignment! Vui lòng chọn lại.");
+                    peo.AddAllowedClass(typeof(Alignment), true);
+                    peo.AllowNone = true; // Cho phép nhấn Enter để kết thúc
+
+                    PromptEntityResult per = A.Ed.GetEntity(peo);
+
+                    if (per.Status != PromptStatus.OK)
+                    {
+                        // User nhấn Enter hoặc ESC → kết thúc
+                        continueSelecting = false;
+                        continue;
+                    }
+
+                    ObjectId pickedAlignmentId = per.ObjectId;
+
+                    // Tìm và check alignment tương ứng trong danh sách
+                    bool found = false;
+                    for (int i = 0; i < alignmentDisplayInfos.Count; i++)
+                    {
+                        if (alignmentDisplayInfos[i].AlignmentId == pickedAlignmentId)
+                        {
+                            if (!clbAlignments.GetItemChecked(i))
+                            {
+                                clbAlignments.SetItemChecked(i, true);
+                                pickedCount++;
+                                A.Ed.WriteMessage($"\n  ✅ Đã chọn: {alignmentDisplayInfos[i].AlignmentName}");
+                            }
+                            else
+                            {
+                                A.Ed.WriteMessage($"\n  ⚠ Tuyến \"{alignmentDisplayInfos[i].AlignmentName}\" đã được chọn trước đó.");
+                            }
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        // Alignment không nằm trong corridor đã chọn
+                        A.Ed.WriteMessage("\n  ❌ Tuyến này không thuộc corridor đã chọn. Bỏ qua.");
+                    }
+                }
+
+                A.Ed.WriteMessage($"\n══ Hoàn tất: đã chọn {pickedCount} tuyến trên bình đồ ══\n");
+            }
+            catch (System.Exception ex)
+            {
+                A.Ed.WriteMessage($"\n❌ Lỗi khi chọn tuyến: {ex.Message}");
+            }
+
+            // Hiện lại form
+            this.Show();
+            OnAlignmentSelectionChanged();
         }
 
         // (Removed UI helpers)

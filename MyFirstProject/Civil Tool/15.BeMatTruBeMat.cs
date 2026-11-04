@@ -309,7 +309,7 @@ namespace MyFirstProject
         /// <summary>
         /// Command: Hiển thị thông tin Material List trong SampleLineGroup
         /// </summary>
-        [CommandMethod("CTSV_HienThiMaterialList")]
+        // [CommandMethod("CTSV_HienThiMaterialList")]
         public static void CTSVHienThiMaterialList()
         {
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
@@ -332,7 +332,7 @@ namespace MyFirstProject
 
                     foreach (ObjectId slgId in slgIds)
                     {
-                        SampleLineGroup? slg = tr.GetObject(slgId, AcadDb.OpenMode.ForWrite, false, true) as SampleLineGroup;
+                        SampleLineGroup? slg = tr.GetObject(slgId, AcadDb.OpenMode.ForRead, false, true) as SampleLineGroup;
                         if (slg == null) continue;
 
                         A.Ed.WriteMessage($"\n  📊 SampleLineGroup: {slg.Name}");
@@ -384,7 +384,7 @@ namespace MyFirstProject
         /// <summary>
         /// Command: Hiển thị chi tiết dữ liệu Material Section (giống Properties Panel)
         /// </summary>
-        [CommandMethod("CTSV_ChiTietMaterialSection")]
+        // [CommandMethod("CTSV_ChiTietMaterialSection")]
         public static void CTSVChiTietMaterialSection()
         {
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
@@ -490,7 +490,7 @@ namespace MyFirstProject
         /// <summary>
         /// Command: Phân tích chi tiết nguồn gốc AREA trong Data Section (VD: 0.89 SQ.M)
         /// </summary>
-        [CommandMethod("CTSV_PhanTichArea")]
+        // [CommandMethod("CTSV_PhanTichArea")]
         public static void CTSVPhanTichArea()
         {
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
@@ -516,7 +516,7 @@ namespace MyFirstProject
 
                 foreach (var alignInfo in formChon.SelectedAlignments)
                 {
-                    SampleLineGroup? slg = tr.GetObject(alignInfo.SampleLineGroupId, AcadDb.OpenMode.ForWrite, false, true) as SampleLineGroup;
+                    SampleLineGroup? slg = tr.GetObject(alignInfo.SampleLineGroupId, AcadDb.OpenMode.ForRead, false, true) as SampleLineGroup;
                     if (slg == null) continue;
 
                     QTOMaterialListCollection materialLists = slg.MaterialLists;
@@ -626,7 +626,7 @@ namespace MyFirstProject
         /// <summary>
         /// Command: Kiểm tra so sánh AREA với Civil 3D Properties Panel  
         /// </summary>
-        [CommandMethod("CTSV_KiemTraKhoiLuong")]
+        // [CommandMethod("CTSV_KiemTraKhoiLuong")]
         public static void CTSVKiemTraKhoiLuong()
         {
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
@@ -651,7 +651,7 @@ namespace MyFirstProject
                     A.Ed.WriteMessage($"\n  ALIGNMENT: {alignInfo.Name}");
                     A.Ed.WriteMessage($"\n═══════════════════════════════════════════════════════════════════════════");
 
-                    SampleLineGroup? slg = tr.GetObject(alignInfo.SampleLineGroupId, AcadDb.OpenMode.ForWrite, false, true) as SampleLineGroup;
+                    SampleLineGroup? slg = tr.GetObject(alignInfo.SampleLineGroupId, AcadDb.OpenMode.ForRead, false, true) as SampleLineGroup;
                     if (slg == null) continue;
 
                     QTOMaterialListCollection materialLists = slg.MaterialLists;
@@ -812,7 +812,7 @@ namespace MyFirstProject
         {
             VolumeResult result = new() { AlignmentName = alignInfo.Name };
 
-            SampleLineGroup? slg = tr.GetObject(alignInfo.SampleLineGroupId, AcadDb.OpenMode.ForWrite, false, true) as SampleLineGroup;
+            SampleLineGroup? slg = tr.GetObject(alignInfo.SampleLineGroupId, AcadDb.OpenMode.ForRead, false, true) as SampleLineGroup;
             if (slg == null) return null;
 
             // Lấy Material Lists

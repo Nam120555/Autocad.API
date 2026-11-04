@@ -250,7 +250,7 @@ namespace MyFirstProject
         private void InitializeUI()
         {
             InitBaseTheme("Civil Tool — Cài Đặt Style", 920, 620);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             var header = CreateHeader("CÀI ĐẶT STYLE — CIVIL 3D");
             this.Controls.Add(header);

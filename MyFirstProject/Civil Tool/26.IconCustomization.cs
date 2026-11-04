@@ -304,8 +304,8 @@ namespace MyFirstProject
                 ("CTC_TraCuuDuongCong", "◎ Tra cứu thông số"),
                 ("CTC_ThongSoDuongCong_4054", "▤ Bảng TCVN 4054"),
                 ("CTC_ThongSoDuongCong_13592", "▤ Bảng TCVN 13592"),
-                ("CTC_KiemTraDuongCong_4054", "Kiểm tra theo 4054"),
-                ("CTC_KiemTraDuongCong_13592", "Kiểm tra theo 13592"),
+                //("CTC_KiemTraDuongCong_4054", "Kiểm tra theo 4054"),
+                //("CTC_KiemTraDuongCong_13592", "Kiểm tra theo 13592"),
                 
                 // Volume Calculation
                 ("CTSV_XuatKhoiLuong", "◈ Xuất khối lượng"),
@@ -508,8 +508,8 @@ namespace MyFirstProject
                 ("CTC_TraCuuDuongCong", "◎ Tra cứu thông số"),
                 ("CTC_ThongSoDuongCong_4054", "▤ Bảng TCVN 4054"),
                 ("CTC_ThongSoDuongCong_13592", "▤ Bảng TCVN 13592"),
-                ("CTC_KiemTraDuongCong_4054", "Kiểm tra theo 4054"),
-                ("CTC_KiemTraDuongCong_13592", "Kiểm tra theo 13592"),
+                //("CTC_KiemTraDuongCong_4054", "Kiểm tra theo 4054"),
+                //("CTC_KiemTraDuongCong_13592", "Kiểm tra theo 13592"),
                 ("CTSV_XuatKhoiLuong", "◈ Xuất khối lượng"),
                 ("CTSV_CaiDat", "Cài đặt"),
                 ("CTSV_Taskbar", "▤ Taskbar"),

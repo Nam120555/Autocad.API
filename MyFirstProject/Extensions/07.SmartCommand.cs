@@ -49,13 +49,11 @@ namespace MyFirstProject.Helpers
         {
             try
             {
-                // Sử dụng ShowAlertDialog là ổn định nhất trên mọi phiên bản AutoCAD
-                Autodesk.AutoCAD.ApplicationServices.Application.ShowAlertDialog(
-                    $"DỰ ÁN CIVIL TOOL\n\n" +
-                    $"Lỗi tại lệnh: {commandName}\n" +
-                    $"- Message: {ex.Message}\n\n" +
-                    $"Vui lòng liên hệ hỗ trợ kỹ thuật nếu lỗi vẫn tiếp diễn."
-                );
+                // Hộp thông báo lỗi UI Pro (có nút "Chi tiết" + "Sao chép" để gửi hỗ trợ)
+                MyFirstProject.UI.NxMessageBox.Error(
+                    $"Lỗi tại lệnh {commandName}",
+                    ex.Message + "\n\nVui lòng liên hệ hỗ trợ kỹ thuật nếu lỗi vẫn tiếp diễn.",
+                    ex.ToString());
 
                 // Ghi thêm log chi tiết ra Editor
                 if (!string.IsNullOrEmpty(ex.StackTrace))

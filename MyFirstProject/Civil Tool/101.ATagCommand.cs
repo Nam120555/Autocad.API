@@ -113,7 +113,7 @@ namespace MyFirstProject
             {
                 if (SelectedBlockIds.Count == 0) { MessageBox.Show("Vui lòng chọn block trụ!"); return; }
                 if (SelectedPathId == ObjectId.Null) { MessageBox.Show("Vui lòng chọn tim tuyến!"); return; }
-                Side = cmbSide.SelectedItem.ToString();
+                Side = cmbSide.SelectedItem?.ToString() ?? "Trái";
                 IsConfirmed = true;
                 this.DialogResult = DialogResult.OK;
                 this.Close();
@@ -190,7 +190,7 @@ namespace MyFirstProject
                 ObjectId tagBlockId = bt["TAG_TRU"];
 
                 // 2. Lấy Curve (Tim tuyến)
-                Curve path = tr.GetObject(form.SelectedPathId, OpenMode.ForRead) as Curve;
+                Curve? path = tr.GetObject(form.SelectedPathId, OpenMode.ForRead) as Curve;
                 if (path == null) return;
 
                 // 3. Chuẩn bị Layer dóng tuyến
@@ -200,7 +200,7 @@ namespace MyFirstProject
                 var dataList = new List<PierData>();
                 foreach (var id in form.SelectedBlockIds)
                 {
-                    BlockReference blk = tr.GetObject(id, OpenMode.ForRead) as BlockReference;
+                    BlockReference? blk = tr.GetObject(id, OpenMode.ForRead) as BlockReference;
                     if (blk == null) continue;
 
                     Point3d insPt = blk.Position;
@@ -255,7 +255,7 @@ namespace MyFirstProject
                     BlockTableRecord tagDef = (BlockTableRecord)tr.GetObject(tagBlockId, OpenMode.ForRead);
                     foreach (ObjectId attId in tagDef)
                     {
-                        AttributeDefinition attDef = tr.GetObject(attId, OpenMode.ForRead) as AttributeDefinition;
+                        AttributeDefinition? attDef = tr.GetObject(attId, OpenMode.ForRead) as AttributeDefinition;
                         if (attDef != null && !attDef.Constant)
                         {
                             using AttributeReference attRef = new AttributeReference();

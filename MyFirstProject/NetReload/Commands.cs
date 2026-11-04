@@ -17,6 +17,8 @@ namespace NetReload
 
 	public class Commands
 	{
+		// Theo dõi số lần reload để dọn rác
+		private static int _reloadCount = 0;
 
 		// NRL command - Short alias for RELOAD
 		[CommandMethod("NRL")]
@@ -32,12 +34,28 @@ namespace NetReload
 			Autodesk.AutoCAD.ApplicationServices.Document doc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
 			Editor ed = doc.Editor;
 
+			Stopwatch sw = Stopwatch.StartNew();
+
 			try
 			{
 				// 1. Determine Project Path
-				// Since this is a standalone reloader, we point it to the main project we want to reload.
-				// You can change this path to reload different projects.
-				string projectDir = @"c:\Google\Autocad 2026_API\Autocad 2026_API\MyFirstProject";
+				string projectDir = @"D:\Autocad 2026_API\Autocad 2026_API\MyFirstProject";
+
+				string? executingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+				string? currentSearch = executingDir;
+				while (!string.IsNullOrEmpty(currentSearch) && Directory.Exists(currentSearch))
+				{
+					string[] csProjFiles = Directory.GetFiles(currentSearch, "*.csproj");
+					string? targetCsproj = csProjFiles.FirstOrDefault(f => !Path.GetFileName(f).Equals("NetReload.csproj", StringComparison.OrdinalIgnoreCase));
+					if (targetCsproj != null)
+					{
+						projectDir = currentSearch;
+						break;
+					}
+					DirectoryInfo? parent = Directory.GetParent(currentSearch);
+					if (parent == null) break;
+					currentSearch = parent.FullName;
+				}
 
 				if (string.IsNullOrEmpty(projectDir) || !Directory.Exists(projectDir))
 				{
@@ -61,12 +79,17 @@ namespace NetReload
 				ed.WriteMessage($"\nReloading project: {projectName} (New Assembly: {uniqueAssemblyName})...");
 
 				// 2. Run dotnet build with unique AssemblyName
+				//    TỐI ƯU: Dùng --no-restore để bỏ qua NuGet restore (rất tốn thời gian)
+				//    NuGet đã được restore ở lần build đầu tiên, các lần sau không cần nữa.
 				string configuration = "Debug";
 
 				ProcessStartInfo psi = new ProcessStartInfo
 				{
 					FileName = "dotnet",
-					Arguments = $"build -c {configuration} /p:AssemblyName={uniqueAssemblyName}",
+					// --no-restore: Bỏ qua bước restore NuGet (tiết kiệm ~30-60 giây)
+					// --nologo: Bỏ banner thừa
+					// -v q: Verbose = quiet, giảm output
+					Arguments = $"build -c {configuration} /p:AssemblyName={uniqueAssemblyName} --no-restore --nologo -v q",
 					WorkingDirectory = projectDir,
 					RedirectStandardOutput = true,
 					RedirectStandardError = true,
@@ -104,10 +127,45 @@ namespace NetReload
 
 					if (process.ExitCode != 0)
 					{
-						ed.WriteMessage($"\nBuild Failed:\n{output}\n{error}");
-						return;
+						// Nếu lỗi do thiếu restore, tự động retry với restore
+						if (output.Contains("NETSDK1004") || output.Contains("restore") || error.Contains("NETSDK1004"))
+						{
+							ed.WriteMessage("\n[NRL] NuGet chưa restore, đang restore lần đầu...");
+							psi.Arguments = $"build -c {configuration} /p:AssemblyName={uniqueAssemblyName} --nologo -v q";
+							
+							using (Process? retryProcess = Process.Start(psi))
+							{
+								if (retryProcess == null) { ed.WriteMessage("\nFailed to start retry process."); return; }
+								
+								outputBuilder.Clear();
+								errorBuilder.Clear();
+								
+								retryProcess.OutputDataReceived += (sender, args) => { if (args.Data != null) outputBuilder.AppendLine(args.Data); };
+								retryProcess.ErrorDataReceived += (sender, args) => { if (args.Data != null) errorBuilder.AppendLine(args.Data); };
+								retryProcess.BeginOutputReadLine();
+								retryProcess.BeginErrorReadLine();
+								retryProcess.WaitForExit();
+								
+								output = outputBuilder.ToString();
+								error = errorBuilder.ToString();
+								
+								if (retryProcess.ExitCode != 0)
+								{
+									ed.WriteMessage($"\nBuild Failed:\n{output}\n{error}");
+									return;
+								}
+							}
+						}
+						else
+						{
+							ed.WriteMessage($"\nBuild Failed:\n{output}\n{error}");
+							return;
+						}
 					}
 				}
+
+				double buildTime = sw.Elapsed.TotalSeconds;
+				ed.WriteMessage($"\n[NRL] Build OK ({buildTime:F1}s)");
 
 				// 3. Locate Output DLL
 				string binDir = Path.Combine(projectDir, "bin", configuration);
@@ -133,15 +191,22 @@ namespace NetReload
 				else
 				{
 					// Xóa tất cả DLL/PDB cũ để tránh tích lũy rác (memory leak)
-					try
+					// CHỈ xóa khi đã reload > 5 lần để tránh xóa quá thường xuyên
+					_reloadCount++;
+					if (_reloadCount % 5 == 0)
 					{
-						foreach (string oldFile in Directory.GetFiles(netReloadDir, "MyFirstProject_*.*"))
+						try
 						{
-							try { File.Delete(oldFile); } catch { }
+							int cleaned = 0;
+							foreach (string oldFile in Directory.GetFiles(netReloadDir, "MyFirstProject_*.*"))
+							{
+								try { File.Delete(oldFile); cleaned++; } catch { }
+							}
+							if (cleaned > 0)
+								ed.WriteMessage($"\n[NRL] Đã dọn {cleaned} file rác cũ.");
 						}
-						ed.WriteMessage($"\nĐã dọn dẹp thư mục NetReload.");
+						catch { }
 					}
-					catch { }
 				}
 
 				string destDllPath = Path.Combine(netReloadDir, sourceDll.Name);
@@ -165,7 +230,12 @@ namespace NetReload
 
 				// 5. Load the new DLL
 				Assembly.LoadFrom(destDllPath);
-				ed.WriteMessage($"\nNETRELOAD complete. Loaded: {uniqueAssemblyName}.dll");
+
+				sw.Stop();
+				ed.WriteMessage($"\n╔══════════════════════════════════════════╗");
+				ed.WriteMessage($"\n║  NETRELOAD hoàn tất trong {sw.Elapsed.TotalSeconds:F1} giây       ║");
+				ed.WriteMessage($"\n║  Assembly: {uniqueAssemblyName.Substring(0, Math.Min(30, uniqueAssemblyName.Length))}...       ║");
+				ed.WriteMessage($"\n╚══════════════════════════════════════════╝");
 
 				// Lưu ý: KHÔNG gọi show_menu ở đây vì AutoLoader.Initialize() 
 				// trong assembly mới sẽ tự động gọi ShowMenu + ApplyAliases

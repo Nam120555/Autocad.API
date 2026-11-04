@@ -488,7 +488,7 @@ namespace MyFirstProject
         private void InitComponents(List<string> blockNames)
         {
             InitBaseTheme("SẮP XẾP KHUNG VIEW BÌNH ĐỒ HÀNG LOẠT", 560, 680);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             var header = CreateHeader("QUẢN LÝ VIEWPORT & XREF LAYOUTS");
             this.Controls.Add(header);

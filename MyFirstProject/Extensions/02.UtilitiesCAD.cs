@@ -410,9 +410,8 @@ namespace MyFirstProject.Extensions
         }
         public static double CreatePolylineDanhCap(double x1, double x2, double y1, double y2, double bacCap, double docDanhCap)
         {
-            Transaction tr = A.Db.TransactionManager.StartTransaction();
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
             {
-                //UtilitiesCAD CAD = new UtilitiesCAD();
                 BlockTable bt = (BlockTable)tr.GetObject(A.Doc.Database.BlockTableId, OpenMode.ForRead);
                 BlockTableRecord btr = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
 
@@ -494,248 +493,171 @@ namespace MyFirstProject.Extensions
 
         public static double CSumList(List<double> list)
         {
-            double sum = 0;
-            foreach (double item in list)
-            {
-                sum += item;
-            }
-            return sum;
-
+            return list.Sum();
         }
         public static LayerTableRecord CCreateLayer(string NameLayer)
         {
-            Transaction tr = A.Db.TransactionManager.StartTransaction();
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            // Open the Layer table for read
+            LayerTable? acLyrTbl;
+            acLyrTbl = tr.GetObject(A.Db.LayerTableId, OpenMode.ForWrite) as LayerTable;
+            LayerTableRecord acLyrTblRec = new();
+
+            if (acLyrTbl != null && acLyrTbl.Has(NameLayer) == false)
             {
-                _ = new UserInput();
-                _ = new UtilitiesCAD();
-                _ = new UtilitiesC3D();
-                //start here
-                // Open the Layer table for read
-                LayerTable? acLyrTbl;
-                acLyrTbl = tr.GetObject(A.Db.LayerTableId, OpenMode.ForWrite) as LayerTable;
-                LayerTableRecord acLyrTblRec = new();
-
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                if (acLyrTbl.Has(NameLayer) == false)
-                {
-
-                    // Assign the layer the ACI color 1 and a name
-                    acLyrTblRec.Name = NameLayer;
-                    // Upgrade the Layer table for write
-                    acLyrTbl.UpgradeOpen();
-                    // Append the new layer to the Layer table and the transaction
-                    acLyrTbl.Add(acLyrTblRec);
-                    tr.AddNewlyCreatedDBObject(acLyrTblRec, true);
-                }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-                tr.Commit();
-                return acLyrTblRec;
+                // Assign the layer the ACI color 1 and a name
+                acLyrTblRec.Name = NameLayer;
+                // Upgrade the Layer table for write
+                acLyrTbl.UpgradeOpen();
+                // Append the new layer to the Layer table and the transaction
+                acLyrTbl.Add(acLyrTblRec);
+                tr.AddNewlyCreatedDBObject(acLyrTblRec, true);
             }
+
+            tr.Commit();
+            return acLyrTblRec;
         }
         public static LayerTableRecord CCreateLayerWithFullOption(string NameLayer, short colorIndex, LineWeight lineweight, string lineTypeName)
         {
-            Transaction tr = A.Db.TransactionManager.StartTransaction();
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            // Open the Layer table for read
+            LayerTable? acLyrTbl = tr.GetObject(A.Db.LayerTableId, OpenMode.ForWrite) as LayerTable;
+            LayerTableRecord acLyrTblRec = new();
+
+            if (acLyrTbl != null && acLyrTbl.Has(NameLayer) == false)
             {
-                _ = new UserInput();
-                _ = new UtilitiesCAD();
-                _ = new UtilitiesC3D();
-                //start here
-                // Open the Layer table for read
-                LayerTable? acLyrTbl = tr.GetObject(A.Db.LayerTableId, OpenMode.ForWrite) as LayerTable;
-                LayerTableRecord acLyrTblRec = new();
+                // Assign the layer the ACI color 1 and a name
+                acLyrTblRec.Name = NameLayer;
+                acLyrTblRec.Color = Color.FromColorIndex(ColorMethod.ByAci, colorIndex);
+                acLyrTblRec.LineWeight = lineweight;
 
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                if (acLyrTbl.Has(NameLayer) == false)
+                //add linetype
+                LinetypeTable? acLinTbl = tr.GetObject(A.Db.LinetypeTableId, OpenMode.ForRead) as LinetypeTable;
+                if (acLinTbl != null && acLinTbl.Has(lineTypeName) == true)
                 {
-
-                    // Assign the layer the ACI color 1 and a name
-                    acLyrTblRec.Name = NameLayer;
-                    acLyrTblRec.Color = Color.FromColorIndex(ColorMethod.ByAci, colorIndex);
-                    acLyrTblRec.LineWeight = lineweight;
-
-                    //add linetype
-                    LinetypeTable? acLinTbl = tr.GetObject(A.Db.LinetypeTableId, OpenMode.ForRead) as LinetypeTable;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    if (acLinTbl.Has(lineTypeName) == true)
-                    {
-                        acLyrTblRec.LinetypeObjectId = acLinTbl[lineTypeName];
-                    }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-                    // Upgrade the Layer table for write
-                    acLyrTbl.UpgradeOpen();
-                    // Append the new layer to the Layer table and the transaction
-                    acLyrTbl.Add(acLyrTblRec);
-                    tr.AddNewlyCreatedDBObject(acLyrTblRec, true);
+                    acLyrTblRec.LinetypeObjectId = acLinTbl[lineTypeName];
                 }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
-                tr.Commit();
-                return acLyrTblRec;
+                // Upgrade the Layer table for write
+                acLyrTbl.UpgradeOpen();
+                // Append the new layer to the Layer table and the transaction
+                acLyrTbl.Add(acLyrTblRec);
+                tr.AddNewlyCreatedDBObject(acLyrTblRec, true);
             }
+
+            tr.Commit();
+            return acLyrTblRec;
         }
         public static void CDelLayerAndObjectOnIt(string layerName)
         {
-            Transaction tr = A.Db.TransactionManager.StartTransaction();
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            // Create a Selection Filter which selects all Objects on a given Layer
+            TypedValue[] tvs = [new((int)DxfCode.LayerName, layerName)];
+            SelectionFilter sf = new(tvs);
+            // Select all Objects on Layer
+            PromptSelectionResult psr = A.Ed.SelectAll(sf);
+            SelectionSet ss = psr.Value;
+
+            if (ss != null)
             {
-
-                //start here
-                // Create a Selection Filter which selects all Objects on a given Layer... in this case "0"
-                TypedValue[] tvs = [new((int)DxfCode.LayerName, layerName)];
-                SelectionFilter sf = new(tvs);
-                // Select all Objects on Layer
-                PromptSelectionResult psr = A.Ed.SelectAll(sf);
-                SelectionSet ss = psr.Value;
-
                 // Iterate through objects and delete them
                 foreach (SelectedObject so in ss)
                 {
                     DBObject ob = tr.GetObject(so.ObjectId, OpenMode.ForWrite);
                     ob.Erase();
                 }
-
-                tr.Commit();
             }
+
+            tr.Commit();
         }
         public static void CCreateText(Point3d position, double height, string TextString, string layerName, string textStyle)
         {
-            Transaction tr = A.Db.TransactionManager.StartTransaction();
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            // Open the Block table for read
+            BlockTable? acBlkTbl = tr.GetObject(A.Db.BlockTableId, OpenMode.ForRead) as BlockTable;
+            if (acBlkTbl == null) return;
+            // Open the Block table record Model space for write
+            BlockTableRecord? acBlkTblRec = tr.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+            if (acBlkTblRec == null) return;
+            // Create a single-line text object
+            DBText acText = new();
+            acText.SetDatabaseDefaults();
+            acText.Position = position;
+            acText.Height = height;
+            acText.TextString = TextString;
+            acText.Layer = layerName;
+
+            TextStyleTable? styleTable = tr.GetObject(A.Db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
+            if (styleTable != null && styleTable.Has(textStyle))
             {
-                _ = new UserInput();
-                _ = new UtilitiesCAD();
-                _ = new UtilitiesC3D();
-                //start here
-                // Open the Block table for read
-                BlockTable? acBlkTbl;
-                acBlkTbl = tr.GetObject(A.Db.BlockTableId,
-                                                   OpenMode.ForRead) as BlockTable;
-                // Open the Block table record Model space for write
-                BlockTableRecord? acBlkTblRec;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                acBlkTblRec = tr.GetObject(acBlkTbl[BlockTableRecord.ModelSpace],
-                                                      OpenMode.ForWrite) as BlockTableRecord;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                // Create a single-line text object
-                DBText acText = new();
-                acText.SetDatabaseDefaults();
-                acText.Position = position;
-                acText.Height = height;
-                acText.TextString = TextString;
-                acText.Layer = layerName;
-
-                TextStyleTable? styleTable = tr.GetObject(A.Db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                if (styleTable.Has(textStyle))
-                {
-                    acText.TextStyleId = styleTable[textStyle];
-                }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                acBlkTblRec.AppendEntity(acText);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                tr.AddNewlyCreatedDBObject(acText, true);
-
-                A.Ed.Command("_UPDATEFIELD", acText);
-                // Save the changes and dispose of the transaction
-
-                tr.Commit();
+                acText.TextStyleId = styleTable[textStyle];
             }
+
+            acBlkTblRec.AppendEntity(acText);
+            tr.AddNewlyCreatedDBObject(acText, true);
+
+            A.Ed.Command("_UPDATEFIELD", acText);
+            // Save the changes and dispose of the transaction
+            tr.Commit();
         }
         public static void CCreateTextWithOutPut(Point3d position, double height, string TextString, string layerName, string textStyle)
         {
-            Transaction tr = A.Db.TransactionManager.StartTransaction();
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            // Open the Block table for read
+            BlockTable? acBlkTbl = tr.GetObject(A.Db.BlockTableId, OpenMode.ForRead) as BlockTable;
+            if (acBlkTbl == null) return;
+            // Open the Block table record Model space for write
+            BlockTableRecord? acBlkTblRec = tr.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+            if (acBlkTblRec == null) return;
+            // Create a single-line text object
+            DBText acText = new();
+            acText.SetDatabaseDefaults();
+            acText.Position = position;
+            acText.Height = height;
+            acText.TextString = TextString;
+            acText.Layer = layerName;
+
+            TextStyleTable? styleTable = tr.GetObject(A.Db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
+            if (styleTable != null && styleTable.Has(textStyle))
             {
-                _ = new
-                UserInput();
-                _ = new UtilitiesCAD();
-                _ = new UtilitiesC3D();
-
-                //start here
-                // Open the Block table for read
-                BlockTable? acBlkTbl;
-                acBlkTbl = tr.GetObject(A.Db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                // Open the Block table record Model space for write
-                BlockTableRecord? acBlkTblRec;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                acBlkTblRec = tr.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                // Create a single-line text object
-                DBText acText = new();
-                acText.SetDatabaseDefaults();
-                acText.Position = position;
-                acText.Height = height;
-                acText.TextString = TextString;
-                acText.Layer = layerName;
-
-                TextStyleTable? styleTable = tr.GetObject(A.Db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                if (styleTable.Has(textStyle))
-                {
-                    acText.TextStyleId = styleTable[textStyle];
-                }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                acBlkTblRec.AppendEntity(acText);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                tr.AddNewlyCreatedDBObject(acText, true);
-
-                // Save the changes and dispose of the transaction
-
-                tr.Commit();
-
+                acText.TextStyleId = styleTable[textStyle];
             }
+
+            acBlkTblRec.AppendEntity(acText);
+            tr.AddNewlyCreatedDBObject(acText, true);
+
+            // Save the changes and dispose of the transaction
+            tr.Commit();
         }
         public static DBText CCreateText2(Point3d position, double height, string TextString, string layerName, string textStyle)
         {
-            Transaction tr = A.Db.TransactionManager.StartTransaction();
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            // Open the Block table for read
+            BlockTable acBlkTbl = (BlockTable)tr.GetObject(A.Db.BlockTableId, OpenMode.ForRead);
+            // Open the Block table record Model space for write
+            BlockTableRecord acBlkTblRec = (BlockTableRecord)tr.GetObject(acBlkTbl[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+            // Create a single-line text object
+            DBText acText = new();
+            acText.SetDatabaseDefaults();
+            acText.Position = position;
+            acText.Height = height;
+            acText.TextString = TextString;
+            acText.Layer = layerName;
+
+            TextStyleTable? styleTable = tr.GetObject(A.Db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
+            if (styleTable != null && styleTable.Has(textStyle))
             {
-                _ = new UserInput();
-                _ = new UtilitiesCAD();
-                _ = new UtilitiesC3D();
-                //start here
-                // Open the Block table for read
-                BlockTable? acBlkTbl;
-                acBlkTbl = tr.GetObject(A.Db.BlockTableId,
-                                                   OpenMode.ForRead) as BlockTable;
-                // Open the Block table record Model space for write
-                BlockTableRecord? acBlkTblRec;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                acBlkTblRec = tr.GetObject(acBlkTbl[BlockTableRecord.ModelSpace],
-                                                      OpenMode.ForWrite) as BlockTableRecord;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                // Create a single-line text object
-                DBText acText = new();
-                acText.SetDatabaseDefaults();
-                acText.Position = position;
-                acText.Height = height;
-                acText.TextString = TextString;
-                acText.Layer = layerName;
-
-                TextStyleTable? styleTable = tr.GetObject(A.Db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                if (styleTable.Has(textStyle))
-                {
-                    acText.TextStyleId = styleTable[textStyle];
-                }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                acBlkTblRec.AppendEntity(acText);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                tr.AddNewlyCreatedDBObject(acText, true);
-
-                // Save the changes and dispose of the transaction
-
-                tr.Commit();
-
-
-                A.Ed.Command("_UPDATEFIELD", acText.Id);
-                return acText;
+                acText.TextStyleId = styleTable[textStyle];
             }
+
+            acBlkTblRec.AppendEntity(acText);
+            tr.AddNewlyCreatedDBObject(acText, true);
+
+            // Save the changes and dispose of the transaction
+            tr.Commit();
+
+            A.Ed.Command("_UPDATEFIELD", acText.Id);
+            return acText;
         }
         public static string ConvertTextToField(DBText text)
         {
@@ -772,68 +694,52 @@ namespace MyFirstProject.Extensions
         public static ObjectId CreateDimStyle(string DimStyleName)
         {
             Database db = HostApplicationServices.WorkingDatabase;
-            Transaction tr = db.TransactionManager.StartTransaction();
+            using Transaction tr = db.TransactionManager.StartTransaction();
 
-            using (tr)
+            DimStyleTable DimTabb = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
+            ObjectId dimId = ObjectId.Null;
+
+            if (!DimTabb.Has(DimStyleName))
             {
-                DimStyleTable DimTabb = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
-                ObjectId dimId = ObjectId.Null;
-
-                if (!DimTabb.Has(DimStyleName))
+                DimTabb.UpgradeOpen();
+                DimStyleTableRecord newRecord = new()
                 {
-                    DimTabb.UpgradeOpen();
-                    DimStyleTableRecord newRecord = new()
-                    {
-                        Name = DimStyleName
-                    };
-                    dimId = DimTabb.Add(newRecord);
-                    tr.AddNewlyCreatedDBObject(newRecord, true);
-
-                }
-                else
-                {
-                    dimId = DimTabb[DimStyleName];
-                }
-                DimStyleTableRecord DimTabbRecaord = (DimStyleTableRecord)tr.GetObject(dimId, OpenMode.ForRead);
-                if (DimTabbRecaord.ObjectId != db.Dimstyle)
-                {
-                    db.Dimstyle = DimTabbRecaord.ObjectId;
-                    db.SetDimstyleData(DimTabbRecaord);
-                }
-
-                tr.Commit();
-                return dimId;
+                    Name = DimStyleName
+                };
+                dimId = DimTabb.Add(newRecord);
+                tr.AddNewlyCreatedDBObject(newRecord, true);
             }
+            else
+            {
+                dimId = DimTabb[DimStyleName];
+            }
+            DimStyleTableRecord DimTabbRecaord = (DimStyleTableRecord)tr.GetObject(dimId, OpenMode.ForRead);
+            if (DimTabbRecaord.ObjectId != db.Dimstyle)
+            {
+                db.Dimstyle = DimTabbRecaord.ObjectId;
+                db.SetDimstyleData(DimTabbRecaord);
+            }
+
+            tr.Commit();
+            return dimId;
         }
         public static string ChangeCaseFirstLetter(string text)
         {
-            // start transantion
-            using Transaction tr = A.Db.TransactionManager.StartTransaction();
             if (text.Length == 0)
-                Console.WriteLine("Empty String");
+                return text;
             else if (text.Length == 1)
-                text = text.ToUpper();
+                return text.ToUpper();
             else
-                text = char.ToUpper(text[0]) + text[1..];
-
-            tr.Commit();
-            return text;
-
+                return char.ToUpper(text[0]) + text[1..];
         }
         public static void CreateDim()
         {
-            Transaction tr = A.Db.TransactionManager.StartTransaction();
-            {
-                _ = new UserInput();
-                _ = new UtilitiesCAD();
-                _ = new UtilitiesC3D();
-                BlockTable bt = (BlockTable)tr.GetObject(A.Doc.Database.BlockTableId, OpenMode.ForRead);
-                _ = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
-                //start here
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
+            BlockTable bt = (BlockTable)tr.GetObject(A.Doc.Database.BlockTableId, OpenMode.ForRead);
+            _ = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+            //start here
 
-
-                tr.Commit();
-            }
+            tr.Commit();
         }
         public static void TextLayout(ObjectIdCollection textIdColl, double textHight)
         {
@@ -841,9 +747,7 @@ namespace MyFirstProject.Extensions
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
+
                 //start here
 
                 //get current sacle annotation
@@ -900,9 +804,7 @@ namespace MyFirstProject.Extensions
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
+
                 //start here
 
                 //get current sacle annotation
@@ -995,9 +897,7 @@ namespace MyFirstProject.Extensions
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
+
                 //start here
 
                 //get current sacle annotation
@@ -1042,9 +942,7 @@ namespace MyFirstProject.Extensions
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
+
                 //start here
 
                 //get current sacle annotation
@@ -1077,9 +975,7 @@ namespace MyFirstProject.Extensions
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
+
                 //start here
 
                 //get current sacle annotation
@@ -1112,9 +1008,7 @@ namespace MyFirstProject.Extensions
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
+
                 //start here
 
                 //get current sacle annotation
@@ -1147,9 +1041,7 @@ namespace MyFirstProject.Extensions
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                UserInput UI = new();
-                UtilitiesCAD CAD = new();
-                UtilitiesC3D C3D = new();
+
                 //start here
 
                 //get current sacle annotation

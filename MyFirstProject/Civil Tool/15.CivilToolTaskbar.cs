@@ -50,18 +50,23 @@ namespace MyFirstProject
             this.MouseMove += (s, e) => { if (_dragging) { this.Left += e.X - _dragStart.X; this.Top += e.Y - _dragStart.Y; } };
             this.MouseUp += (s, e) => _dragging = false;
 
-            // Custom paint for gradient background
+            // Custom paint for Autodesk Dark Studio HUD
             this.Paint += (s, e) =>
             {
-                using var grad = new System.Drawing.Drawing2D.LinearGradientBrush(
-                    this.ClientRectangle,
-                    Color.FromArgb(27, 42, 74),
-                    Color.FromArgb(16, 28, 52), 90f);
-                e.Graphics.FillRectangle(grad, this.ClientRectangle);
+                var g = e.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-                // Bottom accent line
-                using var accentPen = new Pen(Color.FromArgb(46, 74, 122), 2);
-                e.Graphics.DrawLine(accentPen, 0, this.Height - 1, this.Width, this.Height - 1);
+                // Nền tối Studio #1E1E1E
+                using var bgBrush = new SolidBrush(Color.FromArgb(30, 30, 30));
+                g.FillRectangle(bgBrush, this.ClientRectangle);
+
+                // Dải nhấn xanh Civil 3D Cyan trên cùng (2px)
+                using var accentPen = new Pen(Color.FromArgb(6, 150, 215), 2f);
+                g.DrawLine(accentPen, 0, 1, this.Width, 1);
+
+                // Viền ngoài tinh tế #3E3E3E
+                using var borderPen = new Pen(Color.FromArgb(62, 62, 62), 1f);
+                g.DrawRectangle(borderPen, 0, 0, this.Width - 1, this.Height - 1);
             };
 
             // Đặt ở giữa phía trên màn hình
@@ -76,23 +81,28 @@ namespace MyFirstProject
             // Load config đã lưu
             var config = TaskbarSettingsForm.LoadSavedConfig();
 
-            // Nút Menu Chính "CIVIL TOOL"
-            var btnMain = CreateButton("≡ CIVIL TOOL ▾", x, y, 115, btnHeight, Color.FromArgb(27, 42, 74));
+            // Nút Menu Chính "CIVIL TOOL" nổi bật màu Civil Blue
+            var btnMain = CreateButton("≡ CIVIL TOOL ▾", x, y, 115, btnHeight, Color.FromArgb(6, 150, 215));
             btnMain.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            btnMain.FlatAppearance.MouseOverBackColor = Color.FromArgb(26, 170, 238);
+            btnMain.FlatAppearance.BorderSize = 0;
             btnMain.Click += (s, e) => ShowMainMenu(btnMain, config);
             this.Controls.Add(btnMain);
             x += btnMain.Width + margin;
 
-            // Nút Cài đặt
-            var btnSettings = CreateButton("⚙", x, y, 30, btnHeight, Color.FromArgb(27, 42, 74));
-            btnSettings.ForeColor = Color.White;
+            // Nút Cài đặt Dark
+            var btnSettings = CreateButton("⚙", x, y, 30, btnHeight, Color.FromArgb(44, 44, 44));
+            btnSettings.ForeColor = Color.FromArgb(220, 220, 220);
+            btnSettings.FlatAppearance.BorderColor = Color.FromArgb(64, 64, 64);
+            btnSettings.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 60, 60);
             btnSettings.Click += (s, e) => { this.Hide(); RunCommand("CT_TASKBAR_SETTINGS"); this.Show(); };
             this.Controls.Add(btnSettings);
             x += 30 + margin;
 
-            // Close Button
-            var btnClose = CreateButton("✕", x, y, 26, btnHeight, Color.FromArgb(46, 74, 122));
-            btnClose.ForeColor = Color.White;
+            // Close Button Dark
+            var btnClose = CreateButton("✕", x, y, 26, btnHeight, Color.FromArgb(44, 44, 44));
+            btnClose.ForeColor = Color.FromArgb(200, 200, 200);
+            btnClose.FlatAppearance.BorderColor = Color.FromArgb(64, 64, 64);
             btnClose.FlatAppearance.MouseOverBackColor = Color.FromArgb(211, 47, 47);
             btnClose.Click += (s, e) => this.Close();
             this.Controls.Add(btnClose);
@@ -107,10 +117,10 @@ namespace MyFirstProject
         private void ShowMainMenu(Button anchorBtn, TaskbarMenuConfig config)
         {
             var menu = new ContextMenuStrip();
-            menu.BackColor = Color.FromArgb(255, 255, 255);
-            menu.ForeColor = Color.FromArgb(61, 61, 61);
+            menu.BackColor = Color.FromArgb(32, 32, 32);
+            menu.ForeColor = Color.FromArgb(235, 235, 235);
             menu.Font = new Font("Segoe UI", 9.5f);
-            menu.Renderer = new DarkToolStripRenderer();
+            menu.Renderer = new CivilDarkMenuRenderer();
             menu.ShowImageMargin = false;
 
             foreach (var group in config.CivilGroups)
@@ -121,15 +131,14 @@ namespace MyFirstProject
                 if (activeCmds.Count == 0) continue;
 
                 var groupItem = new ToolStripMenuItem($"  {group.GroupName}");
-                // Nested menu items configuration
-                groupItem.DropDown.BackColor = Color.FromArgb(255, 255, 255);
-                groupItem.DropDown.ForeColor = Color.FromArgb(61, 61, 61);
+                // Nested menu items configuration Dark
+                groupItem.DropDown.BackColor = Color.FromArgb(32, 32, 32);
+                groupItem.DropDown.ForeColor = Color.FromArgb(235, 235, 235);
                 
-                // Set the drop down directly using custom Renderer from ToolStripMenuItem
                 if (groupItem.DropDown is ToolStripDropDownMenu dropDownMenu)
                 {
                     dropDownMenu.ShowImageMargin = false;
-                    dropDownMenu.Renderer = new DarkToolStripRenderer();
+                    dropDownMenu.Renderer = new CivilDarkMenuRenderer();
                 }
 
                 foreach (var cmd in activeCmds)
@@ -296,16 +305,16 @@ namespace MyFirstProject
                 ("🗺 Surfaces", "CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation at Center"),
                 ("🗺 Surfaces", "CTS_RebuildSurface", "Rebuild Surface"),
                 ("🗺 Surfaces", "CTSV_DaoDap", "Cut/Fill Heatmap"),
-                ("🗺 Surfaces", "CTSV_HienThiMaterialList", "Show Material List"),
-                ("🗺 Surfaces", "CTSV_ChiTietMaterialSection", "Material Section Details"),
-                ("🗺 Surfaces", "CTSV_PhanTichArea", "Analyze Section Area"),
-                ("🗺 Surfaces", "CTSV_KiemTraKhoiLuong", "Verify Volumes"),
+                //("🗺 Surfaces", "CTSV_HienThiMaterialList", "Show Material List"),
+                //("🗺 Surfaces", "CTSV_ChiTietMaterialSection", "Material Section Details"),
+                //("🗺 Surfaces", "CTSV_PhanTichArea", "Analyze Section Area"),
+                //("🗺 Surfaces", "CTSV_KiemTraKhoiLuong", "Verify Volumes"),
 
                 // ── 3. ALIGNMENTS ──
                 ("📏 Alignments", "CTC_ThongSoDuongCong_4054", "Curve Params (4054)"),
                 ("📏 Alignments", "CTC_ThongSoDuongCong_13592", "Curve Params (13592)"),
-                ("📏 Alignments", "CTC_KiemTraDuongCong_4054", "Check Curve (4054)"),
-                ("📏 Alignments", "CTC_KiemTraDuongCong_13592", "Check Curve (13592)"),
+                //("📏 Alignments", "CTC_KiemTraDuongCong_4054", "Check Curve (4054)"),
+                //("📏 Alignments", "CTC_KiemTraDuongCong_13592", "Check Curve (13592)"),
                 ("📏 Alignments", "CTC_TraCuuDuongCong", "Curve Lookup Table"),
                 ("📏 Alignments", "CTC_ThietLapDuongCong", "Curve Form Settings"),
 
@@ -492,5 +501,48 @@ namespace MyFirstProject
         {
             CommandListForm.ShowForm();
         }
+    }
+
+    // Renderer Dark Menu chuẩn Civil 3D
+    internal class CivilDarkMenuRenderer : ToolStripProfessionalRenderer
+    {
+        public CivilDarkMenuRenderer() : base(new CivilDarkMenuColorTable()) { }
+
+        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            if (e.Item.Selected)
+            {
+                using var brush = new SolidBrush(Color.FromArgb(9, 71, 113)); // #094771 Highlight xanh Navy Civil
+                e.Graphics.FillRectangle(brush, new Rectangle(Point.Empty, e.Item.Size));
+                e.Item.ForeColor = Color.White;
+            }
+            else
+            {
+                using var brush = new SolidBrush(Color.FromArgb(32, 32, 32));
+                e.Graphics.FillRectangle(brush, new Rectangle(Point.Empty, e.Item.Size));
+                e.Item.ForeColor = Color.FromArgb(235, 235, 235);
+            }
+        }
+
+        protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+        {
+            using var pen = new Pen(Color.FromArgb(56, 56, 56));
+            e.Graphics.DrawLine(pen, 8, e.Item.Height / 2, e.Item.Width - 8, e.Item.Height / 2);
+        }
+    }
+
+    internal class CivilDarkMenuColorTable : ProfessionalColorTable
+    {
+        public override Color MenuBorder => Color.FromArgb(56, 56, 56);
+        public override Color MenuItemBorder => Color.Transparent;
+        public override Color MenuItemSelected => Color.FromArgb(9, 71, 113);
+        public override Color MenuStripGradientBegin => Color.FromArgb(32, 32, 32);
+        public override Color MenuStripGradientEnd => Color.FromArgb(32, 32, 32);
+        public override Color ToolStripDropDownBackground => Color.FromArgb(32, 32, 32);
+        public override Color ImageMarginGradientBegin => Color.FromArgb(32, 32, 32);
+        public override Color ImageMarginGradientMiddle => Color.FromArgb(32, 32, 32);
+        public override Color ImageMarginGradientEnd => Color.FromArgb(32, 32, 32);
+        public override Color SeparatorDark => Color.FromArgb(56, 56, 56);
+        public override Color SeparatorLight => Color.Transparent;
     }
 }

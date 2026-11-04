@@ -1,0 +1,1552 @@
+// MenuSettingsForm.cs - Form cài đặt & tùy chỉnh menu lệnh Civil Tool
+// Cho phép: gộp/tách lệnh, tạo nhóm mới, đổi tên, drag-drop, lưu/load config
+
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Windows.Forms;
+
+using Autodesk.AutoCAD.Runtime;
+
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+
+[assembly: CommandClass(typeof(MyFirstProject.MenuSettingsCommand))]
+
+namespace MyFirstProject
+{
+    #region Data Model
+
+    /// <summary>
+    /// Cấu trúc 1 lệnh trong menu
+    /// </summary>
+    public class MenuCommandItem
+    {
+        public string Command { get; set; } = "";
+        public string Label { get; set; } = "";
+        public string SubIcon { get; set; } = "ADD";
+        public bool IsEnabled { get; set; } = true;
+
+        public override string ToString() => $"{Label}  [{Command}]";
+    }
+
+    /// <summary>
+    /// Cấu trúc 1 nhóm lệnh (Panel)
+    /// </summary>
+    public class MenuGroupItem
+    {
+        public string GroupName { get; set; } = "";
+        public string IconType { get; set; } = "UTILITY";
+        public List<MenuCommandItem> Commands { get; set; } = new();
+
+        public override string ToString() => $"{GroupName} ({Commands.Count} lệnh)";
+    }
+
+    /// <summary>
+    /// Toàn bộ cấu hình menu
+    /// </summary>
+    public class MenuConfig
+    {
+        public List<MenuGroupItem> CivilGroups { get; set; } = new();
+        public List<MenuGroupItem> AcadGroups { get; set; } = new();
+        public Dictionary<string, string> CommandAliases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, string> CommandDescriptions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public DateTime LastModified { get; set; } = DateTime.Now;
+    }
+
+    #endregion
+
+    #region Settings Form
+
+    public class MenuSettingsForm : CivilFormBase
+    {
+        // ─── Data ───
+        private MenuConfig _config = new();
+        private static readonly string ConfigFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "CivilTool");
+        private static readonly string ConfigPath = Path.Combine(ConfigFolder, "menu_config.json");
+
+        // ─── Controls ───        // ==========================================
+        //         CÁC BIẾN UI & DỮ LIỆU
+        // ==========================================
+        private Panel pnlGroups = null!, pnlCmds = null!, pnlAll = null!, pnlSep = null!, pnlIcon = null!, pnlAliasTab = null!;
+        private TabControl tabMain = null!;
+
+        // Civil tab
+        private ListBox lstGroups = null!;
+        private CheckedListBox lstCommands = null!;
+        private ListBox lstAllCommands = null!;
+
+        // Buttons
+        private Button btnAddGroup = null!, btnRemoveGroup = null!, btnRenameGroup = null!;
+        private Button btnMoveUp = null!, btnMoveDown = null!;
+        private Button btnAddCmd = null!, btnRemoveCmd = null!;
+        private Button btnCmdUp = null!, btnCmdDown = null!;
+        private Button btnSave = null!, btnCancel = null!, btnReset = null!;
+        private Button btnExport = null!, btnImport = null!;
+        private ComboBox cmbCmdIcon = null!;
+        private PictureBox picCmdIconPreview = null!;
+        private PictureBox picGroupIconPreview = null!;
+        private DataGridView _dgvAliases = null!;
+        private bool _suppressItemCheck = false;
+
+        // ─── Constructor ───
+        public MenuSettingsForm()
+        {
+            InitUI();
+            LoadConfig();
+            RefreshGroupList();
+            RefreshAllCommandsList();
+        }
+
+        // ─── Kết quả ───
+        public MenuConfig GetConfig() => _config;
+
+        #region UI Setup
+
+        private void InitUI()
+        {
+            // Form
+            InitBaseTheme("Civil Tool — Cài Đặt Menu", 1050, 680);
+
+            // ─── HEADER ───
+            var header = CreateHeader("CÀI ĐẶT MENU LỆNH");
+            this.Controls.Add(header);
+
+            // ─── MAIN CONTENT ───
+            var mainPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(12),
+                BackColor = BgWhite
+            };
+            this.Controls.Add(mainPanel);
+            mainPanel.BringToFront();
+
+            // 3-column layout
+            // Col1: Nhóm lệnh (Groups)
+            pnlGroups = CreateSection("NHÓM LỆNH", 10, 10, 250, 480, mainPanel);
+            lstGroups = CreateListBox(pnlGroups, 5, 30, 240, 340);
+            lstGroups.SelectedIndexChanged += (s, e) => RefreshCommandList();
+
+            btnAddGroup = CreateButtonLocal("Thêm nhóm", 5, 380, 115, 32, pnlGroups, BtnAddGroup_Click);
+            btnRemoveGroup = CreateButtonLocal("Xóa nhóm", 125, 380, 115, 32, pnlGroups, BtnRemoveGroup_Click);
+            btnRenameGroup = CreateButtonLocal("Đổi tên", 5, 418, 115, 32, pnlGroups, BtnRenameGroup_Click);
+            btnMoveUp = CreateButtonLocal("▲ Lên", 125, 418, 55, 32, pnlGroups, BtnGroupUp_Click);
+            btnMoveDown = CreateButtonLocal("▼ Xuống", 185, 418, 55, 32, pnlGroups, BtnGroupDown_Click);
+
+            // Col2: Lệnh trong nhóm
+            pnlCmds = CreateSection("LỆNH TRONG NHÓM", 270, 10, 270, 480, mainPanel);
+            lstCommands = new CheckedListBox
+            {
+                Location = new Point(5, 30),
+                Size = new Size(260, 320),
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                BorderStyle = BorderStyle.FixedSingle,
+                Font = new Font("Segoe UI", 9),
+                IntegralHeight = false,
+                CheckOnClick = true
+            };
+            lstCommands.SelectedIndexChanged += (s, e) => UpdateCmdIconCombo();
+            lstCommands.ItemCheck += LstCommands_ItemCheck;
+            pnlCmds.Controls.Add(lstCommands);
+
+            // Nút Chọn tất cả / Bỏ chọn tất cả
+            var btnCheckAll = CreateButtonLocal("Tất cả", 5, 355, 128, 28, pnlCmds, BtnCheckAll_Click);
+            var btnUncheckAll = CreateButtonLocal("Bỏ tất cả", 137, 355, 128, 28, pnlCmds, BtnUncheckAll_Click);
+
+            btnCmdUp = CreateButtonLocal("▲", 5, 390, 40, 32, pnlCmds, BtnCmdUp_Click);
+            btnCmdDown = CreateButtonLocal("▼", 50, 390, 40, 32, pnlCmds, BtnCmdDown_Click);
+            btnRemoveCmd = CreateButtonLocal("Xóa khỏi nhóm", 95, 390, 165, 32, pnlCmds, BtnRemoveCmd_Click);
+
+            // ───── ICON LỆNH (với preview) ─────
+            var lblCmdIcon = new Label
+            {
+                Text = "Icon lệnh:",
+                Location = new Point(5, 432),
+                AutoSize = true,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold)
+            };
+            pnlCmds.Controls.Add(lblCmdIcon);
+
+            cmbCmdIcon = new ComboBox
+            {
+                Location = new Point(85, 430),
+                Size = new Size(140, 26),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = Color.FromArgb(40, 40, 55),
+                ForeColor = Color.White
+            };
+            var cmdIconTypes = new[] { "SURFACE", "STATION", "ALIGN", "CORRIDOR", "SECTION",
+                "GRADING", "PIPE", "POINT", "UTILITY", "ACCOUNT", "PROFILE",
+                "VOLUME", "SLOPE", "EXCEL", "CALCULATE", "DRAW", "SETTINGS",
+                "ADD", "RENAME", "TABLE", "EXPORT", "SYNC", "INFO", "DELETE",
+                "COPY", "MOVE", "RELOAD", "VIEW", "EDIT", "LAYOUT", "MEASURE",
+                "SPIRAL", "SUPERELEVATION", "CULVERT", "BRIDGE", "WIDENING", "INTERSECTION", "CAD",
+                "BENCH", "PAVEMENT", "PRINT" };
+            cmbCmdIcon.Items.AddRange(cmdIconTypes);
+            cmbCmdIcon.SelectedIndexChanged += (s, e) =>
+            {
+                if (lstGroups.SelectedIndex >= 0 && lstCommands.SelectedIndex >= 0
+                    && cmbCmdIcon.SelectedItem is string icon)
+                {
+                    var groups = GetCurrentGroupList();
+                    if (lstGroups.SelectedIndex < groups.Count)
+                    {
+                        var group = groups[lstGroups.SelectedIndex];
+                        int cmdIdx = lstCommands.SelectedIndex;
+                        if (cmdIdx < group.Commands.Count && group.Commands[cmdIdx].Command != "---")
+                        {
+                            group.Commands[cmdIdx].SubIcon = icon;
+                        }
+                    }
+                    UpdateIconPreview(picCmdIconPreview, icon);
+                }
+            };
+            pnlCmds.Controls.Add(cmbCmdIcon);
+
+            // Preview icon lệnh
+            picCmdIconPreview = new PictureBox
+            {
+                Location = new Point(230, 427),
+                Size = new Size(32, 32),
+                BackColor = Color.FromArgb(40, 40, 55),
+                SizeMode = PictureBoxSizeMode.CenterImage,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            pnlCmds.Controls.Add(picCmdIconPreview);
+
+            // Col3: Tất cả lệnh (để thêm vào nhóm)
+            pnlAll = CreateSection("TẤT CẢ LỆNH CÓ SẴN", 550, 10, 270, 480, mainPanel);
+            lstAllCommands = CreateListBox(pnlAll, 5, 30, 260, 340);
+
+            btnAddCmd = CreateButtonLocal("Thêm vào nhóm", 5, 380, 165, 32, pnlAll, BtnAddCmd_Click);
+
+            // Search box
+            var txtSearch = CreateTextBox(5, 418, 260);
+            txtSearch.PlaceholderText = "Tìm lệnh...";
+            txtSearch.TextChanged += (s, e) => FilterAllCommands(txtSearch.Text);
+            pnlAll.Controls.Add(txtSearch);
+
+            // Col4: Separator + Add separator button (Khôi phục vị trí X=830)
+            pnlSep = CreateSection("NGĂN CÁCH", 830, 10, 190, 200, mainPanel);
+            var btnAddSep = CreateButtonLocal("Thêm vạch ngăn cách", 5, 30, 180, 32, pnlSep, BtnAddSeparator_Click);
+            var lblHint = new Label
+            {
+                Text = "Vạch ngăn cách (---) giúp\nphân chia lệnh trong 1 nhóm\nthành các phần nhỏ hơn.",
+                Location = new Point(5, 70),
+                Size = new Size(180, 60),
+                ForeColor = Color.FromArgb(180, 180, 180)
+            };
+            pnlSep.Controls.Add(lblHint);
+
+            // ───── ICON NHÓM (với preview) ─────
+            pnlIcon = CreateSection("ICON NHÓM", 830, 220, 190, 140, mainPanel);
+            var cmbIcon = new ComboBox
+            {
+                Location = new Point(5, 30),
+                Size = new Size(135, 26),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = Color.FromArgb(40, 40, 55),
+                ForeColor = Color.White
+            };
+            var iconTypes = new[] { "SURFACE", "STATION", "ALIGN", "CORRIDOR", "SECTION",
+                "GRADING", "PIPE", "POINT", "UTILITY", "ACCOUNT", "PROFILE",
+                "VOLUME", "SLOPE", "EXCEL", "CALCULATE", "DRAW", "SETTINGS",
+                "SECTION", "BRIDGE", "CULVERT", "INTERSECTION", "PAVEMENT", "LAYOUT", "MEASURE", "EDIT" };
+            cmbIcon.Items.AddRange(iconTypes);
+            cmbIcon.SelectedIndexChanged += (s, e) =>
+            {
+                if (lstGroups.SelectedIndex >= 0 && cmbIcon.SelectedItem is string icon)
+                {
+                    var groups = GetCurrentGroupList();
+                    if (lstGroups.SelectedIndex < groups.Count)
+                        groups[lstGroups.SelectedIndex].IconType = icon;
+                    UpdateIconPreview(picGroupIconPreview, icon);
+                }
+            };
+            pnlIcon.Controls.Add(cmbIcon);
+
+            // Preview icon nhóm
+            picGroupIconPreview = new PictureBox
+            {
+                Location = new Point(145, 27),
+                Size = new Size(32, 32),
+                BackColor = Color.FromArgb(40, 40, 55),
+                SizeMode = PictureBoxSizeMode.CenterImage,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            pnlIcon.Controls.Add(picGroupIconPreview);
+
+            // Label gợi ý
+            var lblIconHint = new Label
+            {
+                Text = "Chọn icon type để xem\npreview icon trước khi lưu.",
+                Location = new Point(5, 70),
+                Size = new Size(180, 40),
+                ForeColor = Color.FromArgb(180, 180, 180),
+                Font = new Font("Segoe UI", 8f)
+            };
+            pnlIcon.Controls.Add(lblIconHint);
+
+            // Tab thứ 3: Quản lý lệnh tắt (Alias) full form width
+            pnlAliasTab = CreateSection("LỆNH TẮT TOÀN DỰ ÁN", 10, 10, 1010, 480, mainPanel);
+            pnlAliasTab.Visible = false; // Hide on default tab
+            
+            var dgvAliases = CreateDataGrid(10, 35, 990, 430);
+            dgvAliases.AllowUserToAddRows = false;
+            dgvAliases.AllowUserToDeleteRows = false;
+            dgvAliases.SelectionMode = DataGridViewSelectionMode.CellSelect;
+            dgvAliases.MultiSelect = false;
+            
+            dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColLabel", HeaderText = "Danh sách lệnh", ReadOnly = true, FillWeight = 30 });
+            dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColCmd", HeaderText = "Cú pháp triển khai gốc", ReadOnly = true, FillWeight = 25 });
+            dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColAlias", HeaderText = "Thay đổi cú pháp triển khai (Lệnh tắt)", ReadOnly = false, FillWeight = 20 });
+            dgvAliases.Columns.Add(new DataGridViewTextBoxColumn { Name = "ColDesc", HeaderText = "Giải thích công dụng của lệnh", ReadOnly = false, FillWeight = 40 });
+            
+            pnlAliasTab.Controls.Add(dgvAliases);
+            _dgvAliases = dgvAliases;
+
+            // ─── BOTTOM buttons ───
+            var pnlBottom = CreateBottomBar();
+            this.Controls.Add(pnlBottom);
+
+            btnImport = CreateButton("Import", 5, 8, 100, 36, pnlBottom);
+            btnImport.Click += BtnImport_Click;
+            
+            btnExport = CreateButton("Export", 110, 8, 100, 36, pnlBottom);
+            btnExport.Click += BtnExport_Click;
+            
+            btnReset = CreateButton("Reset mặc định", 220, 8, 150, 36, pnlBottom);
+            btnReset.Click += BtnReset_Click;
+
+            btnCancel = CreateButton("Hủy", 750, 8, 100, 36, pnlBottom);
+            btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
+            
+            btnSave = CreatePrimaryButton("Lưu & Áp dụng", 860, 8, 150, 36, pnlBottom);
+            btnSave.Click += BtnSave_Click;
+
+            // Tab for Civil/Acad/Alias
+            tabMain = new TabControl
+            {
+                Location = new Point(12, 5),
+                Size = new Size(300, 28),
+                Appearance = TabAppearance.Buttons,
+                ItemSize = new Size(95, 24)
+            };
+            tabMain.TabPages.Add("civil", "Civil Tool");
+            tabMain.TabPages.Add("acad", "ACAD Tool");
+            tabMain.TabPages.Add("alias", "Lệnh Tắt (Alias)");
+
+            tabMain.SelectedIndexChanged += (s, e) => 
+            {
+                bool isAliasTab = tabMain.SelectedIndex == 2;
+                pnlGroups.Visible = !isAliasTab;
+                pnlCmds.Visible = !isAliasTab;
+                pnlAll.Visible = !isAliasTab;
+                pnlSep.Visible = !isAliasTab;
+                pnlIcon.Visible = !isAliasTab;
+                pnlAliasTab.Visible = isAliasTab;
+
+                if (!isAliasTab)
+                {
+                    RefreshGroupList(); 
+                    RefreshAllCommandsList();
+                }
+            };
+            mainPanel.Controls.Add(tabMain);
+            tabMain.BringToFront();
+        }
+
+        private Panel CreateSection(string title, int x, int y, int w, int h, Control parent)
+        {
+            var panel = new Panel
+            {
+                Location = new Point(x, y + 35), // offset for tab
+                Size = new Size(w, h),
+                BackColor = BgPanel,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            var lbl = new Label
+            {
+                Text = title,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = NavyDark,
+                Location = new Point(5, 5),
+                AutoSize = true
+            };
+            panel.Controls.Add(lbl);
+            parent.Controls.Add(panel);
+            return panel;
+        }
+
+        private ListBox CreateListBox(Control parent, int x, int y, int w, int h)
+        {
+            var lb = new ListBox
+            {
+                Location = new Point(x, y),
+                Size = new Size(w, h),
+                BackColor = BgInput,
+                ForeColor = TextDark,
+                BorderStyle = BorderStyle.FixedSingle,
+                Font = new Font("Segoe UI", 9),
+                IntegralHeight = false,
+                SelectionMode = SelectionMode.One
+            };
+            parent.Controls.Add(lb);
+            return lb;
+        }
+
+        private Button CreateButtonLocal(string text, int x, int y, int w, int h, Control parent, EventHandler onClick)
+        {
+            var btn = CreateButton(text, x, y, w, h, parent);
+            btn.Click += onClick;
+            return btn;
+        }
+
+        /// <summary>
+        /// Render icon preview vào PictureBox
+        /// Dùng CivilRibbonTaskbar.CreateCivilIcon để tạo icon WPF rồi convert sang WinForms Image
+        /// </summary>
+        private void UpdateIconPreview(PictureBox pic, string iconType)
+        {
+            try
+            {
+                if (pic == null || string.IsNullOrEmpty(iconType)) return;
+
+                // Gọi CreateCivilIcon (public static) để lấy icon WPF
+                var wpfIcon = CivilRibbonTaskbar.CreateCivilIcon(iconType, 32);
+                if (wpfIcon is System.Windows.Media.Imaging.BitmapSource bitmapSource)
+                {
+                    // Convert WPF BitmapSource → WinForms Bitmap
+                    using var stream = new System.IO.MemoryStream();
+                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmapSource));
+                    encoder.Save(stream);
+                    stream.Position = 0;
+                    pic.Image?.Dispose();
+                    pic.Image = System.Drawing.Image.FromStream(stream);
+                }
+            }
+            catch { /* Bỏ qua lỗi render */ }
+        }
+
+        #endregion
+
+        #region Config Load/Save
+
+        private List<MenuGroupItem> GetCurrentGroupList()
+        {
+            return tabMain.SelectedIndex == 0 ? _config.CivilGroups : _config.AcadGroups;
+        }
+
+        public void LoadConfig()
+        {
+            try
+            {
+                if (File.Exists(ConfigPath))
+                {
+                    string json = File.ReadAllText(ConfigPath);
+                    _config = JsonSerializer.Deserialize<MenuConfig>(json) ?? GetDefaultConfig();
+                }
+                else
+                {
+                    _config = GetDefaultConfig();
+                }
+            }
+            catch
+            {
+                _config = GetDefaultConfig();
+            }
+            CleanupInvalidCommands(_config);
+        }
+
+        private void SaveConfig()
+        {
+            try
+            {
+                if (!Directory.Exists(ConfigFolder))
+                    Directory.CreateDirectory(ConfigFolder);
+
+                _config.LastModified = DateTime.Now;
+                string json = JsonSerializer.Serialize(_config, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(ConfigPath, json);
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Lỗi lưu config: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        public static MenuConfig LoadSavedConfig()
+        {
+            MenuConfig config;
+            try
+            {
+                if (File.Exists(ConfigPath))
+                {
+                    string json = File.ReadAllText(ConfigPath);
+                    config = JsonSerializer.Deserialize<MenuConfig>(json) ?? GetDefaultConfig();
+                }
+                else
+                {
+                    config = GetDefaultConfig();
+                }
+            }
+            catch { config = GetDefaultConfig(); }
+
+            // Tự động xóa lệnh không tồn tại khỏi config đã lưu
+            CleanupInvalidCommands(config);
+            return config;
+        }
+
+        /// <summary>
+        /// Xóa các lệnh không có [CommandMethod] thực tế khỏi config,
+        /// tránh lỗi "Unknown command" khi người dùng click.
+        /// </summary>
+        private static void CleanupInvalidCommands(MenuConfig config)
+        {
+            try
+            {
+                // Dùng reflection lấy tất cả [CommandMethod] đã đăng ký
+                var validCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    try
+                    {
+                        foreach (var type in asm.GetTypes())
+                        {
+                            foreach (var method in type.GetMethods(
+                                System.Reflection.BindingFlags.Public |
+                                System.Reflection.BindingFlags.NonPublic |
+                                System.Reflection.BindingFlags.Static |
+                                System.Reflection.BindingFlags.Instance))
+                            {
+                                var attr = method.GetCustomAttributes(typeof(CommandMethodAttribute), false);
+                                foreach (CommandMethodAttribute cmdAttr in attr)
+                                {
+                                    validCommands.Add(cmdAttr.GlobalName);
+                                }
+                            }
+                        }
+                    }
+                    catch { /* Bỏ qua assembly không load được */ }
+                }
+
+                if (validCommands.Count == 0) return; // Không tìm được → không xóa
+
+                // Xóa lệnh không hợp lệ khỏi mỗi group
+                void CleanGroups(List<MenuGroupItem> groups)
+                {
+                    foreach (var group in groups)
+                    {
+                        group.Commands.RemoveAll(c =>
+                            !string.IsNullOrEmpty(c.Command) &&
+                            c.Command != "---" &&
+                            !validCommands.Contains(c.Command));
+                    }
+                    // Xóa group trống
+                    groups.RemoveAll(g => g.Commands.Count == 0 ||
+                        g.Commands.All(c => string.IsNullOrEmpty(c.Command) || c.Command == "---"));
+                }
+
+                CleanGroups(config.CivilGroups);
+                CleanGroups(config.AcadGroups);
+            }
+            catch { /* Bỏ qua lỗi reflection */ }
+        }
+
+        public static MenuConfig GetDefaultConfig()
+        {
+            var config = new MenuConfig();
+
+            // ════════════════════════════════════════════════════════
+            // CIVIL TOOL — Organized logically (English)
+            // ════════════════════════════════════════════════════════
+            config.CivilGroups = new List<MenuGroupItem>
+            {
+                // ─── 1. SETTINGS & STYLES ───
+                new() { GroupName = "Settings", IconType = "SETTINGS", Commands = ConvertCmds(new[]
+                {
+                    ("CTDS_ThietLap", "Drawing Setup", "SETTINGS"),
+                    ("CTDS_SaveClean", "Save & Purge", "UTILITY"),
+                    ("CT_StyleSettings", "Style Manager", "SETTINGS"),
+                    ("CT_StyleInfo", "Style Info", "INFO"),
+                    ("---", "", ""),
+                    ("CTDS_ConvertMM2M", "Convert MM → M", "CALCULATE"),
+                    ("CTDS_ConvertCM2M", "Convert CM → M", "CALCULATE"),
+                    ("---", "", ""),
+                    ("CTL_Hub", "Layer Hub", "VIEW"),
+                }) },
+
+                // ─── 2. SURFACES ───
+                new() { GroupName = "Surfaces", IconType = "SURFACE", Commands = ConvertCmds(new[]
+                {
+                    ("CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation at Center", "ADD"),
+                    ("CTS_RebuildSurface", "Rebuild Surface", "SYNC"),
+                    ("---", "", ""),
+                    ("CTSV_DaoDap", "Cut/Fill Heatmap", "VOLUME"),
+                    //("CTSV_HienThiMaterialList", "Show Material List", "INFO"),
+                    //("CTSV_ChiTietMaterialSection", "Material Section Details", "INFO"),
+                    //("CTSV_PhanTichArea", "Analyze Section Area", "CALCULATE"),
+                    //("CTSV_KiemTraKhoiLuong", "Verify Volumes", "CALCULATE"),
+                }) },
+
+                // ─── 3. ALIGNMENTS ───
+                new() { GroupName = "Alignments", IconType = "ALIGN", Commands = ConvertCmds(new[]
+                {
+                    ("CTC_ThongSoDuongCong_4054", "Curve Params (4054)", "CALCULATE"),
+                    ("CTC_ThongSoDuongCong_13592", "Curve Params (13592)", "CALCULATE"),
+                    //("CTC_KiemTraDuongCong_4054", "Check Curve (4054)", "INFO"),
+                    //("CTC_KiemTraDuongCong_13592", "Check Curve (13592)", "INFO"),
+                    ("CTC_TraCuuDuongCong", "Curve Lookup Table", "INFO"),
+                    ("CTC_ThietLapDuongCong", "Curve Form Settings", "SETTINGS"),
+                }) },
+
+                // ─── 4. PROFILES ───
+                new() { GroupName = "Profiles", IconType = "PROFILE", Commands = ConvertCmds(new[]
+                {
+                    ("CTP_VeTracDoc_TuNhien", "Vẽ Trắc Dọc TN", "PROFILE"),
+                    ("CTP_VeTracDoc_TuNhien_TatCaTuyen", "Vẽ TD TN - Tất cả tuyến", "PROFILE"),
+                    ("CTP_Fix_DuongTuNhien_TheoCoc", "Sửa đường TN theo cọc", "SYNC"),
+                    ("CTP_FixTDTN", "Fix Trắc Dọc TN (NX)", "SYNC"),
+                    ("---", "", ""),
+                    ("CTP_GanNhanNutGiao_LenTracDoc", "Nhãn nút giao → Trắc dọc", "ADD"),
+                    ("CTP_TaoCogoPointTuPVI", "Tạo Point từ PVI", "POINT"),
+                    ("CTP_DienCaoDoMB", "Điền CĐ thiết kế lên MB", "ADD"),
+                    ("CTP_XuatBangCivil", "Xuất dữ liệu Trắc Dọc", "EXPORT"),
+                    ("CTP_AddParcelLabels", "Thêm nhãn Parcel", "ADD"),
+                }) },
+
+                // ─── 5. CORRIDORS ───
+                new() { GroupName = "Corridors", IconType = "CORRIDOR", Commands = ConvertCmds(new[]
+                {
+                    ("CTC_AddAllSection", "Add All Sections to Baselines", "ADD"),
+                    ("CTC_TaoCooridor_DuongDoThi_RePhai", "Right-Turn Corridor", "CORRIDOR"),
+                    ("CTC_TaoMViewTheoTuyen", "Create Viewport by Alignment", "LAYOUT"),
+                }) },
+
+                // ─── 6. SAMPLE LINES / STAKES ───
+                new() { GroupName = "Sample Lines", IconType = "STATION", Commands = ConvertCmds(new[]
+                {
+                    // Phát sinh cọc
+                    ("CTS_PhatSinhCoc", "⭐ Phát sinh cọc (Tổng hợp)", "STATION"),
+                    ("CTS_PhatSinhCoc_ChiTiet", "Phát sinh cọc chi tiết", "ADD"),
+                    ("CTS_PhatSinhCoc_theoKhoangDelta", "Phát sinh cọc theo Delta", "ADD"),
+                    ("CTS_PhatSinhCoc_TuCogoPoint", "Phát sinh từ CogoPoint", "POINT"),
+                    ("CTS_PhatSinhCoc_TheoBang", "Phát sinh theo bảng Excel", "EXCEL"),
+                    ("---", "", ""),
+                    // Đổi tên cọc
+                    ("CTS_DoiTenCoc", "Đổi tên cọc (NX)", "RENAME"),
+                    ("CTS_DoiTenCoc2", "Đổi tên cọc (Thập phân)", "RENAME"),
+                    ("CTS_DoiTenCoc3", "Đổi tên cọc (Lý trình)", "RENAME"),
+                    ("CTS_DoiTenCoc_fromCogoPoint", "Đổi tên từ CogoPoint", "RENAME"),
+                    ("CTS_DoiTenCoc_TheoThuTu", "Đổi tên theo thứ tự", "RENAME"),
+                    ("CTS_DoiTenCoc_H", "Đổi tên cọc Hầm (H)", "RENAME"),
+                    ("---", "", ""),
+                    // Dịch cọc
+                    ("CTS_DichCoc_TinhTien", "Dịch cọc tịnh tiến", "MOVE"),
+                    ("CTS_DichCoc_TinhTien40", "Dịch cọc 40m", "MOVE"),
+                    ("CTS_DichCoc_TinhTien_20", "Dịch cọc 20m", "MOVE"),
+                    ("---", "", ""),
+                    // Chèn cọc
+                    ("CTS_ChenCoc_TrenTracDoc", "Chèn cọc lên Trắc Dọc", "ADD"),
+                    ("CTS_CHENCOC_TRENTRACNGANG", "Chèn cọc lên Trắc Ngang", "ADD"),
+                    ("---", "", ""),
+                    // Sao chép / Đồng bộ
+                    ("CTS_Copy_NhomCoc", "Copy nhóm cọc", "COPY"),
+                    ("CTS_DongBo_2_NhomCoc", "Đồng bộ 2 nhóm cọc", "SYNC"),
+                    ("CTS_DongBo_2_NhomCoc_TheoDoan", "Đồng bộ theo đoạn", "SYNC"),
+                    ("---", "", ""),
+                    // Bề rộng
+                    ("CTS_Copy_BeRong_sampleLine", "Copy bề rộng SL", "COPY"),
+                    ("CTS_Thaydoi_BeRong_sampleLine", "Thay đổi bề rộng SL", "SETTINGS"),
+                    ("CTS_Offset_BeRong_sampleLine", "Offset bề rộng SL", "MOVE"),
+                    ("---", "", ""),
+                    // Bảng tọa độ & Thống kê
+                    ("CTS_TaoBang_ToaDoCoc", "Bảng tọa độ cọc (CAD)", "TABLE"),
+                    ("CTSV_ThongKeCoc", "Thống kê cọc → Excel", "EXCEL"),
+                    ("CTSV_ThongKeCoc_ToaDo", "Thống kê cọc kèm tọa độ", "EXCEL"),
+                    ("AT_UPdate2Table", "Cập nhật bảng tọa độ", "SYNC"),
+                }) },
+
+                // ─── 7. SECTION VIEWS ───
+                new() { GroupName = "Section Views", IconType = "SECTION", Commands = ConvertCmds(new[]
+                {
+                    // Vẽ trắc ngang
+                    ("CTSV_VeTracNgangThietKe", "⭐ Vẽ TN thiết kế", "SECTION"),
+                    ("CVSV_VeTatCa_TracNgangThietKe", "Vẽ tất cả TN thiết kế", "SECTION"),
+                    ("CTSV_ChuyenDoi_TNTK_TNTN", "Chuyển TNTK → TNTN", "SYNC"),
+                    ("CTSV_CCTN", "Điền chênh cao tim cọc", "MEASURE"),
+                    ("---", "", ""),
+                    // Đánh cấp
+                    ("CTSV_DanhCap", "Đánh cấp VHC", "BENCH"),
+                    ("CTSV_DanhCap_XoaBo", "Xóa đánh cấp", "DELETE"),
+                    ("CTSV_DanhCap_VeThem", "Vẽ thêm đánh cấp", "BENCH"),
+                    ("CTSV_DanhCap_VeThem1", "Vẽ thêm ĐC 1m", "ADD"),
+                    ("CTSV_DanhCap_VeThem2", "Vẽ thêm ĐC 2m", "ADD"),
+                    ("CTSV_DanhCap_CapNhat", "Cập nhật đánh cấp", "SYNC"),
+                    ("---", "", ""),
+                    // Vật liệu & Hiệu chỉnh
+                    ("CTSV_ThemVatLieu_TrenCatNgang", "Điền vật liệu trắc ngang", "PAVEMENT"),
+                    ("CTSV_ThayDoi_MSS_Min_Max", "Thay đổi Min/Max Section", "SETTINGS"),
+                    ("CTSV_ThayDoi_GioiHan_traiPhai", "Giới hạn Trái/Phải SV", "SETTINGS"),
+                    ("CTSV_KhoaCatNgang_AddPoint", "Khóa + Thêm điểm", "ADD"),
+                    ("---", "", ""),
+                    // Khung in
+                    ("CTSV_ThayDoi_KhungIn", "Dàn khung in hàng loạt", "VIEW"),
+                    ("CTSV_fit_KhungIn", "Fit khung in", "VIEW"),
+                    ("CTSV_fit_KhungIn_5_5_top", "Fit khung 5×5", "VIEW"),
+                    ("CTSV_fit_KhungIn_5_10_top", "Fit khung 5×10", "VIEW"),
+                    ("---", "", ""),
+                    // Ẩn / Hiệu chỉnh
+                    ("CTSV_An_DuongDiaChat", "Ẩn đường địa chất", "VIEW"),
+                    ("CTSV_HieuChinh_Section", "Hiệu chỉnh Section (Static)", "SETTINGS"),
+                    ("CTSV_HieuChinh_Section_Dynamic", "Hiệu chỉnh Section (Dyn)", "SETTINGS"),
+                }) },
+
+                // ─── 8. QUANTITIES & VOLUMES ───
+                new() { GroupName = "Quantities", IconType = "VOLUME", Commands = ConvertCmds(new[]
+                {
+                    // Tính khối lượng cắt ngang
+                    ("CTSV_TinhKhoiLuongTracNgang", "⭐ Tính KL Trắc Ngang", "VOLUME"),
+                    ("CTSV_Taskbar", "Taskbar Khối Lượng", "VOLUME"),
+                    ("CTSV_CaiDatBang", "Cài đặt bảng KL", "SETTINGS"),
+                    ("---", "", ""),
+                    // Xuất kết quả
+                    ("CTSV_XuatKhoiLuong", "Xuất KL Material → Excel", "EXCEL"),
+                    ("CTSV_XuatCad", "Xuất KL → CAD", "CAD"),
+                    ("CTSV_XuatSectionArea", "Xuất diện tích Section → Excel", "EXCEL"),
+                    ("---", "", ""),
+                    // Lấy dữ liệu
+                    ("CTSV_LayDienTichTuSectionView", "Lấy DT từ Section View", "CALCULATE"),
+                    ("CTSV_LayKhoiLuongTracNgang", "Lấy KL từ Trắc Ngang", "CALCULATE"),
+                    ("CTSV_TinhKLKetHop", "Tính KL kết hợp nhiều tuyến", "CALCULATE"),
+                    ("CTSV_ThongKeMaterialTracNgang", "Thống kê Material TN", "TABLE"),
+                    ("---", "", ""),
+                    // So sánh & Phân tích
+                    ("CTSV_SoSanhSurface", "So sánh 2 Surface", "CALCULATE"),
+                    ("CTSV_DaoDap", "KL đào đắp Surface-Surface", "VOLUME"),
+                    //("CTSV_HienThiMaterialList", "Hiển thị Material List", "INFO"),
+                    //("CTSV_ChiTietMaterialSection", "Chi tiết Material Section", "INFO"),
+                    //("CTSV_PhanTichArea", "Phân tích chi tiết AREA", "CALCULATE"),
+                    //("CTSV_KiemTraKhoiLuong", "Kiểm tra khối lượng", "CALCULATE"),
+                    ("---", "", ""),
+                    // Polyline Area
+                    ("CTSV_PolyArea", "Menu tính DT Polyline", "CALCULATE"),
+                    ("CTSV_TinhDienTichPoly", "Tính DT Polyline", "CALCULATE"),
+                    ("CTSV_TinhKhoiLuongPoly", "Tính KL Polyline", "CALCULATE"),
+                    ("CTSV_TinhDienTichPolyExcel", "DT Polyline → Excel", "EXCEL"),
+                    ("CTSV_GhiDienTichPoly", "Ghi DT lên CAD", "DRAW"),
+                }) },
+
+                // ─── 9. COGO POINTS ───
+                new() { GroupName = "Points", IconType = "POINT", Commands = ConvertCmds(new[]
+                {
+                    ("CTPO_NhapToaDoTrucTiep", "Direct Point Entry", "ADD"),
+                    ("CTPO_TaoPointTheoBang", "Import Points from Excel", "EXCEL"),
+                    ("---", "", ""),
+                    ("CTPO_TaoCogoPoint_CaoDo_FromSurface", "Points from Surface Elev", "SURFACE"),
+                    ("CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Points from Spot Elevs", "ADD"),
+                    ("CTPO_CreateCogopointFromText", "Create Point from Text", "ADD"),
+                    ("CTU_MakePointFromText", "CogoPoint from Text(Util)", "ADD"),
+                    ("---", "", ""),
+                    ("CTPO_An_CogoPoint", "Hide Cogo Points", "VIEW"),
+                    ("CTPO_UpdateAllPointGroup", "Update Point Groups", "SYNC"),
+                    ("CTPO_CPTT", "Convert Point to Text", "EXPORT"),
+                    ("CTPo_ReorderPoints", "Reorder Point Numbers", "SYNC"),
+                }) },
+
+                // ─── 10. PIPE NETWORKS ───
+                new() { GroupName = "Pipe Networks", IconType = "PIPE", Commands = ConvertCmds(new[]
+                {
+                    ("CTPI_ThayDoi_DuongKinhCong", "Modify Pipe Diameter", "SETTINGS"),
+                    ("CTPI_ThayDoi_MatPhangRef_Cong", "Set Pipe Ref Surface", "SETTINGS"),
+                    ("CTPI_ThayDoi_DoanDocCong", "Modify Pipe Slope", "SETTINGS"),
+                    ("---", "", ""),
+                    ("CTPI_BangCaoDo_TuNhienHoThu", "Catch Basin EG Table", "TABLE"),
+                    ("CTPI_XoayHoThu_Theo2diem", "Rotate Catch Basin via 2Pts", "SYNC"),
+                    ("CT_VTOADOHG", "Catch Basin Coords (DLL)", "POINT"),
+                }) },
+
+
+                // ─── 11. IN ẤN / XUẤT FILE ───
+                new() { GroupName = "Print & Export", IconType = "LAYOUT", Commands = ConvertCmds(new[]
+                {
+                    ("CT_PrintCenter", "⭐ Print Center", "PRINT"),
+                    ("CTSV_TaoTrangInTD", "Tạo trang in Trắc Dọc", "LAYOUT"),
+
+                    ("---", "", ""),
+                    ("CTDS_PrintAllLayouts", "In tất cả Layout", "PRINT"),
+                    ("CTDS_PrintCurrentLayout", "In Layout hiện tại", "PRINT"),
+                    ("CTDS_ExportPDF", "Xuất PDF", "EXPORT"),
+                }) },
+
+                // ─── 12. PARCEL ───
+                new() { GroupName = "Parcel", IconType = "MEASURE", Commands = ConvertCmds(new[]
+                {
+                    ("CTPA_TaoParcel_CacLoaiNha", "Tạo Parcel từ nhà", "DRAW"),
+                }) },
+
+                // ─── 13. TÍNH TOÁN ───
+                new() { GroupName = "Tính Toán", IconType = "CALCULATE", Commands = ConvertCmds(new[]
+                {
+                    ("TT_TinhToanBanKinhRe", "Bán kính rẽ phải", "CALCULATE"),
+                    ("TT_LanRePhai", "Làn rẽ phải", "CALCULATE"),
+                    ("TT_NhapDong", "Chiều dài nhập dòng", "CALCULATE"),
+                    ("TT_TamNhinNutGiao", "Tầm nhìn nút giao", "INTERSECTION"),
+                    ("TT_VongXuyen", "Đảo vòng xuyến", "INTERSECTION"),
+                    ("TT_TangGiamToc", "Làn tăng/giảm tốc", "CALCULATE"),
+                    ("TT_MoRongXeChay", "Mở rộng xe chạy", "WIDENING"),
+                    ("TT_LanReTrai", "Làn rẽ trái", "CALCULATE"),
+                    ("---", "", ""),
+                    ("TT_AODUONG", "Kết cấu áo đường", "PAVEMENT"),
+                    ("TT_ThuyLucCongTran", "Thủy lực cống tràn", "CULVERT"),
+                    ("---", "", ""),
+                    ("CTS_PHANTICHEXCEL", "Phân tích file TT", "INFO"),
+                }) },
+
+                // ─── 14. UTILITIES ───
+                new() { GroupName = "Utilities", IconType = "UTILITY", Commands = ConvertCmds(new[]
+                {
+                    // Xuất file
+                    ("CTU_ExportCAD2007", "Xuất CAD 2007", "EXPORT"),
+                    ("CTU_ExplodeAEC", "Explode AEC Objects", "DELETE"),
+                    ("XUATBANG_ToaDoPolyline", "Xuất bảng tọa độ Polyline", "TABLE"),
+                    ("---", "", ""),
+                    // Text & Object tools
+                    ("CTU_TextToMText", "Text → MText", "SYNC"),
+                    ("AT_MT2ML", "MultiText → MultiLine", "SYNC"),
+                    ("CTU_TotalLength", "Tổng chiều dài", "CALCULATE"),
+                    ("CTU_ExportTextCoords", "Xuất tọa độ Text", "EXPORT"),
+                    ("CTU_FindIntersections", "Tìm điểm giao", "CALCULATE"),
+                    ("CTU_AddPolylineVertices", "Thêm vertex Polyline", "ADD"),
+                    ("AT_ChinhBeDayPLine", "Chỉnh bề dày Polyline", "SETTINGS"),
+                    ("CTU_DrawTaluy", "Vẽ taluy", "SLOPE"),
+                    ("---", "", ""),
+                    // Style & Object Info
+                    ("CTU_StyleAutoOff", "Tắt Auto-Style", "SETTINGS"),
+                    ("CTU_StyleAutoOn", "Bật Auto-Style", "SETTINGS"),
+                    ("CTU_DumpObject", "Dump Object Properties", "INFO"),
+                    ("AT_Solid_Set_PropertySet", "Gán Property Set", "ADD"),
+                    ("AT_Solid_Show_Info", "Thông tin 3D Solid", "INFO"),
+                    ("---", "", ""),
+                    // Màu sắc
+                    ("CTS_DoiMauByLayer", "Đổi màu về ByLayer", "SYNC"),
+                    ("---", "", ""),
+                    // Lệnh hệ thống
+                    ("CT_DanhSachLenh", "Danh sách lệnh", "TABLE"),
+                    ("CT_DoiIcon", "Thay đổi Icon lệnh", "SETTINGS"),
+                    ("CIVIL_RIBBON", "Reload Civil Ribbon", "RELOAD"),
+                    ("CT_MENU_SETTINGS", "Cài đặt Menu", "SETTINGS"),
+                }) },
+
+                // ─── 14. BR TOOL / CẦU ───
+                new() { GroupName = "BR Tool / Cầu", IconType = "BRIDGE", Commands = ConvertCmds(new[]
+                {
+                    ("XTB",     "⭐ Xuất tọa độ Block → Excel", "EXCEL"),
+                    ("TAONHAN", "Tạo nhãn Block Attribute",     "ADD"),
+                }) },
+
+                // ─── 15. NXSOFT ───
+                new() { GroupName = "NXSOFT", IconType = "UTILITY", Commands = ConvertCmds(new[]
+                {
+                    ("NXrenameSL", "⭐ Đổi tên cọc hàng loạt", "RENAME"),
+                    ("CWPL", "Chỉnh bề dày Polyline (CWPL)", "SETTINGS"),
+                    ("---", "", ""),
+                    ("NXFIXTDTN", "Sửa đường TN (NXFIXTDTN)", "SYNC"),
+                    ("NXCCTN", "Điền chênh cao tim cọc (NX)", "MEASURE"),
+                    ("NXdcdtd", "Điền chênh cao 2 trắc dọc", "MEASURE"),
+                    ("NXdcdcoc", "Điền CĐ thiết kế lên MB", "ADD"),
+                    ("NXNoiText", "Gộp text khảo sát", "SYNC"),
+                    ("---", "", ""),
+                    ("NXPIPE", "Thiết kế mạng lưới thoát nước", "PIPE"),
+                    ("NXNTDADD", "Nhập dữ liệu NTD vào tuyến", "ADD"),
+                }) },
+            };
+
+            // ══ ACAD TOOL panels ══
+            config.AcadGroups = new List<MenuGroupItem>
+            {
+                new() { GroupName = "Đo lường", IconType = "MEASURE", Commands = ConvertCmds(new[]
+                {
+                    // Chiều dài
+                    ("AT_TongDoDai_Full", "Tổng chiều dài (Full)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace", "Tổng dài (Replace)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace2", "Tổng dài (Replace2)", "CALCULATE"),
+                    ("AT_TongDoDai_Replace_CongThem", "Tổng dài (Cộng thêm)", "CALCULATE"),
+                    ("---", "", ""),
+                    // Diện tích
+                    ("AT_TongDienTich_Full", "Tổng diện tích (Full)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace", "Tổng DT (Replace)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace2", "Tổng DT (Replace2)", "CALCULATE"),
+                    ("AT_TongDienTich_Replace_CongThem", "Tổng DT (Cộng thêm)", "CALCULATE"),
+                    ("---", "", ""),
+                    // Tổng hợp
+                    ("AT_TongHop", "Đo lường tổng hợp", "CALCULATE"),
+                }) },
+
+                new() { GroupName = "Chỉnh sửa", IconType = "EDIT", Commands = ConvertCmds(new[]
+                {
+                    ("AT_TextLink", "Liên kết Text động", "ADD"),
+                    ("AT_DanhSoThuTu", "Đánh số thứ tự", "ADD"),
+                    ("AT_GopText", "Gộp Text khảo sát", "SYNC"),
+                    ("AT_MT2ML", "MultiText → MultiLine", "SYNC"),
+                    ("AT_TCD", "Tách chữ đặc biệt", "EDIT"),
+                    ("AT_TBD", "Text By Description", "EDIT"),
+                    ("---", "", ""),
+                    ("AT_XoaDoiTuong_CungLayer", "Xóa đối tượng cùng Layer", "DELETE"),
+                    ("AT_XoaDoiTuong_3DSolid_Body", "Xóa 3D Solid/Body", "DELETE"),
+                    ("AT_Offset_2Ben", "Offset 2 bên", "COPY"),
+                    ("AT_ChinhBeDayPLine", "Chỉnh bề dày Polyline", "SETTINGS"),
+                    ("AT_annotive_scale_currentOnly", "Scale Annotative hiện tại", "SETTINGS"),
+                    ("---", "", ""),
+                    ("AT_XoayDoiTuong_TheoViewport", "Xoay theo Viewport", "SYNC"),
+                    ("AT_XoayDoiTuong_Theo2Diem", "Xoay theo 2 điểm", "SYNC"),
+                }) },
+
+                new() { GroupName = "Layout Tools", IconType = "LAYOUT", Commands = ConvertCmds(new[]
+                {
+                    ("AT_TextLayout", "Text Layout Sync", "ADD"),
+                    ("AT_TaoMoi_TextLayout", "Tạo mới Text Layout", "ADD"),
+                    ("AT_DimLayout", "Dimension Layout", "ADD"),
+                    ("AT_DimLayout2", "Dimension Layout 2", "ADD"),
+                    ("AT_BlockLayout", "Block Layout", "ADD"),
+                    ("AT_Label_FromText", "Label từ Text", "ADD"),
+                    ("---", "", ""),
+                    ("AT_UpdateLayout", "Cập nhật Layout Sync", "SYNC"),
+                }) },
+            };
+
+            return config;
+        }
+
+        private static List<MenuCommandItem> ConvertCmds((string Cmd, string Label, string Icon)[] items)
+        {
+            return items.Select(i => new MenuCommandItem
+            {
+                Command = i.Cmd,
+                Label = i.Label,
+                SubIcon = i.Icon
+            }).ToList();
+        }
+
+        #endregion
+
+        #region Refresh UI
+
+        private void RefreshGroupList()
+        {
+            lstGroups.Items.Clear();
+            var groups = GetCurrentGroupList();
+            foreach (var g in groups)
+                lstGroups.Items.Add(g);
+
+            if (groups.Count > 0)
+                lstGroups.SelectedIndex = 0;
+        }
+
+        private void RefreshCommandList()
+        {
+            lstCommands.Items.Clear();
+            if (lstGroups.SelectedIndex < 0) return;
+
+            var groups = GetCurrentGroupList();
+            if (lstGroups.SelectedIndex >= groups.Count) return;
+
+            var group = groups[lstGroups.SelectedIndex];
+            _suppressItemCheck = true;
+            foreach (var cmd in group.Commands)
+            {
+                if (cmd.Command == "---")
+                {
+                    lstCommands.Items.Add("─── ngăn cách ───", false);
+                }
+                else
+                {
+                    lstCommands.Items.Add(cmd, cmd.IsEnabled);
+                }
+            }
+            _suppressItemCheck = false;
+
+            // Cập nhật combo icon lệnh
+            UpdateCmdIconCombo();
+        }
+
+        private void UpdateCmdIconCombo()
+        {
+            if (lstGroups.SelectedIndex < 0 || lstCommands.SelectedIndex < 0)
+            {
+                cmbCmdIcon.SelectedIndex = -1;
+                cmbCmdIcon.Enabled = false;
+                return;
+            }
+
+            var groups = GetCurrentGroupList();
+            if (lstGroups.SelectedIndex >= groups.Count) return;
+
+            var group = groups[lstGroups.SelectedIndex];
+            int cmdIdx = lstCommands.SelectedIndex;
+            if (cmdIdx >= group.Commands.Count || group.Commands[cmdIdx].Command == "---")
+            {
+                cmbCmdIcon.SelectedIndex = -1;
+                cmbCmdIcon.Enabled = false;
+                return;
+            }
+
+            cmbCmdIcon.Enabled = true;
+            string currentIcon = group.Commands[cmdIdx].SubIcon;
+            int idx = cmbCmdIcon.Items.IndexOf(currentIcon);
+            cmbCmdIcon.SelectedIndex = idx;
+        }
+
+        private List<MenuCommandItem> _allCommandsCache = new();
+
+        /// <summary>
+        /// Tạo danh sách chú thích mặc định mô tả công dụng của các lệnh phổ biến.
+        /// </summary>
+        private Dictionary<string, string> GetDefaultCommandDescriptions()
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "CTS_PhatSinhCoc", "Phát sinh / đổi tên cọc tổng hợp (auto, CogoPoint, bảng)." },
+                { "CTS_DichCoc_TinhTien", "Dịch cọc sang trái/phải dọc theo tuyến." },
+                { "CTSV_ThayDoi_KhungIn", "Dàn khung in hàng loạt tự động." },
+                { "CTSV_DanhCap", "Đánh cấp (Vát mái taluy) - VHC." },
+                { "CTSV_ThemVatLieu_TrenTracNgang", "Điền khối lượng / vật liệu tự động lên trắc ngang." },
+                { "CTC_TaoCooridor_DuongDoi", "Tạo Corridor tự động cho đường rẽ phải/trái." },
+                { "CTSV_An_DuongDiaChat", "Ẩn hiện đường địa chất tự động." },
+                { "CTSV_CaiDatBang", "Cài đặt hiển thị cho bảng khối lượng." },
+                { "CTSV_DanhCap_CapNhatKLRaBang", "Cập nhật lại Text Khối Lượng vào bảng sau khi đánh cấp." },
+                { "AT_TongDienTich_Replace_CongThem", "Tính tổng diện tích nhiều đối tượng và thay thế chữ." },
+                { "AT_TongDoDai_Replace_CongThem", "Cộng chiều dài nhiều đường Line/Polyline." },
+                { "AT_XoaDoiTuong_CungLayer", "Chọn 1 đối tượng, xoá toàn bộ nét cùng Layer đó." },
+                { "AT_XoayDoiTuong_TheoViewport", "Xoay mọi đối tượng (Text/Block) thẳng theo Viewport Layout." }
+            };
+        }
+
+        private void RefreshAllCommandsList()
+        {
+            _allCommandsCache = GetAllAvailableCommands();
+            lstAllCommands.Items.Clear();
+            _dgvAliases?.Rows.Clear();
+
+            var defaultDescriptions = GetDefaultCommandDescriptions();
+            foreach (var cmd in _allCommandsCache)
+            {
+                lstAllCommands.Items.Add(cmd);
+                
+                // Add to DataGridView
+                if (_dgvAliases != null)
+                {
+                    string alias = "";
+                    if (_config.CommandAliases != null && _config.CommandAliases.TryGetValue(cmd.Command, out string? existingAlias))
+                        alias = existingAlias ?? "";
+
+                    string desc = "";
+                    if (_config.CommandDescriptions != null && _config.CommandDescriptions.TryGetValue(cmd.Command, out string? existingDesc))
+                        desc = existingDesc ?? "";
+                    else if (defaultDescriptions.TryGetValue(cmd.Command, out string? defDesc))
+                        desc = defDesc ?? ""; // Fallback to predefined descriptions
+
+                    _dgvAliases.Rows.Add(cmd.Label, cmd.Command, alias, desc);
+                }
+            }
+        }
+
+        private void FilterAllCommands(string filter)
+        {
+            lstAllCommands.Items.Clear();
+            var filtered = string.IsNullOrWhiteSpace(filter)
+                ? _allCommandsCache
+                : _allCommandsCache.Where(c =>
+                    c.Label.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                    c.Command.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            foreach (var cmd in filtered)
+                lstAllCommands.Items.Add(cmd);
+        }
+
+        /// <summary>
+        /// Trả về tất cả lệnh có sẵn (gộp từ cấu hình mặc định và tất cả lệnh tìm được bằng Reflection)
+        /// </summary>
+        private List<MenuCommandItem> GetAllAvailableCommands()
+        {
+            var defaultConfig = GetDefaultConfig();
+            
+            // 1. Lấy tất cả lệnh từ cấu hình mặc định để lấy Label thân thiện
+            var knownCommands = defaultConfig.CivilGroups.Concat(defaultConfig.AcadGroups)
+                .SelectMany(g => g.Commands)
+                .Where(c => !string.IsNullOrEmpty(c.Command) && c.Command != "---")
+                .GroupBy(c => c.Command)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            var allCommands = new List<MenuCommandItem>();
+
+            // 2. Quét toàn bộ project để tìm các [CommandMethod]
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                try
+                {
+                    foreach (var type in asm.GetTypes())
+                    {
+                        foreach (var method in type.GetMethods(
+                            System.Reflection.BindingFlags.Public |
+                            System.Reflection.BindingFlags.NonPublic |
+                            System.Reflection.BindingFlags.Static |
+                            System.Reflection.BindingFlags.Instance))
+                        {
+                            var attr = method.GetCustomAttributes(typeof(CommandMethodAttribute), false);
+                            foreach (CommandMethodAttribute cmdAttr in attr)
+                            {
+                                string globalName = cmdAttr.GlobalName;
+                                // Tránh thêm trùng lặp
+                                if (!allCommands.Any(c => c.Command.Equals(globalName, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    if (knownCommands.TryGetValue(globalName, out var known))
+                                    {
+                                        allCommands.Add(new MenuCommandItem { Command = known.Command, Label = known.Label, SubIcon = known.SubIcon });
+                                    }
+                                    else
+                                    {
+                                        // Nếu lệnh chưa từng có trong menu, lấy tên lệnh làm Label
+                                        allCommands.Add(new MenuCommandItem { Command = globalName, Label = globalName, SubIcon = "UTILITY" });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { /* Bỏ qua assembly không load được */ }
+            }
+
+            return allCommands.OrderBy(c => c.Label).ToList();
+        }
+
+        #endregion
+
+        #region Group Operations
+
+        private void BtnAddGroup_Click(object? sender, EventArgs e)
+        {
+            string name = PromptInput("Tên nhóm mới:", "Thêm Nhóm Lệnh");
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            var groups = GetCurrentGroupList();
+            groups.Add(new MenuGroupItem { GroupName = name, IconType = "UTILITY" });
+            RefreshGroupList();
+            lstGroups.SelectedIndex = groups.Count - 1;
+        }
+
+        private void BtnRemoveGroup_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0) return;
+            var groups = GetCurrentGroupList();
+            var group = groups[lstGroups.SelectedIndex];
+
+            if (MessageBox.Show($"Xóa nhóm \"{group.GroupName}\" và {group.Commands.Count} lệnh bên trong?",
+                "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                return;
+
+            groups.RemoveAt(lstGroups.SelectedIndex);
+            RefreshGroupList();
+        }
+
+        private void BtnRenameGroup_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0) return;
+            var groups = GetCurrentGroupList();
+            var group = groups[lstGroups.SelectedIndex];
+
+            string name = PromptInput("Tên mới:", "Đổi Tên Nhóm", group.GroupName);
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            group.GroupName = name;
+            RefreshGroupList();
+        }
+
+        private void BtnGroupUp_Click(object? sender, EventArgs e)
+        {
+            MoveItem(lstGroups, GetCurrentGroupList(), -1);
+            RefreshGroupList();
+        }
+
+        private void BtnGroupDown_Click(object? sender, EventArgs e)
+        {
+            MoveItem(lstGroups, GetCurrentGroupList(), +1);
+            RefreshGroupList();
+        }
+
+        #endregion
+
+        #region Command Operations
+
+        private void BtnAddCmd_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0)
+            {
+                MessageBox.Show("Vui lòng chọn nhóm trước.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            if (lstAllCommands.SelectedItem is not MenuCommandItem cmd) return;
+
+            var groups = GetCurrentGroupList();
+            var group = groups[lstGroups.SelectedIndex];
+            group.Commands.Add(new MenuCommandItem
+            {
+                Command = cmd.Command,
+                Label = cmd.Label,
+                SubIcon = cmd.SubIcon
+            });
+            RefreshCommandList();
+        }
+
+        private void BtnRemoveCmd_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0 || lstCommands.SelectedIndex < 0) return;
+
+            var groups = GetCurrentGroupList();
+            var group = groups[lstGroups.SelectedIndex];
+            int idx = lstCommands.SelectedIndex;
+
+            if (idx < group.Commands.Count)
+            {
+                group.Commands.RemoveAt(idx);
+                RefreshCommandList();
+            }
+        }
+
+        private void BtnCmdUp_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0) return;
+            var group = GetCurrentGroupList()[lstGroups.SelectedIndex];
+            int idx = lstCommands.SelectedIndex;
+            if (idx <= 0 || idx >= group.Commands.Count) return;
+
+            (group.Commands[idx], group.Commands[idx - 1]) = (group.Commands[idx - 1], group.Commands[idx]);
+            RefreshCommandList();
+            lstCommands.SelectedIndex = idx - 1;
+        }
+
+        private void BtnCmdDown_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0) return;
+            var group = GetCurrentGroupList()[lstGroups.SelectedIndex];
+            int idx = lstCommands.SelectedIndex;
+            if (idx < 0 || idx >= group.Commands.Count - 1) return;
+
+            (group.Commands[idx], group.Commands[idx + 1]) = (group.Commands[idx + 1], group.Commands[idx]);
+            RefreshCommandList();
+            lstCommands.SelectedIndex = idx + 1;
+        }
+
+        private void BtnAddSeparator_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0) return;
+            var group = GetCurrentGroupList()[lstGroups.SelectedIndex];
+
+            int insertAt = lstCommands.SelectedIndex >= 0 ? lstCommands.SelectedIndex + 1 : group.Commands.Count;
+            group.Commands.Insert(insertAt, new MenuCommandItem { Command = "---", Label = "", SubIcon = "" });
+            RefreshCommandList();
+        }
+
+        private void LstCommands_ItemCheck(object? sender, ItemCheckEventArgs e)
+        {
+            if (_suppressItemCheck) return;
+            if (lstGroups.SelectedIndex < 0) return;
+            var groups = GetCurrentGroupList();
+            if (lstGroups.SelectedIndex >= groups.Count) return;
+            var group = groups[lstGroups.SelectedIndex];
+            if (e.Index < group.Commands.Count && group.Commands[e.Index].Command != "---")
+            {
+                group.Commands[e.Index].IsEnabled = (e.NewValue == CheckState.Checked);
+            }
+        }
+
+        private void BtnCheckAll_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0) return;
+            var groups = GetCurrentGroupList();
+            if (lstGroups.SelectedIndex >= groups.Count) return;
+            var group = groups[lstGroups.SelectedIndex];
+            foreach (var cmd in group.Commands)
+                cmd.IsEnabled = true;
+            RefreshCommandList();
+        }
+
+        private void BtnUncheckAll_Click(object? sender, EventArgs e)
+        {
+            if (lstGroups.SelectedIndex < 0) return;
+            var groups = GetCurrentGroupList();
+            if (lstGroups.SelectedIndex >= groups.Count) return;
+            var group = groups[lstGroups.SelectedIndex];
+            foreach (var cmd in group.Commands)
+                cmd.IsEnabled = false;
+            RefreshCommandList();
+        }
+
+        #endregion
+
+        #region Bottom Buttons
+
+        private void BtnSave_Click(object? sender, EventArgs e)
+        {
+            // Update aliases and descriptions from DGV
+            if (_config.CommandAliases == null) _config.CommandAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (_config.CommandDescriptions == null) _config.CommandDescriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            
+            _config.CommandAliases.Clear();
+            _config.CommandDescriptions.Clear();
+
+            if (_dgvAliases != null)
+            {
+                foreach (DataGridViewRow row in _dgvAliases.Rows)
+                {
+                    if (row.Cells["ColCmd"].Value is string cmdName)
+                    {
+                        if (row.Cells["ColAlias"].Value is string alias)
+                        {
+                            alias = alias.Trim();
+                            if (!string.IsNullOrEmpty(alias))
+                                _config.CommandAliases[cmdName] = alias;
+                        }
+
+                        if (row.Cells["ColDesc"].Value is string desc)
+                        {
+                            desc = desc.Trim();
+                            if (!string.IsNullOrEmpty(desc))
+                                _config.CommandDescriptions[cmdName] = desc;
+                        }
+                    }
+                }
+            }
+
+            SaveConfig();
+            
+            // Reload aliases in AutoCad
+            CivilToolAutoLoader.ApplyAliases(_config.CommandAliases);
+            
+            this.DialogResult = DialogResult.OK;
+            this.Close();
+        }
+
+        private void BtnReset_Click(object? sender, EventArgs e)
+        {
+            if (MessageBox.Show("Reset toàn bộ menu về mặc định?",
+                "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            _config = GetDefaultConfig();
+            RefreshGroupList();
+            RefreshAllCommandsList();
+        }
+
+        private void BtnImport_Click(object? sender, EventArgs e)
+        {
+            using var ofd = new OpenFileDialog
+            {
+                Title = "Import cấu hình menu",
+                Filter = "JSON Files|*.json",
+                DefaultExt = "json"
+            };
+            if (ofd.ShowDialog() != DialogResult.OK) return;
+
+            try
+            {
+                string json = File.ReadAllText(ofd.FileName);
+                _config = JsonSerializer.Deserialize<MenuConfig>(json) ?? GetDefaultConfig();
+                RefreshGroupList();
+                RefreshAllCommandsList();
+                MessageBox.Show("Import thành công!", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Lỗi import: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnExport_Click(object? sender, EventArgs e)
+        {
+            using var sfd = new SaveFileDialog
+            {
+                Title = "Export cấu hình menu",
+                Filter = "JSON Files|*.json",
+                DefaultExt = "json",
+                FileName = "CivilTool_MenuConfig.json"
+            };
+            if (sfd.ShowDialog() != DialogResult.OK) return;
+
+            try
+            {
+                string json = JsonSerializer.Serialize(_config, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(sfd.FileName, json);
+                MessageBox.Show("Export thành công!", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Lỗi export: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private static void MoveItem<T>(ListBox lb, List<T> list, int direction)
+        {
+            int idx = lb.SelectedIndex;
+            int newIdx = idx + direction;
+            if (idx < 0 || newIdx < 0 || newIdx >= list.Count) return;
+            (list[idx], list[newIdx]) = (list[newIdx], list[idx]);
+            lb.SelectedIndex = newIdx;
+        }
+
+        private string PromptInput(string prompt, string title, string defaultValue = "")
+        {
+            using var form = new Form
+            {
+                Text = title,
+                Size = new Size(400, 160),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.Sizable,
+                BackColor = Color.FromArgb(45, 45, 48),
+                ForeColor = Color.White,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+
+            var lbl = new Label
+            {
+                Text = prompt,
+                Location = new Point(15, 15),
+                AutoSize = true
+            };
+            var txt = new TextBox
+            {
+                Text = defaultValue,
+                Location = new Point(15, 40),
+                Size = new Size(350, 26),
+                BackColor = Color.FromArgb(60, 60, 67),
+                ForeColor = Color.White
+            };
+            var btnOk = new Button
+            {
+                Text = "OK",
+                DialogResult = DialogResult.OK,
+                Location = new Point(200, 75),
+                Size = new Size(80, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(0, 122, 204),
+                ForeColor = Color.White
+            };
+            var btnCn = new Button
+            {
+                Text = "Hủy",
+                DialogResult = DialogResult.Cancel,
+                Location = new Point(285, 75),
+                Size = new Size(80, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(55, 55, 62),
+                ForeColor = Color.White
+            };
+
+            form.Controls.AddRange(new Control[] { lbl, txt, btnOk, btnCn });
+            form.AcceptButton = btnOk;
+            form.CancelButton = btnCn;
+
+            return form.ShowDialog() == DialogResult.OK ? txt.Text.Trim() : "";
+        }
+
+        #endregion
+    }
+
+    #endregion
+
+    #region AutoCAD Command
+
+    public class MenuSettingsCommand
+    {
+        [CommandMethod("CT_MENU_SETTINGS")]
+        public static void OpenMenuSettings()
+        {
+            try
+            {
+                var form = new MenuSettingsForm();
+                var result = AcadApp.ShowModalDialog(form);
+
+                if (result == DialogResult.OK)
+                {
+                    var config = form.GetConfig();
+
+                    // Áp dụng lại Ribbon với config mới
+                    ApplyConfigToRibbon(config);
+
+                    var ed = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
+                    ed?.WriteMessage("\n Đã cập nhật menu theo cài đặt mới!");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                var ed = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
+                ed?.WriteMessage($"\n Lỗi: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Áp dụng config vào Ribbon hiện tại  
+        /// </summary>
+        private static void ApplyConfigToRibbon(MenuConfig config)
+        {
+            var ribbon = Autodesk.Windows.ComponentManager.Ribbon;
+            if (ribbon == null) return;
+
+            // Xóa tab cũ
+            var tabIds = new[] { "CivilTool.MainTab", "CivilTool.AcadTab" };
+            foreach (var id in tabIds)
+            {
+                var existing = ribbon.Tabs.FirstOrDefault(t => t.Id == id);
+                if (existing != null)
+                    ribbon.Tabs.Remove(existing);
+            }
+
+            // Tạo lại Civil Tab
+            var civilTab = new Autodesk.Windows.RibbonTab
+            {
+                Title = "Civil Tool",
+                Id = "CivilTool.MainTab"
+            };
+            ribbon.Tabs.Add(civilTab);
+
+            foreach (var group in config.CivilGroups)
+            {
+                if (group.Commands.Count == 0) continue;
+                var cmds = group.Commands.Select(c => (c.Command, c.Label, c.SubIcon)).ToList();
+                CivilRibbonTaskbar.AddCivilPanel(civilTab, group.GroupName, group.IconType, cmds);
+            }
+            civilTab.IsActive = true;
+
+            // Tạo lại Acad Tab
+            var acadTab = new Autodesk.Windows.RibbonTab
+            {
+                Title = "ACAD Tool",
+                Id = "CivilTool.AcadTab"
+            };
+            ribbon.Tabs.Add(acadTab);
+
+            foreach (var group in config.AcadGroups)
+            {
+                if (group.Commands.Count == 0) continue;
+                var cmds = group.Commands.Select(c => (c.Command, c.Label, c.SubIcon)).ToList();
+                CivilRibbonTaskbar.AddCivilPanel(acadTab, group.GroupName, group.IconType, cmds);
+            }
+        }
+    }
+
+    #endregion
+}

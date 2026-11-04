@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
@@ -28,7 +28,7 @@ namespace MyFirstProject.Extensions
         }
         public static void GStationsFromSamplelineGroup(out double[] station, out SampleLine sampleLineOut)
         {
-            Transaction tr = A.Db.TransactionManager.StartTransaction();
+            using Transaction tr = A.Db.TransactionManager.StartTransaction();
             {
                 _ = new UserInput();
 
@@ -44,26 +44,21 @@ namespace MyFirstProject.Extensions
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
                 SampleLineGroup? sampleLineGroup = tr.GetObject(sampleLineGroupId, OpenMode.ForRead) as SampleLineGroup;
 
-                //get number of station in samplelineGroup
-                int i = 0;
+                // get station - Tối ưu: dùng .Count thay vì lặp 2 lần
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-                foreach (ObjectId sampleLineId in sampleLineGroup.GetSampleLineIds())
-                {
-                    i++;
-                }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-                // get station
-                station = new double[i];
+                var sampleLineIds = sampleLineGroup.GetSampleLineIds();
+                station = new double[sampleLineIds.Count];
                 int j = 0;
-                foreach (ObjectId sampleLineId in sampleLineGroup.GetSampleLineIds())
+                foreach (ObjectId sampleLineId in sampleLineIds)
                 {
                     SampleLine? sampleline = tr.GetObject(sampleLineId, OpenMode.ForRead) as SampleLine;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    station[j] = sampleline.Station;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                    if (sampleline != null)
+                    {
+                        station[j] = sampleline.Station;
+                    }
                     j++;
                 }
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
                 tr.Commit();
             }
         }

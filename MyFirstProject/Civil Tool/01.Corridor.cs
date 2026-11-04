@@ -30,78 +30,98 @@ namespace MyFirstProject
         [CommandMethod("CTC_AddAllSection")]
         public static void CVC_AddAllSection()
         {
-            // Mở form tùy chọn
-            ObjectId selectedCorridorId;
+            // Mở form tùy chọn (hỗ trợ multi-select corridor)
+            List<ObjectId> selectedCorridorIds;
             bool clearOldStations;
-            Dictionary<string, List<double>> stationsByBaseline;
-            List<double> allStations;
+            List<AddSectionForm.StationPreviewItem> allPreviewStations;
 
             using (var form = new AddSectionForm())
             {
                 var dialogResult = Autodesk.AutoCAD.ApplicationServices.Application.ShowModalDialog(form);
                 if (dialogResult != DialogResult.OK || !form.IsConfirmed) return;
-                if (form.SelectedCorridorId == ObjectId.Null) return;
+                if (form.SelectedCorridorIds.Count == 0) return;
 
-                selectedCorridorId = form.SelectedCorridorId;
+                selectedCorridorIds = form.SelectedCorridorIds;
                 clearOldStations = form.ClearOldStations;
-                stationsByBaseline = form.PreviewStations
-                    .GroupBy(s => s.BaselineName)
-                    .ToDictionary(g => g.Key, g => g.Select(s => s.Station).OrderBy(s => s).ToList());
-                allStations = form.PreviewStations.Select(s => s.Station).OrderBy(s => s).ToList();
+                allPreviewStations = form.PreviewStations;
             }
 
-            // Thực hiện add section
+            // Thực hiện add section cho từng corridor
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                Corridor? corridor = tr.GetObject(selectedCorridorId, OpenMode.ForWrite) as Corridor;
-                if (corridor == null) { tr.Commit(); return; }
+                int totalAdded = 0;
+                int corridorCount = 0;
 
-                int addedCount = 0;
-
-                foreach (Baseline baseline in corridor.Baselines)
+                foreach (ObjectId corridorId in selectedCorridorIds)
                 {
-                    // Lấy station cho baseline này
-                    List<double> stations;
-                    if (stationsByBaseline.ContainsKey(baseline.Name))
-                    {
-                        stations = stationsByBaseline[baseline.Name];
-                    }
-                    else
-                    {
-                        // Fallback: dùng tất cả station (cho trường hợp tên baseline không khớp)
-                        stations = allStations;
-                    }
+                    Corridor? corridor = tr.GetObject(corridorId, OpenMode.ForWrite) as Corridor;
+                    if (corridor == null) continue;
 
-                    foreach (BaselineRegion baselineRegion in baseline.BaselineRegions)
+                    // Lấy station thuộc corridor này
+                    var stationsByBaseline = allPreviewStations
+                        .Where(s => s.CorridorId == corridorId)
+                        .GroupBy(s => s.BaselineName)
+                        .ToDictionary(g => g.Key, g => g.Select(s => s.Station).OrderBy(s => s).ToList());
+
+                    var allStationsForCorridor = allPreviewStations
+                        .Where(s => s.CorridorId == corridorId)
+                        .Select(s => s.Station).OrderBy(s => s).ToList();
+
+                    if (allStationsForCorridor.Count == 0) continue;
+
+                    int addedCount = 0;
+
+                    foreach (Baseline baseline in corridor.Baselines)
                     {
-                        if (clearOldStations)
+                        // Lấy station cho baseline này
+                        List<double> stations;
+                        if (stationsByBaseline.ContainsKey(baseline.Name))
                         {
-                            baselineRegion.ClearAdditionalStations();
+                            stations = stationsByBaseline[baseline.Name];
+                        }
+                        else
+                        {
+                            // Fallback: dùng tất cả station (cho trường hợp tên baseline không khớp)
+                            stations = allStationsForCorridor;
                         }
 
-                        double[] existingStations = baselineRegion.SortedStations();
-
-                        foreach (double station in stations)
+                        foreach (BaselineRegion baselineRegion in baseline.BaselineRegions)
                         {
-                            if (station > baselineRegion.StartStation && station < baselineRegion.EndStation)
+                            if (clearOldStations)
                             {
-                                // Kiểm tra trùng station đã có
-                                bool isDuplicate = existingStations.Any(s => Math.Abs(s - station) < 0.001);
-                                if (!isDuplicate)
+                                baselineRegion.ClearAdditionalStations();
+                            }
+
+                            double[] existingStations = baselineRegion.SortedStations();
+
+                            foreach (double station in stations)
+                            {
+                                if (station > baselineRegion.StartStation && station < baselineRegion.EndStation)
                                 {
-                                    baselineRegion.AddStation(station, "AddSection");
-                                    addedCount++;
+                                    // Kiểm tra trùng station đã có
+                                    bool isDuplicate = existingStations.Any(s => Math.Abs(s - station) < 0.001);
+                                    if (!isDuplicate)
+                                    {
+                                        baselineRegion.AddStation(station, "AddSection");
+                                        addedCount++;
+                                    }
                                 }
                             }
                         }
                     }
+
+                    corridor.Rebuild();
+                    totalAdded += addedCount;
+                    corridorCount++;
+                    A.Ed.WriteMessage($"\n  ✅ {corridor.Name}: +{addedCount} section");
                 }
 
-                corridor.Rebuild();
                 tr.Commit();
 
-                A.Ed.WriteMessage($"\n✅ Đã thêm {addedCount} section vào corridor {corridor.Name}");
+                A.Ed.WriteMessage($"\n══════════════════════════════════════");
+                A.Ed.WriteMessage($"\n✅ Tổng cộng: {totalAdded} section trên {corridorCount} corridor");
+                A.Ed.WriteMessage($"\n══════════════════════════════════════");
             }
             catch (Autodesk.AutoCAD.Runtime.Exception e)
             {

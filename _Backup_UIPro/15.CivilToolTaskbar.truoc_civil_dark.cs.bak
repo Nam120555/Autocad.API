@@ -1,0 +1,496 @@
+// CivilToolTaskbar.cs - Thanh công cụ tổng hợp Civil Tool
+// Tổ chức theo nhóm lệnh với dropdown menu
+
+using Autodesk.AutoCAD.Runtime;
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.EditorInput;
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Collections.Generic;
+using System.Linq;
+
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+
+// Đăng ký class chứa các lệnh với AutoCAD
+[assembly: CommandClass(typeof(MyFirstProject.CivilToolTaskbarCommands))]
+
+namespace MyFirstProject
+{
+    /// <summary>
+    /// Thanh công cụ tổng hợp tất cả các lệnh Civil Tool
+    /// </summary>
+    public class CivilToolTaskbar : Form
+    {
+        private static CivilToolTaskbar? instance;
+        private Point _dragStart;
+        private bool _dragging = false;
+
+        public CivilToolTaskbar()
+        {
+            InitializeComponent();
+        }
+
+        private void InitializeComponent()
+        {
+            this.Text = "Civil Tool";
+            this.Size = new Size(900, 48);
+            this.FormBorderStyle = FormBorderStyle.None;
+            this.StartPosition = FormStartPosition.Manual;
+            this.TopMost = true;
+            this.BackColor = Color.FromArgb(255, 255, 255);
+            this.ForeColor = Color.FromArgb(61, 61, 61);
+            this.DoubleBuffered = true;
+
+            // Rounded corners (Windows 11)
+            this.Region = CreateRoundedRegion(this.Width, this.Height, 8);
+
+            // Drag support
+            this.MouseDown += (s, e) => { _dragging = true; _dragStart = e.Location; };
+            this.MouseMove += (s, e) => { if (_dragging) { this.Left += e.X - _dragStart.X; this.Top += e.Y - _dragStart.Y; } };
+            this.MouseUp += (s, e) => _dragging = false;
+
+            // Custom paint for gradient background
+            this.Paint += (s, e) =>
+            {
+                using var grad = new System.Drawing.Drawing2D.LinearGradientBrush(
+                    this.ClientRectangle,
+                    Color.FromArgb(27, 42, 74),
+                    Color.FromArgb(16, 28, 52), 90f);
+                e.Graphics.FillRectangle(grad, this.ClientRectangle);
+
+                // Bottom accent line
+                using var accentPen = new Pen(Color.FromArgb(46, 74, 122), 2);
+                e.Graphics.DrawLine(accentPen, 0, this.Height - 1, this.Width, this.Height - 1);
+            };
+
+            // Đặt ở giữa phía trên màn hình
+            var screenBounds = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
+            this.Location = new Point((screenBounds.Width - this.Width) / 2, 5);
+
+            int btnHeight = 28;
+            int margin = 4;
+            int x = 8;
+            int y = 10;
+
+            // Load config đã lưu
+            var config = TaskbarSettingsForm.LoadSavedConfig();
+
+            // Nút Menu Chính "CIVIL TOOL"
+            var btnMain = CreateButton("≡ CIVIL TOOL ▾", x, y, 115, btnHeight, Color.FromArgb(27, 42, 74));
+            btnMain.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            btnMain.Click += (s, e) => ShowMainMenu(btnMain, config);
+            this.Controls.Add(btnMain);
+            x += btnMain.Width + margin;
+
+            // Nút Cài đặt
+            var btnSettings = CreateButton("⚙", x, y, 30, btnHeight, Color.FromArgb(27, 42, 74));
+            btnSettings.ForeColor = Color.White;
+            btnSettings.Click += (s, e) => { this.Hide(); RunCommand("CT_TASKBAR_SETTINGS"); this.Show(); };
+            this.Controls.Add(btnSettings);
+            x += 30 + margin;
+
+            // Close Button
+            var btnClose = CreateButton("✕", x, y, 26, btnHeight, Color.FromArgb(46, 74, 122));
+            btnClose.ForeColor = Color.White;
+            btnClose.FlatAppearance.MouseOverBackColor = Color.FromArgb(211, 47, 47);
+            btnClose.Click += (s, e) => this.Close();
+            this.Controls.Add(btnClose);
+            x += btnClose.Width + margin + 4; // Thêm 1 chút padding bên phải
+
+            // Cập nhật kích thước form (Thu gọn cực đại)
+            this.Size = new Size(x, 48);
+            this.Region = CreateRoundedRegion(this.Width, this.Height, 8);
+            this.Location = new Point((screenBounds.Width - this.Width) / 2, 5);
+        }
+
+        private void ShowMainMenu(Button anchorBtn, TaskbarMenuConfig config)
+        {
+            var menu = new ContextMenuStrip();
+            menu.BackColor = Color.FromArgb(255, 255, 255);
+            menu.ForeColor = Color.FromArgb(61, 61, 61);
+            menu.Font = new Font("Segoe UI", 9.5f);
+            menu.Renderer = new DarkToolStripRenderer();
+            menu.ShowImageMargin = false;
+
+            foreach (var group in config.CivilGroups)
+            {
+                if (group.Commands.Count == 0) continue;
+                
+                var activeCmds = group.Commands.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.Command) && c.Command != "---").ToList();
+                if (activeCmds.Count == 0) continue;
+
+                var groupItem = new ToolStripMenuItem($"  {group.GroupName}");
+                // Nested menu items configuration
+                groupItem.DropDown.BackColor = Color.FromArgb(255, 255, 255);
+                groupItem.DropDown.ForeColor = Color.FromArgb(61, 61, 61);
+                
+                // Set the drop down directly using custom Renderer from ToolStripMenuItem
+                if (groupItem.DropDown is ToolStripDropDownMenu dropDownMenu)
+                {
+                    dropDownMenu.ShowImageMargin = false;
+                    dropDownMenu.Renderer = new DarkToolStripRenderer();
+                }
+
+                foreach (var cmd in activeCmds)
+                {
+                    var cmdItem = new ToolStripMenuItem($"  {cmd.Label}");
+                    string cmdName = cmd.Command;
+                    cmdItem.Click += (sender, args) => { this.Hide(); RunCommand(cmdName); this.Show(); };
+                    groupItem.DropDownItems.Add(cmdItem);
+                }
+
+                menu.Items.Add(groupItem);
+            }
+
+            menu.Items.Add(new ToolStripSeparator());
+            var dslItem = new ToolStripMenuItem("  📋 Mở bảng Danh Sách Lệnh (All)...");
+            dslItem.Click += (sender, args) => { this.Hide(); RunCommand("CT_DanhSachLenh"); this.Show(); };
+            menu.Items.Add(dslItem);
+
+            menu.Show(anchorBtn, new Point(0, anchorBtn.Height));
+        }
+
+        private static System.Drawing.Region CreateRoundedRegion(int w, int h, int r)
+        {
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
+            path.AddArc(0, 0, r * 2, r * 2, 180, 90);
+            path.AddArc(w - r * 2, 0, r * 2, r * 2, 270, 90);
+            path.AddArc(w - r * 2, h - r * 2, r * 2, r * 2, 0, 90);
+            path.AddArc(0, h - r * 2, r * 2, r * 2, 90, 90);
+            path.CloseFigure();
+            return new System.Drawing.Region(path);
+        }
+
+        private Button CreateButton(string text, int x, int y, int width, int height, Color bgColor)
+        {
+            var btn = new Button
+            {
+                Text = text,
+                Location = new Point(x, y),
+                Size = new Size(width, height),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = bgColor,
+                ForeColor = Color.White,
+                Cursor = Cursors.Hand,
+                Font = new Font("Segoe UI", 8f)
+            };
+            btn.FlatAppearance.BorderColor = Color.FromArgb(46, 74, 122);
+            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(46, 74, 122);
+            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(16, 28, 52);
+            return btn;
+        }
+
+        // Xoá logic CreateDropdownButton cũ không dùng nữa
+
+        private static void RunCommand(string commandName)
+        {
+            try
+            {
+                Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+                doc.SendStringToExecute($"{commandName}\n", true, false, false);
+            }
+            catch { }
+        }
+
+        #region Static Methods
+
+        public static void ShowTaskbar()
+        {
+            if (instance == null || instance.IsDisposed)
+            {
+                instance = new CivilToolTaskbar();
+            }
+            instance.Show();
+            instance.BringToFront();
+        }
+
+        public static void CloseTaskbar()
+        {
+            instance?.Close();
+            instance = null;
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Form hiển thị danh sách tất cả các lệnh Civil Tool
+    /// </summary>
+    public class CommandListForm : CivilFormBase
+    {
+        private static CommandListForm? formInstance;
+        private ListView listView = null!;
+        private TextBox searchBox = null!;
+        private List<(string Group, string Command, string Description)> allCommands = null!;
+
+        public CommandListForm()
+        {
+            InitializeComponent();
+            LoadCommands();
+        }
+
+        private void InitializeComponent()
+        {
+            InitBaseTheme("📋 Danh Sách Lệnh Civil Tool", 750, 600);
+            
+            // Header bar
+            var header = CreateHeader("DANH SÁCH LỆNH CIVIL TOOL");
+            this.Controls.Add(header);
+
+            // Container panel
+            var mainPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
+            this.Controls.Add(mainPanel);
+            mainPanel.BringToFront();
+
+            // Search box
+            var lblSearch = CreateLabel("🔍 Tìm kiếm:", 10, 15);
+            lblSearch.ForeColor = NavyDark;
+            mainPanel.Controls.Add(lblSearch);
+
+            searchBox = CreateTextBox(95, 12, 300);
+            searchBox.TextChanged += SearchBox_TextChanged;
+            mainPanel.Controls.Add(searchBox);
+
+            // Button chạy lệnh
+            var btnRun = CreatePrimaryButton("▶ Chạy lệnh", 450, 10, 120, 30, mainPanel);
+            btnRun.Click += BtnRun_Click;
+
+            // Button đóng
+            var btnClose = CreateButton("✕ Đóng", 580, 10, 100, 30, mainPanel);
+            btnClose.Click += (s, e) => this.Close();
+
+            // ListView
+            listView = CreateListView(10, 50, 715, 430);
+            listView.Columns.Add("STT", 45);
+            listView.Columns.Add("Nhóm", 120);
+            listView.Columns.Add("Lệnh", 200);
+            listView.Columns.Add("Mô tả", 320);
+            listView.DoubleClick += ListView_DoubleClick;
+            mainPanel.Controls.Add(listView);
+
+            this.Resize += (s, e) =>
+            {
+                if (mainPanel.Width > 20 && mainPanel.Height > 60)
+                {
+                    listView.Size = new Size(mainPanel.Width - 20, mainPanel.Height - 60);
+                }
+            };
+        }
+
+        private void LoadCommands()
+        {
+            allCommands = new List<(string, string, string)>
+            {
+                // ── 1. SETTINGS & STYLES ──
+                ("⚙ Settings", "CTDS_ThietLap", "Drawing Setup"),
+                ("⚙ Settings", "CTDS_SaveClean", "Save & Purge"),
+                ("⚙ Settings", "CT_StyleSettings", "Style Manager"),
+                ("⚙ Settings", "CT_StyleInfo", "Style Info"),
+                ("⚙ Settings", "CTDS_ConvertMM2M", "Convert MM → M"),
+                ("⚙ Settings", "CTDS_ConvertCM2M", "Convert CM → M"),
+                ("⚙ Settings", "CTL_Hub", "Layer Hub"),
+
+                // ── 2. SURFACES ──
+                ("🗺 Surfaces", "CTSu_TaoSpotElevation_OnSurface_TaiTim", "Spot Elevation at Center"),
+                ("🗺 Surfaces", "CTS_RebuildSurface", "Rebuild Surface"),
+                ("🗺 Surfaces", "CTSV_DaoDap", "Cut/Fill Heatmap"),
+                //("🗺 Surfaces", "CTSV_HienThiMaterialList", "Show Material List"),
+                //("🗺 Surfaces", "CTSV_ChiTietMaterialSection", "Material Section Details"),
+                //("🗺 Surfaces", "CTSV_PhanTichArea", "Analyze Section Area"),
+                //("🗺 Surfaces", "CTSV_KiemTraKhoiLuong", "Verify Volumes"),
+
+                // ── 3. ALIGNMENTS ──
+                ("📏 Alignments", "CTC_ThongSoDuongCong_4054", "Curve Params (4054)"),
+                ("📏 Alignments", "CTC_ThongSoDuongCong_13592", "Curve Params (13592)"),
+                //("📏 Alignments", "CTC_KiemTraDuongCong_4054", "Check Curve (4054)"),
+                //("📏 Alignments", "CTC_KiemTraDuongCong_13592", "Check Curve (13592)"),
+                ("📏 Alignments", "CTC_TraCuuDuongCong", "Curve Lookup Table"),
+                ("📏 Alignments", "CTC_ThietLapDuongCong", "Curve Form Settings"),
+
+                // ── 4. PROFILES ──
+                ("📈 Profiles", "CTP_VeTracDoc_TuNhien", "Draw Existing Ground"),
+                ("📈 Profiles", "CTP_VeTracDoc_TuNhien_TatCaTuyen", "Draw EG Profile (All)"),
+                ("📈 Profiles", "CTP_Fix_DuongTuNhien_TheoCoc", "Fix EG Profile by Station"),
+                ("📈 Profiles", "CTP_GanNhanNutGiao_LenTracDoc", "Intersection Labels → Profile"),
+                ("📈 Profiles", "CTP_TaoCogoPointTuPVI", "Create Point from PVI"),
+                ("📈 Profiles", "CTP_XuatBangCivil", "Export Profile Data"),
+                ("📈 Profiles", "CTP_AddParcelLabels", "Add Parcel Labels"),
+
+                // ── 5. CORRIDORS ──
+                ("🛤 Corridors", "CTC_AddAllSection", "Add All Sections to Baselines"),
+                ("🛤 Corridors", "CTC_TaoCooridor_DuongDoThi_RePhai", "Right-Turn Corridor"),
+                ("🛤 Corridors", "CTC_TaoMViewTheoTuyen", "Create Viewport by Alignment"),
+
+                // ── 6. SAMPLE LINES ──
+                ("📍 Sample Lines", "CTS_PhatSinhCoc", "⭐ Generate Stake / SL"),
+                ("📍 Sample Lines", "CTS_DoiTenCoc", "Rename Stakes"),
+                ("📍 Sample Lines", "CTS_DichCoc_TinhTien", "Translate Stakes"),
+                ("📍 Sample Lines", "CTS_DichCoc_TinhTien40", "Translate 40m"),
+                ("📍 Sample Lines", "CTS_DichCoc_TinhTien_20", "Translate 20m"),
+                ("📍 Sample Lines", "CTS_Copy_NhomCoc", "Copy Stake Group"),
+                ("📍 Sample Lines", "CTS_DongBo_2_NhomCoc", "Sync 2 Stake Groups"),
+                ("📍 Sample Lines", "CTS_DongBo_2_NhomCoc_TheoDoan", "Sync SL by Segment"),
+                ("📍 Sample Lines", "CTS_Copy_BeRong_sampleLine", "Copy SL Swath Widths"),
+                ("📍 Sample Lines", "CTS_Thaydoi_BeRong_sampleLine", "Modify SL Swath Widths"),
+                ("📍 Sample Lines", "CTS_Offset_BeRong_sampleLine", "Offset SL Swath Widths"),
+                ("📍 Sample Lines", "CTSV_ThongKeCoc", "Export Stake Data to Excel"),
+
+                // ── 7. SECTION VIEWS ──
+                ("📐 Section Views", "CTSV_VeTracNgangThietKe", "Draw Design Sections"),
+                ("📐 Section Views", "CTSV_DanhCap", "Slope Benching (VHC)"),
+                ("📐 Section Views", "CTSV_DanhCap_XoaBo", "Remove Benching"),
+                ("📐 Section Views", "CTSV_DanhCap_VeThem", "Draw Extra Bench"),
+                ("📐 Section Views", "CTSV_ThemVatLieu_TrenCatNgang", "Hatch Section Materials"),
+                ("📐 Section Views", "CTSV_fit_KhungIn", "Fit Viewport Frame"),
+                ("📐 Section Views", "CTSV_An_DuongDiaChat", "Hide Geotech Profile"),
+
+                // ── 8. QUANTITIES ──
+                ("📊 Quantities", "CTSV_TinhKhoiLuongTracNgang", "⭐ Compute Sec. Volumes"),
+                ("📊 Quantities", "CTSV_Taskbar", "Volume Taskbar"),
+                ("📊 Quantities", "CTSV_CaiDatBang", "Volume Table Settings"),
+                ("📊 Quantities", "CTSV_XuatCad", "Export Volumes to CAD"),
+                ("📊 Quantities", "CTSV_SoSanhSurface", "Surface Volume Compare"),
+                ("📊 Quantities", "CTSV_PolyArea", "Area from Polyline"),
+                ("📊 Quantities", "CTSV_TinhDienTichPoly", "Calculate Poly Areas"),
+                ("📊 Quantities", "CTSV_TinhKhoiLuongPoly", "Calculate Poly Volumes"),
+                ("📊 Quantities", "CTSV_GhiDienTichPoly", "Label Poly Area to CAD"),
+
+                // ── 9. POINTS ──
+                ("📌 Points", "CTPO_NhapToaDoTrucTiep", "⭐ Direct Point Entry"),
+                ("📌 Points", "CTPO_TaoPointTheoBang", "Import Points from Excel"),
+                ("📌 Points", "CTPO_TaoCogoPoint_CaoDo_FromSurface", "Points from Surface Elev"),
+                ("📌 Points", "CTPO_TaoCogoPoint_CaoDo_Elevationspot", "Points from Spot Elevs"),
+                ("📌 Points", "CTPO_CreateCogopointFromText", "Create Point from Text"),
+                ("📌 Points", "CTPO_An_CogoPoint", "Hide Cogo Points"),
+                ("📌 Points", "CTPO_UpdateAllPointGroup", "Update Point Groups"),
+                ("📌 Points", "CTPO_CPTT", "Convert Point to Text"),
+                ("📌 Points", "CTPo_ReorderPoints", "Reorder Point Numbers"),
+
+                // ── 10. PIPE NETWORKS ──
+                ("🔧 Pipe Networks", "CTPI_ThayDoi_DuongKinhCong", "Modify Pipe Diameter"),
+                ("🔧 Pipe Networks", "CTPI_ThayDoi_MatPhangRef_Cong", "Set Pipe Ref Surface"),
+                ("🔧 Pipe Networks", "CTPI_ThayDoi_DoanDocCong", "Modify Pipe Slope"),
+                ("🔧 Pipe Networks", "CTPI_BangCaoDo_TuNhienHoThu", "Catch Basin EG Table"),
+                ("🔧 Pipe Networks", "CTPI_XoayHoThu_Theo2diem", "Rotate Catch Basin via 2Pts"),
+                ("🔧 Pipe Networks", "CT_VTOADOHG", "Catch Basin Coords (DLL)"),
+
+                // ── 11. PLOT & LAYOUT ──
+                ("🖨 Plot & Layout", "CT_PrintCenter", "Print Center"),
+                ("🖨 Plot & Layout", "CTSV_TaoTrangInTD", "Profile Plot Sheets"),
+                ("🖨 Plot & Layout", "CTDS_PrintAllLayouts", "Print All Layouts"),
+                ("🖨 Plot & Layout", "CTDS_PrintCurrentLayout", "Print Current Layout"),
+                ("🖨 Plot & Layout", "CTDS_ExportPDF", "Export to PDF"),
+
+                // ── 13. UTILITIES ──
+                ("🔧 Utilities", "CTU_ExportCAD2007", "Export to CAD 2007"),
+                ("🔧 Utilities", "CTU_ExplodeAEC", "Explode AEC Objects"),
+                ("🔧 Utilities", "CTU_TextToMText", "Convert Text → MText"),
+                ("🔧 Utilities", "CTU_TotalLength", "Total Entity Length"),
+                ("🔧 Utilities", "CTU_DrawTaluy", "Draw Embankment Slope"),
+                ("🔧 Utilities", "CT_DoiIcon", "Change Command Icons"),
+                ("🔧 Utilities", "CT_Taskbar", "Open Civil Taskbar"),
+                ("🔧 Utilities", "CT_MENU_SETTINGS", "Menu Settings Panel"),
+            };
+
+            RefreshListView();
+        }
+
+        private void RefreshListView(string filter = "")
+        {
+            listView.Items.Clear();
+            int stt = 0;
+            foreach (var cmd in allCommands)
+            {
+                if (string.IsNullOrEmpty(filter) ||
+                    cmd.Command.ToLower().Contains(filter.ToLower()) ||
+                    cmd.Description.ToLower().Contains(filter.ToLower()) ||
+                    cmd.Group.ToLower().Contains(filter.ToLower()))
+                {
+                    stt++;
+                    var item = new ListViewItem(stt.ToString());
+                    item.SubItems.Add(cmd.Group);
+                    item.SubItems.Add(cmd.Command);
+                    item.SubItems.Add(cmd.Description);
+                    item.Tag = cmd.Command;
+                    listView.Items.Add(item);
+                }
+            }
+        }
+
+        private void SearchBox_TextChanged(object? sender, EventArgs e)
+        {
+            RefreshListView(searchBox.Text);
+        }
+
+        private void BtnRun_Click(object? sender, EventArgs e)
+        {
+            RunSelectedCommand();
+        }
+
+        private void ListView_DoubleClick(object? sender, EventArgs e)
+        {
+            RunSelectedCommand();
+        }
+
+        private void RunSelectedCommand()
+        {
+            if (listView.SelectedItems.Count > 0)
+            {
+                var cmdName = listView.SelectedItems[0].Tag?.ToString();
+                if (!string.IsNullOrEmpty(cmdName))
+                {
+                    this.Hide();
+                    try
+                    {
+                        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+                        doc.SendStringToExecute($"{cmdName}\n", true, false, false);
+                    }
+                    catch { }
+                    this.Show();
+                }
+            }
+        }
+
+        public static void ShowForm()
+        {
+            if (formInstance == null || formInstance.IsDisposed)
+            {
+                formInstance = new CommandListForm();
+            }
+            formInstance.Show();
+            formInstance.BringToFront();
+        }
+    }
+
+    /// <summary>
+    /// Lệnh mở thanh công cụ Civil Tool
+    /// </summary>
+    public class CivilToolTaskbarCommands
+    {
+        [CommandMethod("CT_Taskbar")]
+        public static void CTTaskbar()
+        {
+            CivilToolTaskbar.ShowTaskbar();
+        }
+
+        [CommandMethod("TASKBAR")]
+        public static void CTMenu()
+        {
+            CivilToolTaskbar.ShowTaskbar();
+        }
+
+        [CommandMethod("CT")]
+        public static void CTCmd()
+        {
+            CivilToolTaskbar.ShowTaskbar();
+        }
+
+        [CommandMethod("CT_DanhSachLenh")]
+        public static void CTDanhSachLenh()
+        {
+            CommandListForm.ShowForm();
+        }
+    }
+}

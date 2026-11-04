@@ -1,5 +1,5 @@
 // 36.PrintCenter.cs - Trung tâm In ấn — gộp tất cả lệnh in/xuất PDF
-// Gộp: CTDS_PrintAllLayouts, CTDS_PrintCurrentLayout, CTDS_ExportPDF, INL, INM
+// Gộp: CTDS_PrintAllLayouts, CTDS_PrintCurrentLayout, CTDS_ExportPDF
 // Form kế thừa CivilFormBase
 
 using System;

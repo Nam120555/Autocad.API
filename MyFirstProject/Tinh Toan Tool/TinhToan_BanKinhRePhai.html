@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THIẾT KẾ BÁN KÍNH XE RẼ PHẢI - T27</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #1a2332 0%, #0d1117 100%);
+    border-bottom: 1px solid #21262d;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .logo { font-size: 22px; }
+  .header-text h1 {
+    font-size: 15px; font-weight: 700;
+    color: #58a6ff; letter-spacing: 0.5px;
+  }
+  .header-text p { font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .badge {
+    margin-left: auto; background: #388bfd22;
+    border: 1px solid #388bfd55; color: #58a6ff;
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    gap: 0;
+    flex: 1;
+    height: calc(100vh - 57px);
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: #161b22;
+    border-right: 1px solid #21262d;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel:last-child { border-right: none; border-left: 1px solid #21262d; }
+
+  .panel-header {
+    padding: 12px 16px;
+    background: #1c2128;
+    border-bottom: 1px solid #21262d;
+    font-size: 11px; font-weight: 600;
+    color: #8b949e; text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* ── INPUT GROUPS ── */
+  .section-title {
+    padding: 8px 14px 4px;
+    font-size: 11px; font-weight: 600;
+    color: #58a6ff;
+    border-left: 2px solid #58a6ff;
+    margin: 10px 0 4px;
+  }
+
+  .input-row {
+    padding: 6px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .input-row label {
+    font-size: 11px; color: #8b949e;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .input-row label .var {
+    color: #f78166; font-style: italic; font-weight: 600; font-size: 12px;
+  }
+  .input-row input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #e6edf3;
+    font-family: 'Inter', monospace;
+    font-size: 14px; font-weight: 600;
+    padding: 7px 10px;
+    width: 100%;
+    transition: all 0.2s;
+    outline: none;
+  }
+  .input-row input:focus {
+    border-color: #388bfd;
+    background: #0d1117;
+    box-shadow: 0 0 0 3px rgba(56,139,253,0.15);
+  }
+  .input-unit {
+    font-size: 10px; color: #8b949e; text-align: right; margin-top: 1px;
+  }
+
+  /* ── CENTER (CANVAS) ── */
+  .center-panel {
+    background: #0d1117;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 16px;
+    gap: 16px;
+    overflow-y: auto;
+  }
+
+  .diagram-title {
+    font-size: 13px; font-weight: 700;
+    color: #8b949e; letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 8px;
+    width: 100%;
+    text-align: center;
+  }
+
+  canvas#diagram {
+    border-radius: 12px;
+    border: 1px solid #21262d;
+    background: #0d1117;
+    max-width: 100%;
+  }
+
+  /* ── FORMULA DISPLAY ── */
+  .formula-box {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 14px;
+    width: 100%;
+    font-size: 12px;
+  }
+  .formula-box .title {
+    color: #8b949e; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .formula-line {
+    font-family: 'Courier New', monospace;
+    color: #e3b341;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .formula-line .eq { color: #58a6ff; }
+  .formula-line .num { color: #56d364; }
+
+  /* ── RESULT ITEMS ── */
+  .result-item {
+    padding: 8px 14px;
+    border-left: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .result-item:hover { background: #1c2128; border-radius: 6px; }
+  .result-item.primary { border-left-color: #58a6ff; }
+  .result-item.warning { border-left-color: #d29922; }
+  .result-item.success { border-left-color: #3fb950; }
+
+  .result-label {
+    font-size: 10px; color: #8b949e;
+    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .result-label .var { color: #f78166; font-style: italic; font-weight: 600; }
+
+  .result-value {
+    font-size: 18px; font-weight: 700;
+    font-family: 'Inter', monospace;
+  }
+  .result-item.primary .result-value { color: #58a6ff; }
+  .result-item.warning .result-value { color: #e3b341; }
+  .result-item.success .result-value { color: #3fb950; }
+
+  .result-unit { font-size: 11px; color: #8b949e; margin-left: 4px; font-weight: 400; }
+
+  /* ── VERDICT BOX ── */
+  .verdict {
+    margin: 10px 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .verdict.ok { background: #1a3a1a; border: 1px solid #3fb95055; color: #3fb950; }
+  .verdict.fail { background: #3a1a1a; border: 1px solid #f8514955; color: #f85149; }
+
+  /* ── CALC BTN ── */
+  .calc-btn {
+    margin: 14px;
+    padding: 10px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1f6feb, #388bfd);
+    border: none; color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700; font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: calc(100% - 28px);
+  }
+  .calc-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(56,139,253,0.4); }
+  .calc-btn:active { transform: translateY(0); }
+
+  .divider { height: 1px; background: #21262d; margin: 6px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🛣️</div>
+  <div class="header-text">
+    <h1>THIẾT KẾ BÁN KÍNH XE RẼ PHẢI</h1>
+    <p>Tuyến Tránh Phú Phong · Công ty CP Tư vấn T27 · Mathcad → Web App</p>
+  </div>
+  <div class="badge">TCVN 4054:2005</div>
+</header>
+
+<div class="layout">
+
+  <!-- ═══ LEFT: INPUTS ═══ -->
+  <div class="panel">
+    <div class="panel-header">📋 Số liệu đầu vào</div>
+
+    <div class="section-title">1.1. Tốc độ xe chạy</div>
+
+    <div class="input-row">
+      <label><span class="var">V<sub>tk</sub></span> — Tốc độ thiết kế tuyến chính</label>
+      <input type="number" id="Vtk" value="80" oninput="calculate()">
+      <div class="input-unit">km/h</div>
+    </div>
+
+    <div class="input-row">
+      <label><span class="var">k</span> — Hệ số tốc độ rẽ (thường = 0.45 × V<sub>tk</sub>)</label>
+      <input type="number" id="k" value="0.45" step="0.01" oninput="calculate()">
+      <div class="input-unit">— (tỷ lệ V<sub>rẽ</sub> / V<sub>tk</sub>)</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">1.2. Thông số kỹ thuật đường</div>
+
+    <div class="input-row">
+      <label><span class="var">μ</span> — Hệ số lực ngang</label>
+      <input type="number" id="mu" value="0.2" step="0.01" oninput="calculate()">
+      <div class="input-unit">— (không thứ nguyên)</div>
+    </div>
+
+    <div class="input-row">
+      <label><span class="var">i<sub>n</sub></span> — Độ dốc ngang mặt đường trong nút</label>
+      <input type="number" id="inut" value="0.015" step="0.001" oninput="calculate()">
+      <div class="input-unit">m/m (ví dụ: 0.015 = 1.5%)</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">1.3. Bán kính chọn thiết kế</div>
+
+    <div class="input-row">
+      <label><span class="var">R<sub>xe</sub></span> — Bán kính mép xe chạy chọn</label>
+      <input type="number" id="Rxe_chon" value="50" oninput="calculate()">
+      <div class="input-unit">m</div>
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">⚡ Tính toán ngay</button>
+  </div>
+
+  <!-- ═══ CENTER: DIAGRAM ═══ -->
+  <div class="center-panel">
+    <div class="diagram-title">Sơ đồ bán kính xe rẽ phải</div>
+    <canvas id="diagram" width="560" height="380"></canvas>
+
+    <div class="formula-box">
+      <div class="title">📐 Công thức tính (Mathcad)</div>
+      <div id="formula-display" class="formula-line"></div>
+    </div>
+  </div>
+
+  <!-- ═══ RIGHT: RESULTS ═══ -->
+  <div class="panel">
+    <div class="panel-header">📊 Kết quả tính toán</div>
+
+    <div class="section-title">Vận tốc xe rẽ</div>
+
+    <div class="result-item primary">
+      <div class="result-label"><span class="var">V<sub>n</sub></span> Tốc độ xe rẽ trong nút</div>
+      <div class="result-value" id="res-Vnut">—<span class="result-unit">km/h</span></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">Bán kính tối thiểu</div>
+
+    <div class="result-item warning">
+      <div class="result-label"><span class="var">R<sub>xe</sub><sup>min</sup></span> Bán kính tối thiểu tính toán</div>
+      <div class="result-value" id="res-Rxe-min">—<span class="result-unit">m</span></div>
+    </div>
+
+    <div class="result-item primary">
+      <div class="result-label"><span class="var">R<sub>xe</sub><sup>chọn</sup></span> Bán kính mép xe chạy chọn</div>
+      <div class="result-value" id="res-Rxe-chon">—<span class="result-unit">m</span></div>
+    </div>
+
+    <div id="verdict" class="verdict ok">✅ Đạt yêu cầu</div>
+
+    <div class="divider"></div>
+    <div class="section-title">Bán kính tim xe chạy</div>
+
+    <div class="result-item success">
+      <div class="result-label"><span class="var">R<sub>tm</sub></span> Bán kính tim xe chạy (R<sub>xe</sub> + ½ làn)</div>
+      <div class="result-value" id="res-Rtim">—<span class="result-unit">m</span></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">Chiều rộng làn rẽ</div>
+
+    <div class="result-item success">
+      <div class="result-label"><span class="var">B</span> Bề rộng làn xe rẽ phải (tối thiểu)</div>
+      <div class="result-value" id="res-B">—<span class="result-unit">m</span></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">Siêu cao</div>
+
+    <div class="result-item warning">
+      <div class="result-label"><span class="var">i<sub>sc</sub></span> Siêu cao yêu cầu</div>
+      <div class="result-value" id="res-isc">—<span class="result-unit">%</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function get(id) { return parseFloat(document.getElementById(id).value) || 0; }
+function set(id, val) { document.getElementById(id).textContent = val; }
+
+function calculate() {
+  const Vtk   = get('Vtk');    // km/h — tốc độ thiết kế
+  const k     = get('k');      // hệ số tốc độ rẽ
+  const mu    = get('mu');     // hệ số lực ngang
+  const inut  = get('inut');   // dốc ngang trong nút
+  const Rxe_chon = get('Rxe_chon');  // bán kính chọn
+
+  // ── Công thức Mathcad ──
+  // V_nut = k * V_tk (km/h)
+  const Vnut = k * Vtk;
+
+  // R_xe_min = V_nut² / [127 × (μ + i_nut)]  (m)
+  const Rxe_min = (Vnut * Vnut) / (127 * (mu + inut));
+
+  // Bán kính tim xe chạy (giả định làn rộng 3.5m)
+  const lan_xe = 3.5;          // m
+  const Rtim = Rxe_chon + lan_xe / 2;
+
+  // Chiều rộng làn xe rẽ tối thiểu (kinh nghiệm)
+  const B = Math.max(3.0, 3.5 - 0.5 * (Rxe_chon - Rxe_min) / Rxe_min);
+
+  // Siêu cao yêu cầu: i_sc = V²/(127×R) - μ
+  const isc = Math.max(0, (Vnut * Vnut) / (127 * Rxe_chon) - mu);
+
+  // ── Update DOM ──
+  document.getElementById('res-Vnut').innerHTML   = `${Vnut.toFixed(1)}<span class="result-unit">km/h</span>`;
+  document.getElementById('res-Rxe-min').innerHTML = `${Rxe_min.toFixed(3)}<span class="result-unit">m</span>`;
+  document.getElementById('res-Rxe-chon').innerHTML = `${Rxe_chon.toFixed(1)}<span class="result-unit">m</span>`;
+  document.getElementById('res-Rtim').innerHTML   = `${Rtim.toFixed(2)}<span class="result-unit">m</span>`;
+  document.getElementById('res-B').innerHTML      = `${Math.max(3.0, B).toFixed(2)}<span class="result-unit">m</span>`;
+  document.getElementById('res-isc').innerHTML    = `${(isc * 100).toFixed(2)}<span class="result-unit">%</span>`;
+
+  // Verdict
+  const el = document.getElementById('verdict');
+  if (Rxe_chon >= Rxe_min) {
+    el.className = 'verdict ok';
+    el.innerHTML = `✅ R<sub>chọn</sub> = ${Rxe_chon}m ≥ R<sub>min</sub> = ${Rxe_min.toFixed(2)}m — ĐẠT`;
+  } else {
+    el.className = 'verdict fail';
+    el.innerHTML = `❌ R<sub>chọn</sub> = ${Rxe_chon}m < R<sub>min</sub> = ${Rxe_min.toFixed(2)}m — KHÔNG ĐẠT`;
+  }
+
+  // Formula display
+  document.getElementById('formula-display').innerHTML =
+    `<b>V<sub>n</sub></b> = ${k} × ${Vtk} = <span class="num">${Vnut.toFixed(1)}</span> km/h<br>` +
+    `<b>R<sub>min</sub></b> = V<sub>n</sub>² / [127×(μ+i)] <br>` +
+    `&nbsp;&nbsp;&nbsp;= ${Vnut.toFixed(1)}² / [127×(${mu}+${inut})]<br>` +
+    `&nbsp;&nbsp;&nbsp;= <span class="num">${Rxe_min.toFixed(3)}</span> m<br>` +
+    `<b>⇒ Chọn R<sub>xe</sub></b> = <span class="eq">${Rxe_chon}</span> m`;
+
+  drawDiagram(Vtk, Vnut, Rxe_min, Rxe_chon, isc);
+}
+
+function drawDiagram(Vtk, Vnut, Rmin, Rchon, isc) {
+  const cv = document.getElementById('diagram');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  const cx = W / 2, cy = H / 2 + 60;
+  const scale = Math.min(160, 3000 / Rchon);
+
+  // ── Đường thẳng chính (trục X) ──
+  ctx.strokeStyle = '#484f58';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(20, cy); ctx.lineTo(W - 20, cy); ctx.stroke();
+
+  // ── Đường thẳng vuông góc (trục Y) ──
+  ctx.beginPath(); ctx.moveTo(cx, 20); ctx.lineTo(cx, H - 20); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Cung xe rẽ (bán kính đã chọn) ──
+  const r_px = Rchon * scale;
+  const r_min_px = Rmin * scale;
+  const ox = cx - r_px, oy = cy;  // tâm cung
+
+  // Vùng roadway
+  const road_w = 3.5 * scale;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(ox, oy, r_px + road_w, 0, Math.PI / 2);
+  ctx.arc(ox, oy, r_px, Math.PI / 2, 0, true);
+  ctx.closePath();
+  ctx.fillStyle = '#388bfd22';
+  ctx.fill();
+  ctx.strokeStyle = '#388bfd55';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
+  // Bán kính chọn (mép ngoài)
+  ctx.strokeStyle = '#58a6ff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(ox, oy, r_px + road_w / 2, 0, Math.PI / 2);
+  ctx.stroke();
+
+  // Bán kính tối thiểu (dashed)
+  const ok = Rchon >= Rmin;
+  ctx.strokeStyle = ok ? '#3fb95088' : '#f8514988';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 5]);
+  ctx.beginPath();
+  ctx.arc(ox, oy, r_min_px, 0, Math.PI / 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Tam giác bán kính
+  ctx.strokeStyle = '#8b949e';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ox, oy);
+  ctx.lineTo(ox + r_px, oy);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(ox, oy);
+  ctx.lineTo(ox, oy - r_px);
+  ctx.stroke();
+
+  // Nhãn
+  ctx.fillStyle = '#58a6ff';
+  ctx.font = 'bold 12px Inter';
+  ctx.fillText(`R = ${Rchon}m`, ox + r_px / 2 - 20, oy - 8);
+
+  ctx.fillStyle = ok ? '#3fb950' : '#f85149';
+  ctx.font = '11px Inter';
+  ctx.fillText(`R_min = ${Rmin.toFixed(1)}m`, ox + r_min_px / 2 - 20, oy - r_min_px / 2 - 10);
+
+  // Tâm
+  ctx.fillStyle = '#388bfd';
+  ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '10px Inter';
+  ctx.fillText('O (tâm)', ox + 7, oy + 14);
+
+  // Info box
+  ctx.fillStyle = '#1c2128cc';
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 1;
+  roundRect(ctx, 14, 14, 200, 80, 8);
+  ctx.fill(); ctx.stroke();
+
+  ctx.font = 'bold 11px Inter';
+  ctx.fillStyle = '#8b949e';
+  ctx.fillText('THÔNG SỐ', 26, 32);
+
+  ctx.font = '11px Inter';
+  ctx.fillStyle = '#e3b341';
+  ctx.fillText(`V_tk = ${Vtk} km/h`, 26, 50);
+  ctx.fillStyle = '#58a6ff';
+  ctx.fillText(`V_nút = ${Vnut.toFixed(1)} km/h`, 26, 66);
+  ctx.fillStyle = ok ? '#3fb950' : '#f85149';
+  ctx.fillText(`${ok ? '✓ ĐẠT' : '✗ KHÔNG ĐẠT'}`, 26, 82);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// Khởi tạo
+calculate();
+</script>
+</body>
+</html>

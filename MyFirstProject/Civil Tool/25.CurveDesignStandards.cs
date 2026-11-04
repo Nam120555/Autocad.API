@@ -371,7 +371,7 @@ namespace MyFirstProject
         /// <summary>
         /// Kiểm tra alignment theo tiêu chuẩn TCVN 4054:2005
         /// </summary>
-        [CommandMethod("CTC_KiemTraDuongCong_4054")]
+        // [CommandMethod("CTC_KiemTraDuongCong_4054")]
         public static void CTC_KiemTraDuongCong_4054()
         {
             KiemTraDuongCongTheoTieuChuan(true);
@@ -380,7 +380,7 @@ namespace MyFirstProject
         /// <summary>
         /// Kiểm tra alignment theo tiêu chuẩn TCVN 13592:2022
         /// </summary>
-        [CommandMethod("CTC_KiemTraDuongCong_13592")]
+        // [CommandMethod("CTC_KiemTraDuongCong_13592")]
         public static void CTC_KiemTraDuongCong_13592()
         {
             KiemTraDuongCongTheoTieuChuan(false);
@@ -636,7 +636,7 @@ namespace MyFirstProject
         private void InitializeComponent()
         {
             InitBaseTheme("Thông số đường cong", 650, 520);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             var header = CreateHeader("TIÊU CHUẨN THIẾT KẾ ĐƯỜNG CONG");
             this.Controls.Add(header);
@@ -825,11 +825,13 @@ namespace MyFirstProject
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
             if (cboStandard.SelectedIndex == 0)
             {
-                doc?.SendStringToExecute("CTC_KiemTraDuongCong_4054 ", true, false, false);
+                //doc?.SendStringToExecute("CTC_KiemTraDuongCong_4054 ", true, false, false);
+                MessageBox.Show("Chức năng kiểm tra đang được ẩn.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
-                doc?.SendStringToExecute("CTC_KiemTraDuongCong_13592 ", true, false, false);
+                //doc?.SendStringToExecute("CTC_KiemTraDuongCong_13592 ", true, false, false);
+                MessageBox.Show("Chức năng kiểm tra đang được ẩn.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             
             this.Show();

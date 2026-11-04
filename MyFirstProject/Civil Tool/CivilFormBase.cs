@@ -1,5 +1,6 @@
-// CivilFormBase.cs — Base class chung cho tất cả Dialog Form trong dự án
-// Theme: Navy (#1B2A4A) / Trắng / Xám đậm (#3D3D3D) / Ghi chú đỏ (#D32F2F)
+// CivilFormBase.cs — Base class chung cho tất cả Dialog Form trong dự án Civil Tool
+// Theme: Autodesk Civil 3D Studio Dark (#222222 / #2C2C2C / Accent Civil Blue #0696D7)
+// Thiết kế đồng bộ hoàn hảo với không gian làm việc hiện đại của AutoCAD & Civil 3D
 
 using System;
 using System.Drawing;
@@ -18,69 +19,124 @@ namespace MyFirstProject
 {
     /// <summary>
     /// Base Form class cho toàn dự án Civil Tool
-    /// Navy / White theme — dùng chung bảng màu, helper methods
+    /// Autodesk Civil 3D Dark Studio theme — đồng bộ màu sắc, typography và visual controls
     /// </summary>
     public class CivilFormBase : Form
     {
-        // ═══ Bảng màu Navy / White ═══
-        protected static readonly Color NavyDark = Color.FromArgb(27, 42, 74);       // #1B2A4A — Header, accent chính
-        protected static readonly Color NavyMedium = Color.FromArgb(46, 74, 122);    // #2E4A7A — Hover, accent phụ
-        protected static readonly Color NavyDeep = Color.FromArgb(16, 28, 52);       // #101C34 — Gradient đậm
+        // ═══ Bảng màu Autodesk Civil 3D Studio Dark ═══
+        public static readonly Color CivilDark = Color.FromArgb(34, 34, 34);          // #222222 — Nền form chuẩn Civil 3D
+        public static readonly Color CivilCard = Color.FromArgb(44, 44, 44);          // #2C2C2C — Nền panel / container
+        public static readonly Color CivilInput = Color.FromArgb(24, 24, 24);         // #181818 — Ô nhập liệu lõm
+        public static readonly Color CivilHeader = Color.FromArgb(26, 26, 26);        // #1A1A1A — Thanh tiêu đề
+        
+        public static readonly Color CivilBlue = Color.FromArgb(6, 150, 215);         // #0696D7 — Accent đặc trưng Civil 3D
+        public static readonly Color CivilBlueHover = Color.FromArgb(26, 170, 238);    // #1AAAFE — Hover xanh sáng
+        public static readonly Color CivilBlueDeep = Color.FromArgb(4, 110, 160);      // #046EA0 — Nhấn đậm
 
-        protected static readonly Color BgWhite = Color.FromArgb(255, 255, 255);     // Nền form
-        protected static readonly Color BgPanel = Color.FromArgb(245, 247, 250);     // #F5F7FA — Nền panel/section
-        protected static readonly Color BgInput = Color.FromArgb(255, 255, 255);     // Nền input
+        // Biến tương thích ngược với code cũ (tự động mapping sang Dark Palette)
+        protected static readonly Color NavyDark = CivilBlue;
+        protected static readonly Color NavyMedium = CivilBlueHover;
+        protected static readonly Color NavyDeep = CivilBlueDeep;
 
-        protected static readonly Color TextDark = Color.FromArgb(61, 61, 61);       // #3D3D3D — Text chính
-        protected static readonly Color TextNavy = Color.FromArgb(27, 42, 74);       // Tiêu đề
-        protected static readonly Color TextHint = Color.FromArgb(122, 122, 122);    // #7A7A7A — Hint/phụ
-        protected static readonly Color TextRed = Color.FromArgb(211, 47, 47);       // #D32F2F — Ghi chú quan trọng
-        protected static readonly Color TextDim = Color.FromArgb(122, 122, 122);
+        protected static readonly Color BgWhite = CivilDark;                          // Chuyển nền trắng cũ sang nền Dark
+        protected static readonly Color BgPanel = CivilCard;                          // Chuyển panel cũ sang Card Dark
+        protected static readonly Color BgInput = CivilInput;                         // Ô nhập liệu dark
+
+        protected static readonly Color TextDark = Color.FromArgb(235, 235, 235);     // Chữ chính: Trắng sáng
+        protected static readonly Color TextNavy = CivilBlue;                         // Tiêu đề: Civil Blue
+        protected static readonly Color TextHint = Color.FromArgb(155, 155, 155);     // Chữ phụ: Xám bạc
+        protected static readonly Color TextRed = Color.FromArgb(245, 85, 85);        // Cảnh báo: Đỏ san hô mềm
+        protected static readonly Color TextDim = Color.FromArgb(135, 135, 135);
         protected static readonly Color TextWhite = Color.White;
 
-        protected static readonly Color BorderLight = Color.FromArgb(208, 213, 221); // #D0D5DD
-        protected static readonly Color BorderColor = Color.FromArgb(208, 213, 221);
-        protected static readonly Color GreenOk = Color.FromArgb(46, 160, 67);       // Thành công
-        protected static readonly Color HoverNavy = Color.FromArgb(232, 238, 248);   // Hover nhạt
+        protected static readonly Color BorderLight = Color.FromArgb(62, 62, 62);     // Viền tối tinh tế
+        protected static readonly Color BorderColor = Color.FromArgb(62, 62, 62);
+        protected static readonly Color GreenOk = Color.FromArgb(40, 167, 69);        // Xanh lá chuẩn
+        protected static readonly Color HoverNavy = Color.FromArgb(52, 52, 52);       // Hover nền xám tối
 
         /// <summary>
-        /// Khởi tạo form với theme Navy/White chuẩn
+        /// Khởi tạo form với theme Autodesk Civil 3D Dark Studio chuẩn
         /// </summary>
-        protected void InitBaseTheme(string title, int width = 700, int height = 550)
+        protected void InitBaseTheme(string title, int width = 720, int height = 560)
         {
             this.Text = title;
             this.Size = new Size(width, height);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.BackColor = BgWhite;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
+            this.MinimizeBox = true;
+            this.BackColor = CivilDark;
             this.ForeColor = TextDark;
-            this.Font = new Font("Segoe UI", 9.5f);
+            this.Font = new Font("Segoe UI", 9.5f, FontStyle.Regular);
+            this.DoubleBuffered = true;
         }
 
         /// <summary>
-        /// Tạo Header bar Navy gradient
+        /// Tự động thêm chữ ký tác giả góc dưới và đồng bộ dark theme cho các control con
         /// </summary>
-        protected Panel CreateHeader(string title, int height = 50)
+        protected override void OnLoad(EventArgs e)
         {
-            var header = new Panel { Dock = DockStyle.Top, Height = height };
+            base.OnLoad(e);
+            
+            // Tự động đồng bộ dark theme cho toàn bộ control được add vào form
+            ApplyCivilDarkTheme(this);
+
+            // Chữ ký tác giả phong cách Autodesk Dark Footer
+            MyFirstProject.FormSignatureHelper.AddSignature(this);
+        }
+
+        /// <summary>
+        /// Tạo Header bar phong cách Civil 3D với dải nhấn Cyan trên cùng
+        /// </summary>
+        protected Panel CreateHeader(string title, int height = 48)
+        {
+            var header = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = height,
+                BackColor = CivilHeader,
+                Padding = new Padding(0)
+            };
+
             header.Paint += (s, e) =>
             {
-                using var grad = new LinearGradientBrush(
-                    header.ClientRectangle, NavyDark, NavyDeep, 0f);
-                e.Graphics.FillRectangle(grad, header.ClientRectangle);
+                var g = e.Graphics;
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+
+                // 1. Dải nhấn xanh Civil 3D Cyan trên cùng (3px)
+                using (var penCyan = new Pen(CivilBlue, 3f))
+                {
+                    g.DrawLine(penCyan, 0, 1, header.Width, 1);
+                }
+
+                // 2. Viền dưới mỏng phân cách nội dung
+                using (var penBorder = new Pen(BorderLight, 1f))
+                {
+                    g.DrawLine(penBorder, 0, header.Height - 1, header.Width, header.Height - 1);
+                }
+
+                // 3. Biểu tượng hình thoi Civil 3D nhỏ góc trái
+                using (var bCyan = new SolidBrush(CivilBlue))
+                {
+                    g.FillPolygon(bCyan, new PointF[]
+                    {
+                        new PointF(22, 24),
+                        new PointF(29, 17),
+                        new PointF(36, 24),
+                        new PointF(29, 31)
+                    });
+                }
             };
 
             var lbl = new WinLabel
             {
                 Text = title,
-                Font = new Font("Segoe UI", 13, FontStyle.Bold),
+                Font = new Font("Segoe UI", 12f, FontStyle.Bold),
                 ForeColor = Color.White,
                 AutoSize = false,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Fill,
-                Padding = new Padding(16, 0, 0, 0),
+                Padding = new Padding(46, 0, 0, 0),
                 BackColor = Color.Transparent
             };
             header.Controls.Add(lbl);
@@ -95,24 +151,24 @@ namespace MyFirstProject
             return new WinLabel
             {
                 Text = text,
-                Font = new Font("Segoe UI", 8.5f),
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Regular),
                 ForeColor = TextHint,
                 AutoSize = false,
                 Height = 24,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Dock = DockStyle.Top,
                 Padding = new Padding(18, 0, 0, 0),
-                BackColor = BgPanel
+                BackColor = Color.FromArgb(28, 28, 28)
             };
         }
 
         /// <summary>
-        /// Tạo Section (panel có title)
+        /// Tạo Section / Card (panel có khung và title phong cách Autodesk)
         /// </summary>
         protected Panel CreateSection(string title, int x, int y, int w, int h) => CreateGroupBox(title, x, y, w, h);
 
         /// <summary>
-        /// Tạo GroupBox (panel có title)
+        /// Tạo GroupBox (panel có viền bo nhẹ và header Civil Blue)
         /// </summary>
         protected Panel CreateGroupBox(string title, int x, int y, int w, int h)
         {
@@ -120,17 +176,33 @@ namespace MyFirstProject
             {
                 Location = new Point(x, y),
                 Size = new Size(w, h),
-                BackColor = BgPanel,
-                BorderStyle = BorderStyle.FixedSingle
+                BackColor = CivilCard,
+                Padding = new Padding(10, 28, 10, 10)
+            };
+
+            // Vẽ viền Card mỏng sang trọng
+            panel.Paint += (s, e) =>
+            {
+                var g = e.Graphics;
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+
+                using var pen = new Pen(BorderLight, 1f);
+                var rect = new Rectangle(0, 0, panel.Width - 1, panel.Height - 1);
+                g.DrawRectangle(pen, rect);
+
+                // Đường kẻ mờ phân tách header của Group
+                using var pDiv = new Pen(Color.FromArgb(52, 52, 52), 1f);
+                g.DrawLine(pDiv, 8, 26, panel.Width - 9, 26);
             };
 
             var lbl = new WinLabel
             {
-                Text = title,
-                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
-                ForeColor = NavyDark,
-                Location = new Point(8, 4),
-                AutoSize = true
+                Text = "●  " + title.ToUpper(),
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                ForeColor = CivilBlue,
+                Location = new Point(10, 6),
+                AutoSize = true,
+                BackColor = Color.Transparent
             };
             panel.Controls.Add(lbl);
 
@@ -138,7 +210,7 @@ namespace MyFirstProject
         }
 
         /// <summary>
-        /// Tạo Label
+        /// Tạo Label nội dung
         /// </summary>
         protected WinLabel CreateLabel(string text, int x, int y, bool autoSize = true)
         {
@@ -148,12 +220,13 @@ namespace MyFirstProject
                 Location = new Point(x, y),
                 AutoSize = autoSize,
                 ForeColor = TextDark,
-                Font = new Font("Segoe UI", 9.5f)
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
+                BackColor = Color.Transparent
             };
         }
 
         /// <summary>
-        /// Tạo Label tiêu đề Navy
+        /// Tạo Label tiêu đề Civil Blue
         /// </summary>
         protected WinLabel CreateTitleLabel(string text, int x, int y)
         {
@@ -162,13 +235,14 @@ namespace MyFirstProject
                 Text = text,
                 Location = new Point(x, y),
                 AutoSize = true,
-                ForeColor = NavyDark,
-                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
+                ForeColor = CivilBlue,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                BackColor = Color.Transparent
             };
         }
 
         /// <summary>
-        /// Tạo Label hint (xám nhạt)
+        /// Tạo Label gợi ý (xám bạc)
         /// </summary>
         protected WinLabel CreateHintLabel(string text, int x, int y)
         {
@@ -178,12 +252,13 @@ namespace MyFirstProject
                 Location = new Point(x, y),
                 AutoSize = true,
                 ForeColor = TextHint,
-                Font = new Font("Segoe UI", 8f)
+                Font = new Font("Segoe UI", 8.25f, FontStyle.Regular),
+                BackColor = Color.Transparent
             };
         }
 
         /// <summary>
-        /// Tạo Label ghi chú đỏ
+        /// Tạo Label ghi chú cảnh báo (đỏ san hô)
         /// </summary>
         protected WinLabel CreateRedNote(string text, int x, int y)
         {
@@ -193,46 +268,48 @@ namespace MyFirstProject
                 Location = new Point(x, y),
                 AutoSize = true,
                 ForeColor = TextRed,
-                Font = new Font("Segoe UI", 8.5f, FontStyle.Italic)
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Italic),
+                BackColor = Color.Transparent
             };
         }
 
         /// <summary>
-        /// Tạo TextBox
+        /// Tạo TextBox Dark Input hiện đại
         /// </summary>
         protected TextBox CreateTextBox(int x, int y, int w = 250, string defaultValue = "")
         {
-            return new TextBox
+            var txt = new TextBox
             {
                 Location = new Point(x, y),
-                Size = new Size(w, 28),
-                BackColor = BgInput,
-                ForeColor = TextDark,
+                Size = new Size(w, 26),
+                BackColor = CivilInput,
+                ForeColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
-                Font = new Font("Segoe UI", 9.5f),
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
                 Text = defaultValue
             };
+            return txt;
         }
 
         /// <summary>
-        /// Tạo ComboBox
+        /// Tạo ComboBox Dark Flat
         /// </summary>
         protected ComboBox CreateComboBox(int x, int y, int w = 300)
         {
             return new ComboBox
             {
                 Location = new Point(x, y),
-                Size = new Size(w, 28),
+                Size = new Size(w, 26),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = BgPanel,
-                ForeColor = TextDark,
+                BackColor = Color.FromArgb(38, 38, 38),
+                ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9.5f)
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Regular)
             };
         }
 
         /// <summary>
-        /// Tạo NumericUpDown
+        /// Tạo NumericUpDown Dark
         /// </summary>
         protected NumericUpDown CreateNumeric(int x, int y, int w = 100,
             decimal min = 0, decimal max = 9999, decimal value = 1, int decimals = 0)
@@ -240,19 +317,20 @@ namespace MyFirstProject
             return new NumericUpDown
             {
                 Location = new Point(x, y),
-                Size = new Size(w, 28),
+                Size = new Size(w, 26),
                 Minimum = min,
                 Maximum = max,
                 Value = value,
                 DecimalPlaces = decimals,
-                BackColor = BgInput,
-                ForeColor = TextDark,
-                Font = new Font("Segoe UI", 9.5f)
+                BackColor = CivilInput,
+                ForeColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Regular)
             };
         }
 
         /// <summary>
-        /// Tạo CheckBox
+        /// Tạo CheckBox Dark
         /// </summary>
         protected CheckBox CreateCheckBox(string text, int x, int y, bool isChecked = false)
         {
@@ -262,16 +340,17 @@ namespace MyFirstProject
                 Location = new Point(x, y),
                 AutoSize = true,
                 ForeColor = TextDark,
-                Font = new Font("Segoe UI", 9f),
+                Font = new Font("Segoe UI", 9f, FontStyle.Regular),
                 Checked = isChecked,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.Transparent
             };
         }
 
         /// <summary>
-        /// Tạo Button chuẩn
+        /// Tạo Button chuẩn (Secondary)
         /// </summary>
-        protected Button CreateButton(string text, int x, int y, int w = 120, int h = 34, Control? parent = null)
+        protected Button CreateButton(string text, int x, int y, int w = 120, int h = 32, Control? parent = null)
         {
             var btn = new Button
             {
@@ -279,22 +358,24 @@ namespace MyFirstProject
                 Location = new Point(x, y),
                 Size = new Size(w, h),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = BgPanel,
+                BackColor = Color.FromArgb(52, 52, 52),
                 ForeColor = TextDark,
-                Font = new Font("Segoe UI", 9f),
+                Font = new Font("Segoe UI", 9f, FontStyle.Regular),
                 Cursor = Cursors.Hand,
                 TextAlign = ContentAlignment.MiddleCenter
             };
             btn.FlatAppearance.BorderColor = BorderLight;
-            btn.FlatAppearance.MouseOverBackColor = NavyMedium;
+            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(68, 68, 68);
             btn.MouseEnter += (s, e) => btn.ForeColor = Color.White;
             btn.MouseLeave += (s, e) => btn.ForeColor = TextDark;
+
             parent?.Controls.Add(btn);
             return btn;
         }
 
         /// <summary>
-        /// Tạo Button Navy chính (Save, Execute)
+        /// Tạo Button Civil Blue chính (OK, Thực hiện, Lưu)
         /// </summary>
         protected Button CreatePrimaryButton(string text, int x, int y, int w = 140, int h = 34, Control? parent = null)
         {
@@ -304,20 +385,22 @@ namespace MyFirstProject
                 Location = new Point(x, y),
                 Size = new Size(w, h),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = NavyDark,
+                BackColor = CivilBlue,
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Cursor = Cursors.Hand,
                 TextAlign = ContentAlignment.MiddleCenter
             };
-            btn.FlatAppearance.BorderColor = NavyDeep;
-            btn.FlatAppearance.MouseOverBackColor = NavyMedium;
+            btn.FlatAppearance.BorderSize = 0;
+            btn.FlatAppearance.MouseOverBackColor = CivilBlueHover;
+            btn.FlatAppearance.MouseDownBackColor = CivilBlueDeep;
+
             parent?.Controls.Add(btn);
             return btn;
         }
 
         /// <summary>
-        /// Tạo Button xanh lá (Thực hiện / OK)
+        /// Tạo Button thành công (Xanh lá)
         /// </summary>
         protected Button CreateSuccessButton(string text, int x, int y, int w = 140, int h = 34, Control? parent = null)
         {
@@ -329,32 +412,39 @@ namespace MyFirstProject
                 FlatStyle = FlatStyle.Flat,
                 BackColor = GreenOk,
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Cursor = Cursors.Hand,
                 TextAlign = ContentAlignment.MiddleCenter
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(35, 134, 54);
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(40, 180, 75);
+            btn.FlatAppearance.BorderSize = 0;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(46, 190, 80);
+
             parent?.Controls.Add(btn);
             return btn;
         }
 
         /// <summary>
-        /// Tạo Bottom bar chuẩn
+        /// Tạo Bottom bar chuẩn Dark
         /// </summary>
         protected Panel CreateBottomBar(int height = 50)
         {
-            return new Panel
+            var pnl = new Panel
             {
                 Dock = DockStyle.Bottom,
                 Height = height,
-                BackColor = BgPanel,
-                Padding = new Padding(12, 8, 12, 8)
+                BackColor = Color.FromArgb(28, 28, 28),
+                Padding = new Padding(14, 8, 14, 8)
             };
+            pnl.Paint += (s, e) =>
+            {
+                using var p = new Pen(BorderLight, 1);
+                e.Graphics.DrawLine(p, 0, 0, pnl.Width, 0);
+            };
+            return pnl;
         }
 
         /// <summary>
-        /// Tạo DataGridView chuẩn
+        /// Tạo DataGridView Dark Studio chuẩn Civil 3D
         /// </summary>
         protected DataGridView CreateDataGrid(int x, int y, int w, int h)
         {
@@ -367,21 +457,29 @@ namespace MyFirstProject
                 ReadOnly = true,
                 RowHeadersVisible = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                BackgroundColor = BgWhite,
-                GridColor = BorderLight,
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+                BackgroundColor = CivilInput,
+                GridColor = Color.FromArgb(48, 48, 48),
                 BorderStyle = BorderStyle.FixedSingle,
                 DefaultCellStyle = new DataGridViewCellStyle
                 {
-                    BackColor = BgWhite,
+                    BackColor = Color.FromArgb(36, 36, 36),
                     ForeColor = TextDark,
-                    SelectionBackColor = NavyDark,
+                    SelectionBackColor = Color.FromArgb(9, 71, 113), // #094771 — Highlight xanh Navy Civil
                     SelectionForeColor = Color.White,
                     Font = new Font("Segoe UI", 9f)
                 },
+                AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(30, 30, 30),
+                    ForeColor = TextDark,
+                    SelectionBackColor = Color.FromArgb(9, 71, 113),
+                    SelectionForeColor = Color.White
+                },
                 ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
                 {
-                    BackColor = BgPanel,
-                    ForeColor = NavyDark,
+                    BackColor = Color.FromArgb(24, 24, 24),
+                    ForeColor = CivilBlue,
                     Font = new Font("Segoe UI", 9f, FontStyle.Bold),
                     Alignment = DataGridViewContentAlignment.MiddleCenter
                 },
@@ -391,7 +489,7 @@ namespace MyFirstProject
         }
 
         /// <summary>
-        /// Tạo ListView chuẩn
+        /// Tạo ListView chuẩn Dark
         /// </summary>
         protected ListView CreateListView(int x, int y, int w, int h)
         {
@@ -402,11 +500,87 @@ namespace MyFirstProject
                 View = View.Details,
                 FullRowSelect = true,
                 GridLines = true,
-                BackColor = BgWhite,
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+                BackColor = CivilInput,
                 ForeColor = TextDark,
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Segoe UI", 9f)
             };
+        }
+
+        /// <summary>
+        /// Tự động duyệt và áp dụng giao diện Dark Studio cho toàn bộ Control con trong Form
+        /// </summary>
+        public static void ApplyCivilDarkTheme(Control root)
+        {
+            foreach (Control c in root.Controls)
+            {
+                if (c is Panel pnl)
+                {
+                    // Nếu là header hoặc footer thì đã có style riêng
+                    if (pnl.Dock != DockStyle.Top && pnl.Dock != DockStyle.Bottom)
+                    {
+                        if (pnl.BackColor == Color.White || pnl.BackColor == Color.FromArgb(245, 247, 250))
+                            pnl.BackColor = CivilCard;
+                    }
+                }
+                else if (c is GroupBox gb)
+                {
+                    gb.ForeColor = CivilBlue;
+                    gb.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
+                }
+                else if (c is WinLabel lbl)
+                {
+                    if (lbl.ForeColor == Color.FromArgb(61, 61, 61) || lbl.ForeColor == Color.Black)
+                        lbl.ForeColor = TextDark;
+                }
+                else if (c is CheckBox chk)
+                {
+                    chk.ForeColor = TextDark;
+                    chk.FlatStyle = FlatStyle.Flat;
+                }
+                else if (c is RadioButton rdo)
+                {
+                    rdo.ForeColor = TextDark;
+                    rdo.FlatStyle = FlatStyle.Flat;
+                }
+                else if (c is TextBox txt)
+                {
+                    if (txt.BackColor == Color.White)
+                    {
+                        txt.BackColor = CivilInput;
+                        txt.ForeColor = Color.White;
+                        txt.BorderStyle = BorderStyle.FixedSingle;
+                    }
+                }
+                else if (c is ComboBox cmb)
+                {
+                    cmb.BackColor = Color.FromArgb(38, 38, 38);
+                    cmb.ForeColor = Color.White;
+                    cmb.FlatStyle = FlatStyle.Flat;
+                }
+                else if (c is ListBox lst)
+                {
+                    lst.BackColor = CivilInput;
+                    lst.ForeColor = TextDark;
+                    lst.BorderStyle = BorderStyle.FixedSingle;
+                }
+                else if (c is TabControl tab)
+                {
+                    foreach (TabPage page in tab.TabPages)
+                    {
+                        page.BackColor = CivilDark;
+                        page.ForeColor = TextDark;
+                        ApplyCivilDarkTheme(page);
+                    }
+                }
+
+                // Đệ quy cho các container con
+                if (c.HasChildren)
+                {
+                    ApplyCivilDarkTheme(c);
+                }
+            }
         }
     }
 }

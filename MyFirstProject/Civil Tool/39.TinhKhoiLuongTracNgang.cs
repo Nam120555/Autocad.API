@@ -121,10 +121,10 @@ namespace MyFirstProject
     {
         // Data
         private List<(string Name, ObjectId AlignmentId, ObjectId SLGId)> alignmentList = new();
-        private List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materialList = new();
+        private List<(string MaterialName, string ListName)> materialList = new();
 
         // Controls
-        private ComboBox cboAlignment = null!;
+        private CheckedListBox chkAlignments = null!;
         private CheckedListBox chkMaterials = null!;
         private RadioButton rdoArea_API = null!;
         private RadioButton rdoArea_Shoelace = null!;
@@ -140,15 +140,26 @@ namespace MyFirstProject
 
         // Kết quả
         public bool IsConfirmed { get; private set; }
-        public ObjectId SelectedAlignmentId =>
-            cboAlignment.SelectedIndex >= 0 ? alignmentList[cboAlignment.SelectedIndex].AlignmentId : ObjectId.Null;
-        public ObjectId SelectedSLGId =>
-            cboAlignment.SelectedIndex >= 0 ? alignmentList[cboAlignment.SelectedIndex].SLGId : ObjectId.Null;
-        public List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> SelectedMaterials
+        
+        public List<(string Name, ObjectId AlignmentId, ObjectId SLGId)> SelectedAlignments
         {
             get
             {
-                var result = new List<(string, string, Guid, Guid)>();
+                var result = new List<(string Name, ObjectId AlignmentId, ObjectId SLGId)>();
+                for (int i = 0; i < chkAlignments.Items.Count; i++)
+                {
+                    if (chkAlignments.GetItemChecked(i))
+                        result.Add(alignmentList[i]);
+                }
+                return result;
+            }
+        }
+
+        public List<(string MaterialName, string ListName)> SelectedMaterials
+        {
+            get
+            {
+                var result = new List<(string, string)>();
                 for (int i = 0; i < chkMaterials.Items.Count; i++)
                 {
                     if (chkMaterials.GetItemChecked(i))
@@ -206,113 +217,119 @@ namespace MyFirstProject
             materialList.Clear();
             chkMaterials.Items.Clear();
 
-            if (cboAlignment.SelectedIndex < 0) return;
+            var checkedIndices = chkAlignments.CheckedIndices;
+            if (checkedIndices.Count == 0) return;
 
-            var slgId = alignmentList[cboAlignment.SelectedIndex].SLGId;
+            var uniqueMaterials = new HashSet<string>();
+
             var doc = AcadApp.DocumentManager.MdiActiveDocument;
             if (doc == null) return;
 
             using var tr = doc.Database.TransactionManager.StartOpenCloseTransaction();
-            var slg = tr.GetObject(slgId, OpenMode.ForRead) as SampleLineGroup;
-            if (slg == null) { tr.Commit(); return; }
 
-            if (rdoSource_HatchExp.Checked)
+            foreach (int idx in checkedIndices)
             {
-                // Móc trực tiếp Hatch Layer từ Trắc ngang đồ họa
-                var slIds = slg.GetSampleLineIds();
-                var uniqueLayers = new HashSet<string>();
+                var slgId = alignmentList[idx].SLGId;
+                var slg = tr.GetObject(slgId, OpenMode.ForRead) as SampleLineGroup;
+                if (slg == null) continue;
 
-                // Quét 5 trắc ngang đầu tiên để lấy mẫu layer Hatch
-                int scanCount = Math.Min(5, slIds.Count);
-                for (int i = 0; i < scanCount; i++)
+                if (rdoSource_HatchExp.Checked)
                 {
-                    var sl = tr.GetObject(slIds[i], OpenMode.ForRead) as SampleLine;
-                    if (sl == null) continue;
+                    // Móc trực tiếp Hatch Layer từ Trắc ngang đồ họa
+                    var slIds = slg.GetSampleLineIds();
+                    var uniqueLayers = new HashSet<string>();
 
-                    // Đổi từ SectionView sang quét trực tiếp các Section (MaterialSection, CorridorSection...)
-                    // Vì Hatch vật liệu thực chất là các Section con thuộc SampleLine.
-                    var secIds = sl.GetSectionIds();
-                    foreach (ObjectId secId in secIds)
+                    int scanCount = Math.Min(5, slIds.Count);
+                    for (int i = 0; i < scanCount; i++)
                     {
-                        // Thử mở như là Entity chung (vì Section kế thừa từ Entity)
-                        var sec = tr.GetObject(secId, OpenMode.ForRead) as Autodesk.Civil.DatabaseServices.Section;
-                        if (sec == null) continue;
+                        var sl = tr.GetObject(slIds[i], OpenMode.ForRead) as SampleLine;
+                        if (sl == null) continue;
 
+                        var secIds = sl.GetSectionIds();
+                        foreach (ObjectId secId in secIds)
+                        {
+                            var sec = tr.GetObject(secId, OpenMode.ForRead) as Autodesk.Civil.DatabaseServices.Section;
+                            if (sec == null) continue;
+
+                            try
+                            {
+                                var objs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
+                                sec.Explode(objs);
+
+                                foreach (Autodesk.AutoCAD.DatabaseServices.DBObject obj in objs)
+                                {
+                                    if (obj is Hatch h)
+                                    {
+                                        uniqueLayers.Add(h.Layer);
+                                    }
+                                    else if (obj is BlockReference br)
+                                    {
+                                        var subObjs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
+                                        try { br.Explode(subObjs); } catch { }
+                                        foreach (Autodesk.AutoCAD.DatabaseServices.DBObject subObj in subObjs)
+                                        {
+                                            if (subObj is Hatch subH) uniqueLayers.Add(subH.Layer);
+                                            subObj.Dispose();
+                                        }
+                                    }
+                                    obj.Dispose();
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+
+                    foreach (var layer in uniqueLayers)
+                    {
+                        string key = layer;
+                        if (!uniqueMaterials.Contains(key))
+                        {
+                            uniqueMaterials.Add(key);
+                            materialList.Add((layer, "Hatch_Layer"));
+                            int chkIdx = chkMaterials.Items.Add($"Layer: {layer}");
+                            chkMaterials.SetItemChecked(chkIdx, true);
+                        }
+                    }
+                }
+                else
+                {
+                    // Bắt nguồn từ Compute Materials
+                    foreach (QTOMaterialList matList in slg.MaterialLists)
+                    {
                         try
                         {
-                            var objs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
-                            sec.Explode(objs);
-
-                            foreach (Autodesk.AutoCAD.DatabaseServices.DBObject obj in objs)
+                            foreach (QTOMaterial mat in matList)
                             {
-                                if (obj is Hatch h)
+                                string key = $"{mat.Name}|{matList.Name}";
+                                if (!uniqueMaterials.Contains(key))
                                 {
-                                    uniqueLayers.Add(h.Layer);
+                                    uniqueMaterials.Add(key);
+                                    string type = mat.QuantityType == MaterialQuantityType.Cut ? "Đào" :
+                                                  mat.QuantityType == MaterialQuantityType.Fill ? "Đắp" :
+                                                  mat.QuantityType == MaterialQuantityType.CutFill ? "Đào+Đắp" :
+                                                  mat.QuantityType == MaterialQuantityType.Earthwork ? "Earthwork" :
+                                                  mat.QuantityType == MaterialQuantityType.Structure ? "Kết cấu" : "Khác";
+                                    materialList.Add((mat.Name, matList.Name ?? "Unnamed"));
+                                    int chkIdx = chkMaterials.Items.Add($"{type}: {mat.Name} ({matList.Name})");
+                                    chkMaterials.SetItemChecked(chkIdx, true);
                                 }
-                                else if (obj is BlockReference br)
-                                {
-                                    var subObjs = new Autodesk.AutoCAD.DatabaseServices.DBObjectCollection();
-                                    try { br.Explode(subObjs); } catch { }
-                                    foreach (Autodesk.AutoCAD.DatabaseServices.DBObject subObj in subObjs)
-                                    {
-                                        if (subObj is Hatch subH) uniqueLayers.Add(subH.Layer);
-                                        subObj.Dispose();
-                                    }
-                                }
-                                obj.Dispose();
                             }
                         }
                         catch { }
                     }
                 }
-
-                if (uniqueLayers.Count > 0)
-                {
-                    foreach (var layer in uniqueLayers.OrderBy(x => x))
-                    {
-                        materialList.Add((layer, "Hatch_Layer", Guid.Empty, Guid.Empty));
-                        int idx = chkMaterials.Items.Add($"Layer: {layer}");
-                        chkMaterials.SetItemChecked(idx, true);
-                    }
-                }
-                else
-                {
-                    chkMaterials.Items.Add("⚠️ Không tìm thấy Hatch trên Trắc ngang mẫu.");
-                }
             }
-            else
-            {
-                // Bắt nguồn từ Compute Materials (Mặc định)
-                foreach (QTOMaterialList matList in slg.MaterialLists)
-                {
-                    try
-                    {
-                        foreach (QTOMaterial mat in matList)
-                        {
-                            string type = mat.QuantityType == MaterialQuantityType.Cut ? "Đào" :
-                                          mat.QuantityType == MaterialQuantityType.Fill ? "Đắp" :
-                                          mat.QuantityType == MaterialQuantityType.CutFill ? "Đào+Đắp" :
-                                          mat.QuantityType == MaterialQuantityType.Earthwork ? "Earthwork" :
-                                          mat.QuantityType == MaterialQuantityType.Structure ? "Kết cấu" : "Khác";
-                            materialList.Add((mat.Name, matList.Name ?? "Unnamed", matList.Guid, mat.Guid));
-                            int idx = chkMaterials.Items.Add($"{type}: {mat.Name} ({matList.Name})");
-                            chkMaterials.SetItemChecked(idx, true);
-                        }
-                    }
-                    catch { }
-                }
 
-                if (materialList.Count == 0)
-                {
-                    chkMaterials.Items.Add("Chưa có Material List. Hãy chạy Compute Materials trước.");
-                }
+            if (materialList.Count == 0 && !rdoSource_HatchExp.Checked)
+            {
+                chkMaterials.Items.Add("Chưa có Material List trên các tuyến đã chọn.");
             }
             tr.Commit();
         }
 
         private void InitializeComponent()
         {
-            InitBaseTheme("TÍNH KHỐI LƯỢNG TRẮC NGANG", 500, 830);
+            InitBaseTheme("TÍNH KHỐI LƯỢNG TRẮC NGANG", 500, 890);
 
             int y = 0;
 
@@ -326,18 +343,27 @@ namespace MyFirstProject
             y = 82;
 
             // ═══ CHỌN ALIGNMENT ═══
-            var grpAlign = CreateGroupBox("Chọn Alignment + SampleLine Group", 16, y, 460, 64);
+            var grpAlign = CreateGroupBox("Chọn các Alignment + SampleLine Group", 16, y, 460, 120);
             this.Controls.Add(grpAlign);
 
-            cboAlignment = CreateComboBox(12, 26, 436);
+            chkAlignments = new CheckedListBox
+            {
+                Location = new Point(12, 26),
+                Size = new Size(436, 80),
+                CheckOnClick = true,
+                Font = new Font("Segoe UI", 9.5f),
+                BackColor = BgWhite,
+                ForeColor = TextDark,
+                BorderStyle = BorderStyle.FixedSingle
+            };
             foreach (var (name, _, _) in alignmentList)
-                cboAlignment.Items.Add(name);
-            if (cboAlignment.Items.Count > 0)
-                cboAlignment.SelectedIndex = 0;
-            cboAlignment.SelectedIndexChanged += (s, e) => LoadMaterials();
-            grpAlign.Controls.Add(cboAlignment);
+                chkAlignments.Items.Add(name);
+            if (chkAlignments.Items.Count > 0)
+                chkAlignments.SetItemChecked(0, true);
+            chkAlignments.ItemCheck += (s, e) => this.BeginInvoke(new Action(() => LoadMaterials()));
+            grpAlign.Controls.Add(chkAlignments);
 
-            y += 72;
+            y += 128;
 
             // ═══ NGUỒN DỮ LIỆU ĐẦU VÀO ═══
             var grpDataSource = CreateGroupBox("Nguồn Dữ Liệu Khối Lượng", 16, y, 460, 75);
@@ -510,9 +536,9 @@ namespace MyFirstProject
             var btnRun = CreateSuccessButton("Tính Khối Lượng", 240, 10, 220, 36, bottomBar);
             btnRun.Click += (s, e) =>
             {
-                if (cboAlignment.SelectedIndex < 0)
+                if (chkAlignments.CheckedItems.Count == 0)
                 {
-                    System.Windows.Forms.MessageBox.Show("Vui lòng chọn Alignment!", "Thiếu dữ liệu",
+                    System.Windows.Forms.MessageBox.Show("Vui lòng chọn ít nhất 1 Alignment!", "Thiếu dữ liệu",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -530,7 +556,7 @@ namespace MyFirstProject
             this.CancelButton = btnCancel;
 
             // Load materials cho alignment đầu tiên
-            if (cboAlignment.Items.Count > 0)
+            if (chkAlignments.Items.Count > 0)
                 LoadMaterials();
         }
     }
@@ -559,8 +585,7 @@ namespace MyFirstProject
             AcadApp.ShowModalDialog(form);
             if (!form.IsConfirmed) return;
 
-            var alignmentId = form.SelectedAlignmentId;
-            var slgId = form.SelectedSLGId;
+            var selectedAlignments = form.SelectedAlignments;
             var selectedMaterials = form.SelectedMaterials;
             var dataSourceMode = form.SelectedDataSource;
             var areaSource = form.SelectedAreaSource;
@@ -570,7 +595,7 @@ namespace MyFirstProject
             bool exportExcel = form.ExportExcel;
             bool writeToDrawing = form.WriteToDrawing;
 
-            if (alignmentId.IsNull || slgId.IsNull)
+            if (selectedAlignments.Count == 0)
             {
                 ed.WriteMessage("\n Không chọn được Alignment.");
                 return;
@@ -580,81 +605,85 @@ namespace MyFirstProject
             {
                 using var tr = db.TransactionManager.StartTransaction();
 
-                var alignment = tr.GetObject(alignmentId, OpenMode.ForRead) as Alignment;
-                var slg = tr.GetObject(slgId, OpenMode.ForRead) as SampleLineGroup;
-                if (alignment == null || slg == null) { tr.Commit(); return; }
+                var allData = new List<(string AlignmentName, List<SectionVolumeResult> Results, List<(string MaterialName, string ListName)> Materials)>();
 
-                var slIds = slg.GetSampleLineIds();
-
-                // 2. Thu thập diện tích cho từng sample line
-                var results = new List<SectionVolumeResult>();
-
-                foreach (ObjectId slId in slIds)
+                foreach (var (alignName, alignmentId, slgId) in selectedAlignments)
                 {
-                    var sl = tr.GetObject(slId, OpenMode.ForRead) as SampleLine;
-                    if (sl == null) continue;
+                    var alignment = tr.GetObject(alignmentId, OpenMode.ForRead) as Alignment;
+                    var slg = tr.GetObject(slgId, OpenMode.ForRead) as SampleLineGroup;
+                    if (alignment == null || slg == null) continue;
 
-                    var result = new SectionVolumeResult
-                    {
-                        TenCoc = sl.Name,
-                        Station = sl.Station,
-                        LyTrinh = FormatStation(sl.Station)
-                    };
+                    var slIds = slg.GetSampleLineIds();
 
-                    // Tính diện tích cho mỗi Material tùy theo NGUỒN (Compute Materials hay Rã Hatch)
-                    if (dataSourceMode == DataSourceMode.HatchExplosion)
+                    // 2. Thu thập diện tích cho từng sample line
+                    var results = new List<SectionVolumeResult>();
+
+                    foreach (ObjectId slId in slIds)
                     {
-                        var areaMap = GetHatchAreaMap(tr, sl);
-                        foreach (var (matName, _, _, _) in selectedMaterials)
+                        var sl = tr.GetObject(slId, OpenMode.ForRead) as SampleLine;
+                        if (sl == null) continue;
+
+                        var result = new SectionVolumeResult
                         {
-                            double hatchArea = areaMap.GetValueOrDefault(matName, 0.0);
-                            result.MaterialAreas[matName] = Math.Round(hatchArea, 4);
-                            result.MaterialAreas_API[matName] = Math.Round(hatchArea, 4);
-                            result.MaterialAreas_Shoelace[matName] = Math.Round(hatchArea, 4);
-                        }
-                    }
-                    else
-                    {
-                        foreach (var (matName, listName, listGuid, matGuid) in selectedMaterials)
+                            TenCoc = sl.Name,
+                            Station = sl.Station,
+                            LyTrinh = FormatStation(sl.Station)
+                        };
+
+                        // Tính diện tích cho mỗi Material tùy theo NGUỒN
+                        if (dataSourceMode == DataSourceMode.HatchExplosion)
                         {
-                            var (area, apiArea, shoelaceArea) = GetMaterialAreaWithVerify(tr, sl, listGuid, matGuid, areaSource);
-                            result.MaterialAreas[matName] = Math.Round(area, 4);
-                            result.MaterialAreas_API[matName] = Math.Round(apiArea, 4);
-                            result.MaterialAreas_Shoelace[matName] = Math.Round(shoelaceArea, 4);
+                            var areaMap = GetHatchAreaMap(tr, sl);
+                            foreach (var (matName, _) in selectedMaterials)
+                            {
+                                double hatchArea = areaMap.GetValueOrDefault(matName, 0.0);
+                                result.MaterialAreas[matName] = Math.Round(hatchArea, 4);
+                                result.MaterialAreas_API[matName] = Math.Round(hatchArea, 4);
+                                result.MaterialAreas_Shoelace[matName] = Math.Round(hatchArea, 4);
+                            }
                         }
+                        else
+                        {
+                            foreach (var (matName, listName) in selectedMaterials)
+                            {
+                                var (area, apiArea, shoelaceArea) = GetMaterialAreaWithVerify(tr, sl, listName, matName, areaSource);
+                                result.MaterialAreas[matName] = Math.Round(area, 4);
+                                result.MaterialAreas_API[matName] = Math.Round(apiArea, 4);
+                                result.MaterialAreas_Shoelace[matName] = Math.Round(shoelaceArea, 4);
+                            }
+                        }
+
+                        results.Add(result);
                     }
 
-                    results.Add(result);
+                    // Sắp xếp theo station
+                    results = results.OrderBy(r => r.Station).ToList();
+
+                    // 3. Tính khối lượng
+                    CalculateVolumes(results, selectedMaterials);
+                    
+                    allData.Add((alignment.Name, results, selectedMaterials));
+
+                    // 4. Hiển thị kết quả CommandLine
+                    DisplayResults(ed, alignment.Name, results, selectedMaterials,
+                        volumeMethod, compareMethods, areaSource);
+                        
+                    // 7. Ghi text lên bản vẽ nếu được chọn
+                    if (writeToDrawing)
+                        WriteToDrawing(tr, ed, slg, results, selectedMaterials,
+                            alignment.Name, volumeMethod);
                 }
 
-                // Sắp xếp theo station
-                results = results.OrderBy(r => r.Station).ToList();
-
-                // 3. Tính khối lượng
-                CalculateVolumes(results, selectedMaterials);
-
-                // 4. Hiển thị kết quả
-                DisplayResults(ed, alignment.Name, results, selectedMaterials,
-                    volumeMethod, compareMethods, areaSource);
-
-                // 5. Copy vào clipboard
-                CopyToClipboard(alignment.Name, results, selectedMaterials,
-                    volumeMethod, compareMethods);
+                // 5. Copy vào clipboard gộp tất cả tuyến
+                CopyToClipboardAll(allData, volumeMethod, compareMethods);
 
                 // 6. Xuất CSV nếu được chọn
                 if (exportCSV)
-                    ExportToCSV(ed, alignment.Name, results, selectedMaterials,
-                        volumeMethod, compareMethods);
+                    ExportToCSVAll(ed, allData, volumeMethod, compareMethods);
 
                 // 6b. Xuất Excel nếu được chọn
                 if (exportExcel)
-                    ExportToExcel(ed, alignment.Name, results, selectedMaterials,
-                        volumeMethod, compareMethods);
-
-                // 7. Ghi text lên bản vẽ nếu được chọn
-                if (writeToDrawing)
-                    WriteToDrawing(tr, ed, slg, results, selectedMaterials,
-                        alignment.Name, volumeMethod);
+                    ExportToExcel(ed, allData, volumeMethod, compareMethods);
 
                 tr.Commit();
 
@@ -727,9 +756,9 @@ namespace MyFirstProject
         /// Lấy diện tích Material Section theo nguồn đã chọn
         /// </summary>
         private static double GetMaterialArea(Transaction tr, SampleLine sampleLine,
-            Guid listGuid, Guid matGuid, AreaSource areaSource)
+            string listName, string matName, AreaSource areaSource)
         {
-            var (area, _, _) = GetMaterialAreaWithVerify(tr, sampleLine, listGuid, matGuid, areaSource);
+            var (area, _, _) = GetMaterialAreaWithVerify(tr, sampleLine, listName, matName, areaSource);
             return area;
         }
 
@@ -739,10 +768,35 @@ namespace MyFirstProject
         /// </summary>
         private static (double chosen, double apiArea, double shoelaceArea) GetMaterialAreaWithVerify(
             Transaction tr, SampleLine sampleLine,
-            Guid listGuid, Guid matGuid, AreaSource areaSource)
+            string listName, string matName, AreaSource areaSource)
         {
             try
             {
+                var slg = tr.GetObject(sampleLine.GroupId, OpenMode.ForRead) as SampleLineGroup;
+                if (slg == null) return (0, 0, 0);
+
+                Guid listGuid = Guid.Empty;
+                Guid matGuid = Guid.Empty;
+
+                foreach (QTOMaterialList matList in slg.MaterialLists)
+                {
+                    if (matList.Name == listName)
+                    {
+                        foreach (QTOMaterial mat in matList)
+                        {
+                            if (mat.Name == matName)
+                            {
+                                listGuid = matList.Guid;
+                                matGuid = mat.Guid;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                if (listGuid == Guid.Empty || matGuid == Guid.Empty) return (0, 0, 0);
+
                 ObjectId materialSectionId = sampleLine.GetMaterialSectionId(listGuid, matGuid);
                 if (materialSectionId.IsNull || !materialSectionId.IsValid) return (0, 0, 0);
 
@@ -807,7 +861,7 @@ namespace MyFirstProject
         /// Tính khối lượng cho tất cả trắc ngang theo cả 2 phương pháp
         /// </summary>
         private static void CalculateVolumes(List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials)
+            List<(string MaterialName, string ListName)> materials)
         {
             // Khởi tạo tích lũy
             var cumAEA = new Dictionary<string, double>();
@@ -898,7 +952,7 @@ namespace MyFirstProject
 
         private static void DisplayResults(Editor ed, string alignmentName,
             List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+            List<(string MaterialName, string ListName)> materials,
             VolumeMethod method, bool compare, AreaSource areaSource)
         {
             ed.WriteMessage("\n");
@@ -1029,12 +1083,13 @@ namespace MyFirstProject
         // COPY VÀO CLIPBOARD
         // ═══════════════════════════════════════════════════════════
 
-        private static void CopyToClipboard(string alignmentName,
-            List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+        private static void CopyToClipboardAll(
+            List<(string AlignmentName, List<SectionVolumeResult> Results, List<(string MaterialName, string ListName)> Materials)> allData,
             VolumeMethod method, bool compare)
         {
             var sb = new StringBuilder();
+            foreach (var (alignmentName, results, materials) in allData)
+            {
             sb.AppendLine($"KHỐI LƯỢNG TRẮC NGANG — {alignmentName}");
 
             // Header
@@ -1089,7 +1144,8 @@ namespace MyFirstProject
                 sb.AppendLine();
                 stt++;
             }
-
+            sb.AppendLine();
+            }
             try
             {
                 System.Windows.Forms.Clipboard.SetText(sb.ToString());
@@ -1101,11 +1157,11 @@ namespace MyFirstProject
         // XUẤT CSV
         // ═══════════════════════════════════════════════════════════
 
-        private static void ExportToCSV(Editor ed, string alignmentName,
-            List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+        private static void ExportToCSVAll(Editor ed,
+            List<(string AlignmentName, List<SectionVolumeResult> Results, List<(string MaterialName, string ListName)> Materials)> allData,
             VolumeMethod method, bool compare)
         {
+            var alignmentName = allData[0].AlignmentName;
             var sfd = new SaveFileDialog
             {
                 Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
@@ -1117,6 +1173,9 @@ namespace MyFirstProject
 
             var sb = new StringBuilder();
 
+            foreach (var (alignName, results, materials) in allData)
+            {
+                sb.AppendLine($"Tuyến: {alignName}");
             // Header
             sb.Append("STT,TenCoc,LyTrinh,Station,KhoangCach_m");
             foreach (var mat in materials) sb.Append($",DT_{mat.MaterialName}_m2");
@@ -1196,6 +1255,8 @@ namespace MyFirstProject
                 }
             }
             sb.AppendLine();
+            sb.AppendLine();
+            }
 
             File.WriteAllText(sfd.FileName, sb.ToString(), Encoding.UTF8);
             ed.WriteMessage($"\n✅ Đã xuất file: {sfd.FileName}");
@@ -1207,11 +1268,11 @@ namespace MyFirstProject
         //         + 1 sheet "Tổng hợp" toàn bộ tuyến
         // ═══════════════════════════════════════════════════════════
 
-        private static void ExportToExcel(Editor ed, string alignmentName,
-            List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+        private static void ExportToExcel(Editor ed,
+            List<(string AlignmentName, List<SectionVolumeResult> Results, List<(string MaterialName, string ListName)> Materials)> allData,
             VolumeMethod method, bool compare)
         {
+            var alignmentName = allData[0].AlignmentName;
             var sfd = new SaveFileDialog
             {
                 Filter = "Excel files (*.xlsx)|*.xlsx|All files (*.*)|*.*",
@@ -1226,15 +1287,13 @@ namespace MyFirstProject
                 string methodTag = method == VolumeMethod.AverageEndArea ? "AEA" : "Prismoidal";
                 int colsPerMat = compare ? 5 : 3;
 
-                // Ghi sheet cho tuyến này
-                WriteAlignmentSheet(wb, alignmentName, results, materials, method, compare, methodTag, colsPerMat);
-
-                // Ghi sheet tổng hợp (hiện tại 1 tuyến, sau này mở rộng nhiều tuyến)
-                var allData = new List<(string AlignmentName, List<SectionVolumeResult> Results,
-                    List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> Materials)>
+                // Ghi sheet cho từng tuyến
+                foreach (var (alignName, results, materials) in allData)
                 {
-                    (alignmentName, results, materials)
-                };
+                    WriteAlignmentSheet(wb, alignName, results, materials, method, compare, methodTag, colsPerMat);
+                }
+
+                // Ghi sheet tổng hợp
                 WriteSummarySheet(wb, allData, method, compare, methodTag);
 
                 // Ghi sheet đối chiếu DT (API vs Shoelace)
@@ -1265,7 +1324,7 @@ namespace MyFirstProject
 
         private static void WriteAlignmentSheet(XLWorkbook wb, string alignmentName,
             List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+            List<(string MaterialName, string ListName)> materials,
             VolumeMethod method, bool compare, string methodTag, int colsPerMat)
         {
             // Tên sheet tối đa 31 ký tự
@@ -1548,7 +1607,7 @@ namespace MyFirstProject
 
         private static void WriteSummarySheet(XLWorkbook wb,
             List<(string AlignmentName, List<SectionVolumeResult> Results,
-                List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> Materials)> allData,
+                List<(string MaterialName, string ListName)> Materials)> allData,
             VolumeMethod method, bool compare, string methodTag)
         {
             var ws = wb.Worksheets.Add("Tổng hợp KL");
@@ -1701,7 +1760,7 @@ namespace MyFirstProject
 
         private static void WriteToDrawing(Transaction tr, Editor ed,
             SampleLineGroup slg, List<SectionVolumeResult> results,
-            List<(string MaterialName, string ListName, Guid ListGuid, Guid MaterialGuid)> materials,
+            List<(string MaterialName, string ListName)> materials,
             string alignmentName, VolumeMethod method)
         {
             // Lấy Section View Group
@@ -1723,7 +1782,7 @@ namespace MyFirstProject
             int written = 0;
             foreach (ObjectId svId in sectionViewIds)
             {
-                var sectionView = tr.GetObject(svId, OpenMode.ForWrite) as SectionView;
+                var sectionView = tr.GetObject(svId, OpenMode.ForRead) as SectionView;
                 if (sectionView == null) continue;
 
                 var sampleLineId = sectionView.SampleLineId;

@@ -198,7 +198,7 @@ namespace MyFirstProject
             try
             {
                 // Nếu check node gốc (Nhóm) -> Check/Uncheck toàn bộ node con
-                if (e.Node.Parent == null)
+                if (e.Node != null && e.Node.Parent == null)
                 {
                     foreach (TreeNode child in e.Node.Nodes)
                     {
@@ -210,7 +210,7 @@ namespace MyFirstProject
                     }
                 }
                 // Nếu check node con (Lệnh)
-                else
+                else if (e.Node != null)
                 {
                     if (e.Node.Tag is TaskbarCommandConfig c)
                     {
@@ -218,12 +218,15 @@ namespace MyFirstProject
                     }
 
                     // Kiểm tra xem parent có nên được check mờ/check hẳn không
-                    bool anyChecked = false;
-                    foreach (TreeNode sibling in e.Node.Parent.Nodes)
+                    if (e.Node.Parent != null)
                     {
-                        if (sibling.Checked) { anyChecked = true; break; }
+                        bool anyChecked = false;
+                        foreach (TreeNode sibling in e.Node.Parent.Nodes)
+                        {
+                            if (sibling.Checked) { anyChecked = true; break; }
+                        }
+                        e.Node.Parent.Checked = anyChecked;
                     }
-                    e.Node.Parent.Checked = anyChecked;
                 }
             }
             finally
@@ -333,7 +336,7 @@ namespace MyFirstProject
             grpAlign.Commands.Add(new TaskbarCommandConfig { Command = "CTC_ThietLapDuongCong", Label = "⊙ Mở Form Đường Cong", IsEnabled = true });
             grpAlign.Commands.Add(new TaskbarCommandConfig { Command = "CTC_TraCuuDuongCong", Label = "◎ Tra cứu thông số", IsEnabled = true });
             grpAlign.Commands.Add(new TaskbarCommandConfig { Command = "CTC_ThongSoDuongCong_4054", Label = "▤ Bảng TCVN 4054", IsEnabled = true });
-            grpAlign.Commands.Add(new TaskbarCommandConfig { Command = "CTC_KiemTraDuongCong_4054", Label = "Kiểm tra theo 4054", IsEnabled = true });
+            // grpAlign.Commands.Add(new TaskbarCommandConfig { Command = "CTC_KiemTraDuongCong_4054", Label = "Kiểm tra theo 4054", IsEnabled = true });
             config.CivilGroups.Add(grpAlign);
 
             // 4. Profiles

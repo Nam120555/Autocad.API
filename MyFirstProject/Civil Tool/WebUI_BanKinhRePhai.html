@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tính toán Bán kính rẽ phải - Civil Tool</title>
+    <!-- Thêm font chữ Roboto hiện đại -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Colors based on user's dark theme */
+            --bg-main: #121212;
+            --bg-sidebar: #1e1e1e;
+            --bg-input: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #9e9e9e;
+            --accent-green: #00ff88;
+            --accent-blue: #00bfff;
+            --accent-red: #ff3366;
+            --border-color: #333;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        /* Layout Structure */
+        .left-sidebar {
+            width: 300px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .right-sidebar {
+            width: 350px;
+            background-color: var(--bg-sidebar);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        /* Headers */
+        .section-header {
+            padding: 15px;
+            background: linear-gradient(90deg, #1a1a1a, #2a2a2a);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-header span {
+            color: var(--accent-blue);
+            margin-right: 8px;
+        }
+
+        /* Left Sidebar Inputs */
+        .input-group {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s;
+        }
+
+        .input-group:hover {
+            background-color: rgba(255,255,255,0.02);
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .input-field {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid transparent;
+            color: var(--accent-blue);
+            padding: 8px;
+            border-radius: 4px;
+            outline: none;
+            font-family: 'Roboto', monospace;
+            font-size: 14px;
+            font-weight: 500;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 5px rgba(0, 191, 255, 0.3);
+        }
+
+        /* Main Content Area */
+        .canvas-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #1a202c 0%, #121212 100%);
+            /* Grid background to look like CAD */
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        #intersectionCanvas {
+            pointer-events: none; /* Let user just view */
+        }
+        
+        .main-title {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .main-subtitle {
+            color: var(--accent-green);
+            font-size: 16px;
+            font-weight: 400;
+            margin-top: 5px;
+        }
+
+        /* Right Sidebar Results */
+        .result-group {
+            padding: 15px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        
+        .result-label {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-green);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .result-value span.unit {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .formula-box {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .formula-img {
+            max-width: 100%;
+            border-radius: 4px;
+            border: 1px solid #333;
+            margin-bottom: 10px;
+        }
+        
+        .formula-text {
+            color: var(--accent-blue);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            background: #000;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid var(--accent-blue);
+            text-align: left;
+        }
+
+        .red-text { color: var(--accent-red) !important; }
+        .green-text { color: var(--accent-green) !important; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-sidebar); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #888; 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Left Sidebar: Inputs -->
+    <div class="left-sidebar">
+        <div class="section-header">
+            <span>■</span> Dữ liệu tính toán
+        </div>
+        
+        <div class="input-group">
+            <label class="input-label">Tốc độ thiết kế tuyến chính (V_tk) [km/h]</label>
+            <input type="number" id="inp_vtk" class="input-field" value="80" step="5" oninput="calculate()">
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">Hệ số giảm tốc trong nút</label>
+            <input type="number" id="inp_heso_giamsoc" class="input-field" value="0.45" step="0.01" oninput="calculate()">
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">Hệ số lực ngang (μ)</label>
+            <input type="number" id="inp_mu" class="input-field" value="0.2" step="0.01" oninput="calculate()">
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">Dốc ngang mặt đường (i_nut)</label>
+            <input type="number" id="inp_inut" class="input-field" value="0.015" step="0.005" oninput="calculate()">
+        </div>
+        
+        <div style="flex-grow: 1;"></div>
+        <div style="padding: 15px; color: #555; font-size: 12px; text-align: center; border-top: 1px solid #333;">
+            Mathcad 15 Engine App
+        </div>
+    </div>
+
+    <!-- Main Content: Canvas Illustration -->
+    <div class="main-content">
+        <div class="main-title">
+            THIẾT KẾ BÁN KÍNH XE RẼ PHẢI
+            <div class="main-subtitle">TUYẾN TRÁNH PHÚ PHONG</div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="intersectionCanvas" width="800" height="600"></canvas>
+        </div>
+    </div>
+
+    <!-- Right Sidebar: Results -->
+    <div class="right-sidebar">
+        <div class="section-header" style="background: linear-gradient(90deg, #1a1a1a, #2a1a1a);">
+            <span style="color: var(--accent-red)">■</span> Kết quả thiết kế
+        </div>
+
+        <div class="formula-box">
+            <!-- Simulated Formula Display -->
+            <div style="color: #aaa; margin-bottom: 5px; font-size: 12px; text-align: left;">Công thức tính:</div>
+            <div class="formula-text">
+                R_min = V_nut² / (127 * (μ + i_nut))<br>
+                V_nut = V_tk * Hệ_số
+            </div>
+        </div>
+
+        <div class="result-group">
+            <div class="result-label">Vận tốc thiết kế rẽ phải (V_nut)</div>
+            <div class="result-value" id="res_vnut">
+                36.00 <span class="unit">km/h</span>
+            </div>
+        </div>
+
+        <div class="result-group">
+            <div class="result-label">Bán kính tối thiểu yêu cầu (R_min)</div>
+            <div class="result-value red-text" id="res_rmin">
+                47.46 <span class="unit">m</span>
+            </div>
+        </div>
+
+        <div class="result-group">
+            <div class="result-label">Bán kính chọn thiết kế (R_chon)</div>
+            <div class="result-value" id="res_rchon" style="font-size: 24px; text-shadow: 0 0 10px rgba(0,255,136,0.5);">
+                50.00 <span class="unit">m</span>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        // Core Mathcad logic ported to JS
+        function calculate() {
+            // 1. Get inputs
+            const v_tk = parseFloat(document.getElementById('inp_vtk').value) || 0;
+            const hs = parseFloat(document.getElementById('inp_heso_giamsoc').value) || 0;
+            const mu = parseFloat(document.getElementById('inp_mu').value) || 0;
+            const i_nut = parseFloat(document.getElementById('inp_inut').value) || 0;
+
+            // 2. Compute formulas based on the Mathcad file:
+            // V_nut = 0.45 * V_tk
+            const v_nut = hs * v_tk;
+            
+            // R_xe = V_nut^2 / (127 * (mu + i_nut))
+            let r_min = 0;
+            if (mu + i_nut !== 0) {
+                r_min = Math.pow(v_nut, 2) / (127 * (mu + i_nut));
+            }
+            
+            // Bán kính thiết kế thường làm tròn lên bội số của 5 (hoặc 10)
+            let r_chon = Math.ceil(r_min / 5) * 5;
+            if (r_chon === 0) r_chon = 50; // default safeguard
+
+            // 3. Update Output UI
+            document.getElementById('res_vnut').innerHTML = `${v_nut.toFixed(2)} <span class="unit">km/h</span>`;
+            document.getElementById('res_rmin').innerHTML = `${r_min.toFixed(3)} <span class="unit">m</span>`;
+            document.getElementById('res_rchon').innerHTML = `${r_chon.toFixed(2)} <span class="unit">m</span>`;
+            
+            // 4. Update Drawing
+            drawIntersection(r_chon);
+        }
+
+        // Canvas Drawing Logic
+        function drawIntersection(r_val) {
+            const canvas = document.getElementById('intersectionCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            // Scale radius for drawing (cap it so it fits on screen)
+            const scale = 3; 
+            const pixelR = Math.min(Math.max(r_val * scale, 50), 250);
+
+            // Center point of intersection corner
+            const cornerX = cx - 50;
+            const cornerY = cy + 50;
+
+            // 1. Draw Roads (Background lines)
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            
+            // Vertical road lines
+            ctx.beginPath();
+            ctx.moveTo(cornerX + pixelR, cornerY);
+            ctx.lineTo(cornerX + pixelR, canvas.height);
+            ctx.moveTo(cornerX - 200, cornerY);
+            ctx.lineTo(cornerX - 200, canvas.height);
+            ctx.stroke();
+
+            // Horizontal road lines
+            ctx.beginPath();
+            ctx.moveTo(cornerX, cornerY - pixelR);
+            ctx.lineTo(0, cornerY - pixelR);
+            ctx.moveTo(cornerX, cornerY + 200);
+            ctx.lineTo(0, cornerY + 200);
+            ctx.stroke();
+
+            // 2. Draw Arc (The right turning slip lane / edge)
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = '#00ff88';
+            ctx.shadowBlur = 10;
+            
+            ctx.beginPath();
+            // Assuming 90 deg turn
+            ctx.arc(cornerX + pixelR, cornerY - pixelR, pixelR, Math.PI, Math.PI / 2, true);
+            ctx.stroke();
+            
+            // Reset shadow
+            ctx.shadowBlur = 0;
+
+            // 3. Draw Radius marker
+            ctx.strokeStyle = '#00bfff';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]); // dashed line for dimensions
+
+            const arcCenterX = cornerX + pixelR;
+            const arcCenterY = cornerY - pixelR;
+
+            ctx.beginPath();
+            ctx.moveTo(arcCenterX, arcCenterY);
+            // Draw line to 45 deg angle
+            const angle = Math.PI * 0.75;
+            const dx = Math.cos(angle) * pixelR;
+            const dy = Math.sin(angle) * pixelR;
+            ctx.lineTo(arcCenterX + dx, arcCenterY + dy);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash
+            
+            // Draw Center point dot
+            ctx.beginPath();
+            ctx.arc(arcCenterX, arcCenterY, 4, 0, Math.PI*2);
+            ctx.fillStyle = '#00bfff';
+            ctx.fill();
+
+            // 4. Draw Text (R_chon)
+            ctx.fillStyle = '#fff';
+            ctx.font = '16px Roboto';
+            ctx.fillText(`R = ${r_val} m`, arcCenterX + dx/2 - 20, arcCenterY + dy/2 - 10);
+            
+            // Car path arrow
+            drawArrow(ctx, arcCenterX + dx*1.2, arcCenterY + dy*1.2 + 80, arcCenterX + dx*0.8, arcCenterY + dy*0.8 + 40, '#ff3366');
+        }
+
+        // Utility to draw arrow
+        function drawArrow(ctx, fromx, fromy, tox, toy, color) {
+            const headlen = 10; // length of head in pixels
+            const dx = tox - fromx;
+            const dy = toy - fromy;
+            const angle = Math.atan2(dy, dx);
+            
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(fromx, fromy);
+            ctx.lineTo(tox, toy);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(tox, toy);
+            ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.lineTo(tox, toy);
+            ctx.fill();
+        }
+
+        // Initialize calculation on load
+        window.onload = calculate;
+    </script>
+</body>
+</html>

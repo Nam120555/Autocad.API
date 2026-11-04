@@ -108,7 +108,7 @@ namespace MyFirstProject
         private void InitializeComponent()
         {
             InitBaseTheme("Tạo bảng thống kê tọa độ cọc", 700, 620);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             var header = CreateHeader("THỐNG KÊ TỌA ĐỘ CỌC");
             this.Controls.Add(header);
@@ -125,7 +125,8 @@ namespace MyFirstProject
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 RowHeadersVisible = false,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                SelectionMode = DataGridViewSelectionMode.CellSelect,
+                MultiSelect = false,
                 BackgroundColor = BgInput,
                 GridColor = BorderColor,
                 BorderStyle = BorderStyle.FixedSingle,
@@ -135,61 +136,98 @@ namespace MyFirstProject
                     ForeColor = TextDark,
                     SelectionBackColor = NavyMedium,
                     SelectionForeColor = System.Drawing.Color.White,
-                    Font = new System.Drawing.Font("Segoe UI", 9f)
+                    Font = new System.Drawing.Font("Segoe UI", 9.5f),
+                    Padding = new Padding(4, 2, 4, 2)
                 },
                 ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
                 {
                     BackColor = NavyDark,
                     ForeColor = System.Drawing.Color.White,
-                    Font = new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Bold),
-                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                    Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold),
+                    Alignment = DataGridViewContentAlignment.MiddleCenter,
+                    Padding = new Padding(2)
                 },
                 EnableHeadersVisualStyles = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                ColumnHeadersHeight = 34,
+                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
+                RowTemplate = { Height = 30 },
+                AllowUserToResizeRows = false,
+                CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal
             };
             pnlList.Controls.Add(dgvAlignments);
 
             // Columns
             DataGridViewCheckBoxColumn colCheck = new DataGridViewCheckBoxColumn
             {
-                HeaderText = "",
-                Width = 30,
-                Name = "colCheck"
+                HeaderText = "✓",
+                Name = "colCheck",
+                FillWeight = 8,
+                MinimumWidth = 35,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Alignment = DataGridViewContentAlignment.MiddleCenter,
+                    NullValue = false
+                }
             };
             dgvAlignments.Columns.Add(colCheck);
 
             DataGridViewTextBoxColumn colName = new DataGridViewTextBoxColumn
             {
                 HeaderText = "Tên tuyến",
-                Width = 120,
                 Name = "colName",
-                ReadOnly = true
+                ReadOnly = true,
+                FillWeight = 20,
+                MinimumWidth = 80,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Alignment = DataGridViewContentAlignment.MiddleLeft,
+                    Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold)
+                }
             };
             dgvAlignments.Columns.Add(colName);
 
             DataGridViewComboBoxColumn colSLG = new DataGridViewComboBoxColumn
             {
                 HeaderText = "Nhóm cọc",
-                Width = 120,
-                Name = "colSLG"
+                Name = "colSLG",
+                FillWeight = 22,
+                MinimumWidth = 90,
+                FlatStyle = FlatStyle.Flat,
+                DisplayStyle = DataGridViewComboBoxDisplayStyle.ComboBox
             };
             dgvAlignments.Columns.Add(colSLG);
 
             DataGridViewComboBoxColumn colProfileTN = new DataGridViewComboBoxColumn
             {
                 HeaderText = "Profile TN",
-                Width = 120,
-                Name = "colProfileTN"
+                Name = "colProfileTN",
+                FillWeight = 25,
+                MinimumWidth = 90,
+                FlatStyle = FlatStyle.Flat,
+                DisplayStyle = DataGridViewComboBoxDisplayStyle.ComboBox
             };
             dgvAlignments.Columns.Add(colProfileTN);
 
             DataGridViewComboBoxColumn colProfileTK = new DataGridViewComboBoxColumn
             {
                 HeaderText = "Profile TK",
-                Width = 120,
-                Name = "colProfileTK"
+                Name = "colProfileTK",
+                FillWeight = 25,
+                MinimumWidth = 90,
+                FlatStyle = FlatStyle.Flat,
+                DisplayStyle = DataGridViewComboBoxDisplayStyle.ComboBox
             };
             dgvAlignments.Columns.Add(colProfileTK);
+
+            // Alternate row coloring for readability
+            dgvAlignments.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor = System.Drawing.Color.FromArgb(240, 242, 248),
+                ForeColor = TextDark,
+                SelectionBackColor = NavyMedium,
+                SelectionForeColor = System.Drawing.Color.White
+            };
 
             // GroupBox Tùy chọn
             var grpOptions = CreateSection("Tùy chọn", 10, 410, 665, 120);
@@ -764,99 +802,156 @@ namespace MyFirstProject
         }
 
         /// <summary>
-        /// Xuất Excel với tùy chọn cao độ
+        /// Xuất Excel qua COM Interop (KHÔNG dùng ClosedXML) - Tránh hoàn toàn lỗi dependency.
+        /// Chia mỗi tuyến một sheet, định dạng đẹp.
         /// </summary>
         private static void ExportToExcelWithOptions(string filePath, List<(string Name, List<CocInfo> Data)> alignmentData, 
             bool includeTN, bool includeTK, int decimalPlaces)
         {
-            using var workbook = new XLWorkbook();
-
-            foreach (var (name, cocInfos) in alignmentData)
+            Type? excelType = Type.GetTypeFromProgID("Excel.Application");
+            if (excelType == null)
             {
-                if (cocInfos.Count == 0) continue;
-
-                string sheetName = name.Length > 31 ? name.Substring(0, 31) : name;
-                char[] invalidChars = { ':', '\\', '/', '?', '*', '[', ']' };
-                foreach (char c in invalidChars)
-                {
-                    sheetName = sheetName.Replace(c, '_');
-                }
-
-                var ws = workbook.Worksheets.Add(sheetName);
-
-                // Xác định số cột
-                int colCount = 6; // STT, Tên cọc, Lý trình, X, Y, Khoảng cách
-                if (includeTN) colCount++;
-                if (includeTK) colCount++;
-                colCount += 3; // Bề rộng trái, phải, tổng
-
-                // Tiêu đề
-                ws.Cell(1, 1).Value = $"BẢNG THỐNG KÊ TỌA ĐỘ CỌC - {name}";
-                ws.Range(1, 1, 1, colCount).Merge();
-                ws.Cell(1, 1).Style.Font.Bold = true;
-                ws.Cell(1, 1).Style.Font.FontSize = 14;
-                ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                // Header
-                int col = 1;
-                ws.Cell(2, col++).Value = "STT";
-                ws.Cell(2, col++).Value = "TÊN CỌC";
-                ws.Cell(2, col++).Value = "LÝ TRÌNH";
-                ws.Cell(2, col++).Value = "EASTING (X)";
-                ws.Cell(2, col++).Value = "NORTHING (Y)";
-                if (includeTN) ws.Cell(2, col++).Value = "CAO ĐỘ TN (m)";
-                if (includeTK) ws.Cell(2, col++).Value = "CAO ĐỘ TK (m)";
-                ws.Cell(2, col++).Value = "KHOẢNG CÁCH (m)";
-                ws.Cell(2, col++).Value = "BỀ RỘNG TRÁI (m)";
-                ws.Cell(2, col++).Value = "BỀ RỘNG PHẢI (m)";
-                ws.Cell(2, col++).Value = "TỔNG BỀ RỘNG (m)";
-
-                var headerRange = ws.Range(2, 1, 2, colCount);
-                headerRange.Style.Font.Bold = true;
-                headerRange.Style.Fill.BackgroundColor = XLColor.LightBlue;
-                headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                headerRange.Style.Alignment.WrapText = true;
-
-                // Dữ liệu
-                int row = 3;
-                foreach (var coc in cocInfos)
-                {
-                    col = 1;
-                    ws.Cell(row, col++).Value = coc.STT;
-                    ws.Cell(row, col++).Value = coc.TenCoc;
-                    ws.Cell(row, col++).Value = coc.LyTrinh;
-                    ws.Cell(row, col++).Value = coc.Easting;
-                    ws.Cell(row, col++).Value = coc.Northing;
-                    if (includeTN) ws.Cell(row, col++).Value = coc.CaoDoTuNhien;
-                    if (includeTK) ws.Cell(row, col++).Value = coc.CaoDoThietKe;
-                    ws.Cell(row, col++).Value = coc.KhoangCachDenCocTruoc;
-                    ws.Cell(row, col++).Value = coc.BeRongTrai;
-                    ws.Cell(row, col++).Value = coc.BeRongPhai;
-                    ws.Cell(row, col++).Value = coc.BeRongTrai + coc.BeRongPhai;
-                    row++;
-                }
-
-                // Hàng tổng
-                ws.Cell(row, 1).Value = "TỔNG CỘNG";
-                int mergeEnd = 5;
-                if (includeTN) mergeEnd++;
-                if (includeTK) mergeEnd++;
-                ws.Range(row, 1, row, mergeEnd).Merge();
-                ws.Cell(row, 1).Style.Font.Bold = true;
-                
-                int kcCol = mergeEnd + 1;
-                ws.Cell(row, kcCol).FormulaA1 = $"SUM({GetColumnLetter(kcCol)}3:{GetColumnLetter(kcCol)}{row - 1})";
-                ws.Cell(row, kcCol).Style.Font.Bold = true;
-
-                // Format
-                var tableRange = ws.Range(2, 1, row, colCount);
-                tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-
-                ws.Columns().AdjustToContents();
+                throw new System.Exception("Không tìm thấy Microsoft Excel trên máy tính. Hãy cài đặt Excel.");
             }
 
-            workbook.SaveAs(filePath);
+            dynamic excelApp = Activator.CreateInstance(excelType)!;
+            excelApp.DisplayAlerts = false; // Tắt cảnh báo ghi đè file
+            excelApp.Visible = false;       // Chạy ngầm
+
+            try
+            {
+                dynamic workbook = excelApp.Workbooks.Add();
+                
+                // Xóa các sheet thừa (Excel mặc định có thể có 3 sheet)
+                while (workbook.Sheets.Count > 1)
+                {
+                    workbook.Sheets[workbook.Sheets.Count].Delete();
+                }
+
+                int sheetIndex = 1;
+                foreach (var (name, cocInfos) in alignmentData)
+                {
+                    if (cocInfos.Count == 0) continue;
+
+                    dynamic sheet;
+                    if (sheetIndex == 1)
+                    {
+                        sheet = workbook.Sheets[1];
+                    }
+                    else
+                    {
+                        sheet = workbook.Sheets.Add(After: workbook.Sheets[workbook.Sheets.Count]);
+                    }
+
+                    // Tên sheet (tối đa 31 ký tự, không chứa ký tự đặc biệt)
+                    string sheetName = name.Length > 31 ? name.Substring(0, 31) : name;
+                    char[] invalidChars = { ':', '\\', '/', '?', '*', '[', ']' };
+                    foreach (char c in invalidChars) sheetName = sheetName.Replace(c, '_');
+                    sheet.Name = sheetName;
+
+                    // Tính toán số cột
+                    int colCount = 6;
+                    if (includeTN) colCount++;
+                    if (includeTK) colCount++;
+                    colCount += 3;
+
+                    // Tiêu đề
+                    sheet.Cells[1, 1].Value = $"BẢNG THỐNG KÊ TỌA ĐỘ CỌC - {name}";
+                    dynamic titleRange = sheet.Range(sheet.Cells[1, 1], sheet.Cells[1, colCount]);
+                    titleRange.Merge();
+                    titleRange.Font.Bold = true;
+                    titleRange.Font.Size = 14;
+                    titleRange.HorizontalAlignment = -4108; // xlCenter
+
+                    // Header
+                    int col = 1;
+                    sheet.Cells[2, col++].Value = "STT";
+                    sheet.Cells[2, col++].Value = "TÊN CỌC";
+                    sheet.Cells[2, col++].Value = "LÝ TRÌNH";
+                    sheet.Cells[2, col++].Value = "EASTING (X)";
+                    sheet.Cells[2, col++].Value = "NORTHING (Y)";
+                    if (includeTN) sheet.Cells[2, col++].Value = "CAO ĐỘ TN (m)";
+                    if (includeTK) sheet.Cells[2, col++].Value = "CAO ĐỘ TK (m)";
+                    sheet.Cells[2, col++].Value = "KHOẢNG CÁCH (m)";
+                    sheet.Cells[2, col++].Value = "BỀ RỘNG TRÁI (m)";
+                    sheet.Cells[2, col++].Value = "BỀ RỘNG PHẢI (m)";
+                    sheet.Cells[2, col++].Value = "TỔNG BỀ RỘNG (m)";
+
+                    dynamic headerRange = sheet.Range(sheet.Cells[2, 1], sheet.Cells[2, colCount]);
+                    headerRange.Font.Bold = true;
+                    // Xanh nhạt đẹp mắt (#BDD7EE)
+                    headerRange.Interior.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(189, 215, 238));
+                    headerRange.HorizontalAlignment = -4108; // xlCenter
+                    headerRange.VerticalAlignment = -4108; // xlCenter
+                    headerRange.WrapText = true;
+
+                    // Nạp dữ liệu vào mảng 2D để tăng tốc độ ghi (tránh ghi từng ô một)
+                    object[,] dataArray = new object[cocInfos.Count + 1, colCount]; // +1 cho hàng tổng
+                    for (int r = 0; r < cocInfos.Count; r++)
+                    {
+                        var coc = cocInfos[r];
+                        int c = 0;
+                        dataArray[r, c++] = coc.STT;
+                        dataArray[r, c++] = coc.TenCoc;
+                        dataArray[r, c++] = coc.LyTrinh;
+                        dataArray[r, c++] = Math.Round(coc.Easting, decimalPlaces);
+                        dataArray[r, c++] = Math.Round(coc.Northing, decimalPlaces);
+                        if (includeTN) dataArray[r, c++] = Math.Round(coc.CaoDoTuNhien, decimalPlaces);
+                        if (includeTK) dataArray[r, c++] = Math.Round(coc.CaoDoThietKe, decimalPlaces);
+                        dataArray[r, c++] = Math.Round(coc.KhoangCachDenCocTruoc, decimalPlaces);
+                        dataArray[r, c++] = Math.Round(coc.BeRongTrai, decimalPlaces);
+                        dataArray[r, c++] = Math.Round(coc.BeRongPhai, decimalPlaces);
+                        dataArray[r, c++] = Math.Round(coc.BeRongTrai + coc.BeRongPhai, decimalPlaces);
+                    }
+                    
+                    // Ghi mảng 2D xuống Excel
+                    dynamic startCell = sheet.Cells[3, 1];
+                    dynamic endCell = sheet.Cells[2 + cocInfos.Count + 1, colCount];
+                    dynamic dataRange = sheet.Range(startCell, endCell);
+                    dataRange.Value = dataArray;
+
+                    // Hàng tổng (nằm ở hàng cuối cùng của dataArray)
+                    int lastRow = 2 + cocInfos.Count + 1;
+                    sheet.Cells[lastRow, 1].Value = "TỔNG CỘNG";
+                    int mergeEnd = 5;
+                    if (includeTN) mergeEnd++;
+                    if (includeTK) mergeEnd++;
+                    sheet.Range(sheet.Cells[lastRow, 1], sheet.Cells[lastRow, mergeEnd]).Merge();
+                    sheet.Cells[lastRow, 1].Font.Bold = true;
+                    
+                    int kcCol = mergeEnd + 1;
+                    sheet.Cells[lastRow, kcCol].Formula = $"=SUM({GetColumnLetter(kcCol)}3:{GetColumnLetter(kcCol)}{lastRow - 1})";
+                    sheet.Cells[lastRow, kcCol].Font.Bold = true;
+                    
+                    // Căn giữa STT và Lý trình
+                    sheet.Range(sheet.Cells[3, 1], sheet.Cells[lastRow - 1, 3]).HorizontalAlignment = -4108; // xlCenter
+
+                    // Format viền (Borders)
+                    dynamic fullRange = sheet.Range(sheet.Cells[2, 1], endCell);
+                    fullRange.Borders.LineStyle = 1; // xlContinuous
+
+                    // Tự động chỉnh độ rộng cột
+                    sheet.Columns.AutoFit();
+                    
+                    sheetIndex++;
+                }
+
+                // Xóa file cũ nếu đã tồn tại
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                // Lưu file với định dạng XLSX (51 = xlOpenXMLWorkbook)
+                workbook.SaveAs(filePath, 51);
+                workbook.Close(false);
+            }
+            finally
+            {
+                // Đảm bảo đóng Excel dù có lỗi xảy ra
+                excelApp.Quit();
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
+            }
         }
 
         private static string GetColumnLetter(int columnNumber)
@@ -869,6 +964,35 @@ namespace MyFirstProject
                 columnNumber /= 26;
             }
             return result;
+        }
+
+        private static void ExportToCsv(string filePath, List<(string Name, List<CocInfo> Data)> alignmentData, 
+            bool includeTN, bool includeTK, int decimalPlaces)
+        {
+            var sb = new StringBuilder();
+            
+            // Viết BOM để Excel hiển thị tiếng Việt đúng
+            sb.Append('\uFEFF');
+
+            // Header
+            sb.Append("Tuyến,STT,Tên cọc,Lý trình,Easting (X),Northing (Y)");
+            if (includeTN) sb.Append(",Cao độ TN (m)");
+            if (includeTK) sb.Append(",Cao độ TK (m)");
+            sb.AppendLine(",Khoảng cách (m),Bề rộng trái (m),Bề rộng phải (m),Tổng bề rộng (m)");
+
+            // Data
+            foreach (var (name, cocInfos) in alignmentData)
+            {
+                foreach (var coc in cocInfos)
+                {
+                    sb.Append($"\"{name}\",{coc.STT},\"{coc.TenCoc}\",\"{coc.LyTrinh}\",{Math.Round(coc.Easting, decimalPlaces)},{Math.Round(coc.Northing, decimalPlaces)}");
+                    if (includeTN) sb.Append($",{Math.Round(coc.CaoDoTuNhien, decimalPlaces)}");
+                    if (includeTK) sb.Append($",{Math.Round(coc.CaoDoThietKe, decimalPlaces)}");
+                    sb.AppendLine($",{Math.Round(coc.KhoangCachDenCocTruoc, decimalPlaces)},{Math.Round(coc.BeRongTrai, decimalPlaces)},{Math.Round(coc.BeRongPhai, decimalPlaces)},{Math.Round(coc.BeRongTrai + coc.BeRongPhai, decimalPlaces)}");
+                }
+            }
+
+            System.IO.File.WriteAllText(filePath, sb.ToString(), System.Text.Encoding.UTF8);
         }
 
         /// <summary>
@@ -1026,21 +1150,29 @@ namespace MyFirstProject
                 }
                 else
                 {
-                    // Excel Export Branch (EXISTING)
+                    // Lấy tên file CAD hiện tại
+                    string dwgName = A.Doc.Name;
+                    string baseName = System.IO.Path.GetFileNameWithoutExtension(dwgName);
+                    if (string.IsNullOrEmpty(baseName) || baseName.StartsWith("Drawing", StringComparison.OrdinalIgnoreCase))
+                    {
+                        baseName = "ThongKeCoc";
+                    }
+
                     string defaultFileName = selectedConfigs.Count == 1 
-                        ? $"ThongKeCoc_{selectedConfigs[0].AlignmentName}.xlsx" 
-                        : "ThongKeCoc_TatCa.xlsx";
-                    
+                        ? $"{baseName}_{selectedConfigs[0].AlignmentName}.xlsx" 
+                        : $"{baseName}_TatCa.xlsx";
+
                     SaveFileDialog saveDialog = new()
                     {
-                        Filter = "Excel Files (*.xlsx)|*.xlsx",
-                        Title = "Chọn nơi lưu file Excel thống kê cọc",
+                        Filter = "Excel Files (*.xlsx)|*.xlsx|CSV Files (*.csv)|*.csv",
+                        Title = "Chọn nơi lưu file thống kê cọc",
                         FileName = defaultFileName
                     };
 
                     if (saveDialog.ShowDialog() != DialogResult.OK) return;
 
-                    A.Ed.WriteMessage("\n\n📊 ĐANG XỬ LÝ EXCEL...");
+                    // Trích xuất dữ liệu
+                    A.Ed.WriteMessage("\n\n📊 ĐANG XỬ LÝ...");
                     var alignmentData = new List<(string Name, List<CocInfo> Data)>();
                     int totalCoc = 0;
 
@@ -1055,15 +1187,36 @@ namespace MyFirstProject
                         }
                     }
 
-                    ExportToExcelWithOptions(saveDialog.FileName, alignmentData, 
-                        includeCaoDoTuNhien, includeCaoDoThietKe, decimalPlaces);
+                    string outputFile = saveDialog.FileName;
+
+                    // Nếu chọn CSV hoặc ClosedXML lỗi → xuất CSV
+                    if (outputFile.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ExportToCsv(outputFile, alignmentData, includeCaoDoTuNhien, includeCaoDoThietKe, decimalPlaces);
+                    }
+                    else
+                    {
+                        // Thử xuất Excel, nếu lỗi → tự chuyển sang CSV
+                        try
+                        {
+                            ExportToExcelWithOptions(outputFile, alignmentData, 
+                                includeCaoDoTuNhien, includeCaoDoThietKe, decimalPlaces);
+                        }
+                        catch (System.Exception exExcel)
+                        {
+                            A.Ed.WriteMessage($"\n⚠️ ClosedXML lỗi: {exExcel.Message}");
+                            A.Ed.WriteMessage("\n📝 Tự động chuyển sang xuất CSV...");
+                            outputFile = System.IO.Path.ChangeExtension(outputFile, ".csv");
+                            ExportToCsv(outputFile, alignmentData, includeCaoDoTuNhien, includeCaoDoThietKe, decimalPlaces);
+                        }
+                    }
 
                     A.Ed.WriteMessage($"\n\n📊 Tổng: {selectedConfigs.Count} tuyến, {totalCoc} cọc");
-                    A.Ed.WriteMessage($"\n✅ Đã xuất file: {saveDialog.FileName}");
+                    A.Ed.WriteMessage($"\n✅ Đã xuất file: {outputFile}");
                     
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                     {
-                        FileName = saveDialog.FileName,
+                        FileName = outputFile,
                         UseShellExecute = true
                     });
                 }

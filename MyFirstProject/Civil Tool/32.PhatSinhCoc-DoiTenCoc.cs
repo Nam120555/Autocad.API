@@ -40,7 +40,7 @@ namespace MyFirstProject
         // ─── Controls ───
         private RadioButton rdoPhatSinh = null!;
         private RadioButton rdoDoiTen = null!;
-        private ComboBox cboAlignment = null!;
+        private CheckedListBox chkListAlignments = null!;
         private WinLabel lblAlignmentInfo = null!;
         private WinLabel lblGroupInfo = null!;
 
@@ -103,7 +103,7 @@ namespace MyFirstProject
         public string StrNC => txtNC == null ? "NC" : (string.IsNullOrWhiteSpace(txtNC.Text) ? "NC" : txtNC.Text.Trim());
         public bool IsCogoPointMode => rdoCogoPoint != null && rdoCogoPoint.Checked;
         public bool IsTableMode => rdoTable != null && rdoTable.Checked;
-        public ObjectId SelectedAlignmentId { get; private set; } = ObjectId.Null;
+        public List<ObjectId> SelectedAlignmentIds { get; private set; } = new();
         public double KhoangCach => (double)numKhoangCach.Value;
         public double KhoangCachCong => (double)numKhoangCachCong.Value;
         public double BeRongTrai => (double)numBeRongTrai.Value;
@@ -130,6 +130,8 @@ namespace MyFirstProject
         public class CocPreviewItem
         {
             public int STT { get; set; }
+            public ObjectId AlignmentId { get; set; }
+            public string AlignmentName { get; set; } = "";
             public string TenCoc { get; set; } = "";
             public double Station { get; set; }
             public string LyTrinh { get; set; } = "";
@@ -205,7 +207,7 @@ namespace MyFirstProject
         {
             // ── Form ──
             InitBaseTheme("PHÁT SINH CỌC & ĐỔI TÊN CỌC", 780, 850);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
 
             // ── HEADER ──
             var header = CreateHeader("PHÁT SINH CỌC & ĐỔI TÊN CỌC");
@@ -237,8 +239,6 @@ namespace MyFirstProject
             };
             this.Controls.Add(mainPanel);
             mainPanel.BringToFront();
-
-            int y = 5;
 
             // ═══════════════════════════════════════════════════
             // SECTION 1: CHỌN CHỨC NĂNG
@@ -294,26 +294,29 @@ namespace MyFirstProject
             // ═══════════════════════════════════════════════════
             // SECTION 2: CHỌN TUYẾN
             // ═══════════════════════════════════════════════════
-            var grpAlign = CreateSection("Chọn Tuyến (Alignment)", 0, 0, 730, 75);
+            var grpAlign = CreateSection("Chọn Tuyến (Alignment)", 0, 0, 730, 140);
             grpAlign.Margin = new Padding(0, 0, 0, 10);
             mainPanel.Controls.Add(grpAlign);
 
             grpAlign.Controls.Add(CreateLabel("Tuyến:", 12, 33));
-            cboAlignment = new ComboBox
+            chkListAlignments = new CheckedListBox
             {
-                Location = new Point(75, 29),
-                Size = new Size(320, 28),
-                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(75, 30),
+                Size = new Size(320, 95),
                 BackColor = BgInput,
                 ForeColor = TextDark,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9.5f)
+                Font = new Font("Segoe UI", 9.5f),
+                CheckOnClick = true,
+                BorderStyle = BorderStyle.FixedSingle
             };
             foreach (var al in alignments)
-                cboAlignment.Items.Add(al.Name);
-            if (cboAlignment.Items.Count > 0) cboAlignment.SelectedIndex = 0;
-            cboAlignment.SelectedIndexChanged += (s, e) => OnAlignmentChanged();
-            grpAlign.Controls.Add(cboAlignment);
+                chkListAlignments.Items.Add(al.Name);
+            if (chkListAlignments.Items.Count > 0) 
+                chkListAlignments.SetItemChecked(0, true);
+            chkListAlignments.ItemCheck += (s, e) => {
+                this.BeginInvoke((Action)OnAlignmentChanged);
+            };
+            grpAlign.Controls.Add(chkListAlignments);
 
             lblAlignmentInfo = CreateLabel("", 410, 30);
             lblAlignmentInfo.AutoSize = true;
@@ -648,11 +651,13 @@ namespace MyFirstProject
             };
 
             dgvPreview.Columns.Add("colSTT", "STT");
+            dgvPreview.Columns.Add("colAlignment", "Tuyến");
             dgvPreview.Columns.Add("colTen", "Tên cọc");
             dgvPreview.Columns.Add("colStation", "Station (m)");
             dgvPreview.Columns.Add("colLyTrinh", "Lý trình");
-            dgvPreview.Columns["colSTT"]!.Width = 50;
-            dgvPreview.Columns["colTen"]!.Width = 120;
+            dgvPreview.Columns["colSTT"]!.Width = 40;
+            dgvPreview.Columns["colAlignment"]!.Width = 100;
+            dgvPreview.Columns["colTen"]!.Width = 100;
             grpPreview.Controls.Add(dgvPreview);
 
             btnPreview = CreateButton("Preview", 625, 30, 95, 40, grpPreview);
@@ -696,29 +701,46 @@ namespace MyFirstProject
 
         private void OnAlignmentChanged()
         {
-            if (cboAlignment.SelectedIndex < 0 || cboAlignment.SelectedIndex >= alignments.Count) return;
-            var al = alignments[cboAlignment.SelectedIndex];
-            SelectedAlignmentId = al.Id;
-            lblAlignmentInfo.Text = $"L = {al.Length:F1}m  |  Sta: {al.StartStation:F0} → {al.EndStation:F0}";
-            lblGroupInfo.Text = $"Nhóm cọc: {al.GroupCount}  |  Số cọc hiện có: {al.SampleLineCount}";
+            SelectedAlignmentIds.Clear();
+            foreach (int idx in chkListAlignments.CheckedIndices)
+            {
+                SelectedAlignmentIds.Add(alignments[idx].Id);
+            }
+
+            if (SelectedAlignmentIds.Count > 0)
+            {
+                var firstIdx = chkListAlignments.CheckedIndices[0];
+                var al = alignments[firstIdx];
+                lblAlignmentInfo.Text = $"Đã chọn {SelectedAlignmentIds.Count} tuyến. (VD: {al.Name} | L={al.Length:F1}m)";
+                lblGroupInfo.Text = $"Nhóm cọc (tuyến đầu): {al.GroupCount} | Số cọc: {al.SampleLineCount}";
+            }
+            else
+            {
+                lblAlignmentInfo.Text = "Chưa chọn tuyến nào.";
+                lblGroupInfo.Text = "";
+            }
         }
 
         private void BtnExecute_Click(object? sender, EventArgs e)
         {
-            if (SelectedAlignmentId == ObjectId.Null)
+            if (SelectedAlignmentIds.Count == 0)
             {
-                MessageBox.Show("Vui lòng chọn tuyến!", "Thông báo",
+                MessageBox.Show("Vui lòng chọn ít nhất 1 tuyến!", "Thông báo",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (rdoDoiTen.Checked)
             {
-                // Check có cọc không
-                var al = alignments[cboAlignment.SelectedIndex];
-                if (al.SampleLineCount == 0)
+                bool hasNoStake = false;
+                foreach (int idx in chkListAlignments.CheckedIndices)
                 {
-                    MessageBox.Show("Tuyến này chưa có cọc!\nHãy chọn 'Phát sinh cọc mới' trước.",
+                    if (alignments[idx].SampleLineCount == 0)
+                        hasNoStake = true;
+                }
+                if (hasNoStake)
+                {
+                    MessageBox.Show("Có tuyến được chọn chưa có cọc!\nHãy chọn 'Phát sinh cọc mới' trước.",
                         "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -727,7 +749,7 @@ namespace MyFirstProject
             string mode = rdoPhatSinh.Checked ? "Phát sinh cọc mới" : "Đổi tên cọc hiện có";
             var confirm = MessageBox.Show(
                 $"Chức năng: {mode}\n" +
-                $"Tuyến: {alignments[cboAlignment.SelectedIndex].Name}\n" +
+                $"Số tuyến đã chọn: {SelectedAlignmentIds.Count}\n" +
                 $"Tổng: {PreviewItems.Count} cọc\n\n" +
                 "Tiếp tục?",
                 "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
@@ -749,19 +771,25 @@ namespace MyFirstProject
             PreviewItems.Clear();
             dgvPreview.Rows.Clear();
 
-            if (cboAlignment.SelectedIndex < 0 || cboAlignment.SelectedIndex >= alignments.Count) return;
-            var alInfo = alignments[cboAlignment.SelectedIndex];
+            if (chkListAlignments == null) return;
 
-            if (rdoPhatSinh.Checked)
-                GeneratePreviewPhatSinh(alInfo);
-            else
-                GeneratePreviewDoiTen(alInfo);
+            foreach (int idx in chkListAlignments.CheckedIndices)
+            {
+                var alInfo = alignments[idx];
+
+                if (rdoPhatSinh.Checked)
+                    GeneratePreviewPhatSinh(alInfo);
+                else
+                    GeneratePreviewDoiTen(alInfo);
+            }
 
             // Hiển thị preview
+            int stt = 1;
             foreach (var item in PreviewItems)
             {
-                int idx = dgvPreview.Rows.Add(item.STT, item.TenCoc, $"{item.Station:F3}", item.LyTrinh);
-                var row = dgvPreview.Rows[idx];
+                item.STT = stt++;
+                int gridIdx = dgvPreview.Rows.Add(item.STT, item.AlignmentName, item.TenCoc, $"{item.Station:F3}", item.LyTrinh);
+                var row = dgvPreview.Rows[gridIdx];
 
                 // Tô màu theo loại
                 if (item.TenCoc == "DT" || item.TenCoc == "CT")
@@ -841,7 +869,7 @@ namespace MyFirstProject
             stations = stations.Distinct().OrderBy(s => s).ToList();
 
             // Đặt tên
-            ApplyNamingConvention(stations, specialCurveStations);
+            ApplyNamingConvention(alInfo, stations, specialCurveStations);
         }
 
         /// <summary>
@@ -868,7 +896,7 @@ namespace MyFirstProject
                 stations = stations.Distinct().OrderBy(s => s).ToList();
 
                 var specialCurveStations = GetSpecialCurveStations(alInfo.Id);
-                ApplyNamingConvention(stations, specialCurveStations);
+                ApplyNamingConvention(alInfo, stations, specialCurveStations);
                 tr.Commit();
             }
             catch { }
@@ -1000,7 +1028,7 @@ namespace MyFirstProject
         /// <summary>
         /// Đặt tên cọc theo quy cách: DT, CT, KM, H, TĐ, P, TC, 1~N
         /// </summary>
-        private void ApplyNamingConvention(List<double> stations, Dictionary<double, string> specialStations)
+        private void ApplyNamingConvention(AlignmentInfo alInfo, List<double> stations, Dictionary<double, string> specialStations)
         {
             if (stations.Count == 0) return;
 
@@ -1035,7 +1063,9 @@ namespace MyFirstProject
 
                 PreviewItems.Add(new CocPreviewItem
                 {
-                    STT = i + 1,
+                    STT = 0,
+                    AlignmentId = alInfo.Id,
+                    AlignmentName = alInfo.Name,
                     TenCoc = name,
                     Station = sta,
                     LyTrinh = FormatStation(sta)
@@ -1087,35 +1117,43 @@ namespace MyFirstProject
                 return;
             }
 
-            if (form.SelectedAlignmentId == ObjectId.Null) return;
+            if (form.SelectedAlignmentIds.Count == 0) return;
 
             if (form.IsPhatSinh)
-                ExecutePhatSinh(form);
+            {
+                foreach(var alId in form.SelectedAlignmentIds)
+                    ExecutePhatSinh(form, alId);
+            }
             else
-                ExecuteDoiTen(form);
+            {
+                foreach(var alId in form.SelectedAlignmentIds)
+                    ExecuteDoiTen(form, alId);
+            }
         }
 
         /// <summary>
         /// Phát sinh cọc mới dọc tuyến
         /// </summary>
-        private static void ExecutePhatSinh(CocTuyenDuongForm form)
+        private static void ExecutePhatSinh(CocTuyenDuongForm form, ObjectId alId)
         {
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                Alignment? alignment = tr.GetObject(form.SelectedAlignmentId, OpenMode.ForWrite) as Alignment;
+                Alignment? alignment = tr.GetObject(alId, OpenMode.ForWrite) as Alignment;
                 if (alignment == null) { tr.Commit(); return; }
 
                 // Tạo hoặc lấy SampleLineGroup
                 ObjectId slgId;
                 if (alignment.GetSampleLineGroupIds().Count == 0)
-                    slgId = SampleLineGroup.Create(alignment.Name, form.SelectedAlignmentId);
+                    slgId = SampleLineGroup.Create(alignment.Name, alId);
                 else
                     slgId = alignment.GetSampleLineGroupIds()[0];
 
+                var itemsForThisAl = form.PreviewItems.Where(x => x.AlignmentId == alId).ToList();
+
                 // Tạo SampleLine từ preview
                 int created = 0;
-                foreach (var item in form.PreviewItems)
+                foreach (var item in itemsForThisAl)
                 {
                     try
                     {
@@ -1134,30 +1172,30 @@ namespace MyFirstProject
                 // Áp dụng Style cho SampleLine
                 ApplyStyleAndLabel(tr, slgId, form.SelectedSampleLineStyle, form.SelectedLabelStyle);
 
-                A.Ed.WriteMessage($"\n✅ Đã phát sinh {created}/{form.PreviewItems.Count} cọc trên tuyến {alignment.Name}");
+                A.Ed.WriteMessage($"\n✅ Đã phát sinh {created}/{itemsForThisAl.Count} cọc trên tuyến {alignment.Name}");
                 tr.Commit();
             }
             catch (System.Exception ex)
             {
-                A.Ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                A.Ed.WriteMessage($"\n❌ Lỗi tuyến {alId}: {ex.Message}");
             }
         }
 
         /// <summary>
         /// Đổi tên cọc hiện có
         /// </summary>
-        private static void ExecuteDoiTen(CocTuyenDuongForm form)
+        private static void ExecuteDoiTen(CocTuyenDuongForm form, ObjectId alId)
         {
             using Transaction tr = A.Db.TransactionManager.StartTransaction();
             try
             {
-                Alignment? alignment = tr.GetObject(form.SelectedAlignmentId, OpenMode.ForRead) as Alignment;
+                Alignment? alignment = tr.GetObject(alId, OpenMode.ForRead) as Alignment;
                 if (alignment == null) { tr.Commit(); return; }
 
                 ObjectIdCollection slgIds = alignment.GetSampleLineGroupIds();
                 if (slgIds.Count == 0)
                 {
-                    A.Ed.WriteMessage("\n⚠ Tuyến này chưa có nhóm cọc!");
+                    A.Ed.WriteMessage($"\n⚠ Tuyến {alignment.Name} chưa có nhóm cọc!");
                     tr.Commit();
                     return;
                 }
@@ -1175,7 +1213,7 @@ namespace MyFirstProject
             }
             catch (System.Exception ex)
             {
-                A.Ed.WriteMessage($"\n❌ Lỗi: {ex.Message}");
+                A.Ed.WriteMessage($"\n❌ Lỗi tuyến {alId}: {ex.Message}");
             }
         }
 

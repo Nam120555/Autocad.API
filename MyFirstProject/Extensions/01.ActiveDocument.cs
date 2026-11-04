@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -72,24 +72,23 @@ namespace MyFirstProject.Extensions
 
         public static SectionViewGroup SectionViewGroupObject(this SectionView sv)
         {
-            Transaction tr = Db.TransactionManager.StartTransaction();
+            using Transaction tr = Db.TransactionManager.StartTransaction();
             SectionViewGroup? result = null;
             ObjectId sampleLineId = sv.SampleLineId;
-            SampleLineGroup? slg = tr.GetObject(sampleLineId, OpenMode.ForWrite) as SampleLineGroup;
-            //SampleLineGroup slg = (SampleLineGroup)sv.ParentEntityId.GetObject(OpenMode.ForRead);
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-            foreach (SectionViewGroup svg in slg.SectionViewGroups)
+            SampleLineGroup? slg = tr.GetObject(sampleLineId, OpenMode.ForRead) as SampleLineGroup;
+            if (slg != null)
             {
-                if (svg.GetSectionViewIds().Contains(sv.ObjectId))
+                foreach (SectionViewGroup svg in slg.SectionViewGroups)
                 {
-                    result = svg;
-                    break;
+                    if (svg.GetSectionViewIds().Contains(sv.ObjectId))
+                    {
+                        result = svg;
+                        break;
+                    }
                 }
             }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-#pragma warning disable CS8603 // Possible null reference return.
-            return result;
-#pragma warning restore CS8603 // Possible null reference return.
+            tr.Commit();
+            return result!;
         }
 
 

@@ -4,7 +4,7 @@
 ; =====================================================================
 
 #define AppName      "Bo Cong Cu Civil 3D - NXSOFT"
-#define AppVersion   "1.0.0"
+#define AppVersion   "1.1.0"
 #define AppPublisher "Huynh Ngoc Nam"
 #define AppURL       "Namhuynh1205@gmail.com"
 #define SourceDir    "..\MyFirstProject\bin\Debug"
@@ -27,7 +27,8 @@ AllowNoIcons=yes
 
 OutputDir={#OutputDir}
 OutputBaseFilename=Civil_Tool_NXSOFT_Setup_v{#AppVersion}
-SetupIconFile=C:\Google\Autocad 2026_API\FolderTreeGenerator\logo.ico
+; SetupIconFile: file logo.ico cu (FolderTreeGenerator) khong con ton tai -> tam bo
+; SetupIconFile=D:\Autocad 2026_API\FolderTreeGenerator\logo.ico
 
 Compression=lzma2/ultra64
 SolidCompression=yes
